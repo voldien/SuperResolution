@@ -11,6 +11,7 @@ import tensorflow as tf
 
 from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
 from models.DCSuperResolution import create_simple_model
+from models.PostDCSuperResolution import create_post_super_resolution
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset, split_dataset
 from util.util import SaveHistory, SaveExampleResultImageCallBack, plotCostHistory
@@ -34,8 +35,39 @@ def setup_strategy(args):
 	return strategy
 
 
-def run_train_model(args, dataset):
+def setup_builtin_models():
+	builtin_models = {}
+	builtin_models['dcsr'] = create_simple_model
+	builtin_models['dscr-post'] = create_post_super_resolution
+	return builtin_models
 
+
+def setup_model(args, builtin_models, image_input_size, image_output_size):
+	args.model_override_filepath = None  # TODO remove
+	if args.model_override_filepath is not None:
+		return tf.keras.models.load_model(
+			args.model_override_filepath, compile=False)
+	else:
+		if os.path.isfile(args.model):
+			pass
+		# from args.model import create_model
+		else:
+			return builtin_models[args.model](input_shape=image_input_size, output_shape=image_output_size)
+
+
+def setup_loss_function(args):
+	def ssim_loss(y_true, y_pred):
+		return (1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=2.0)))
+
+	builtin_loss_functions = {}
+	builtin_loss_functions['mse'] = tf.keras.losses.MeanSquaredError()
+	builtin_loss_functions['ssim'] = ssim_loss
+
+	return builtin_loss_functions[args.loss_fn]
+
+
+
+def run_train_model(args, dataset):
 	strategy = setup_strategy(args=args)
 
 	# Compute the total batch size.
@@ -55,7 +87,6 @@ def run_train_model(args, dataset):
 	dataset = configure_dataset_performance(ds=dataset, use_cache=args.cache_ram, cache_path=args.cache_path,
 											shuffle_size=args.dataset_shuffle_size)
 
-
 	#
 	dataset = augment_dataset(dataset=dataset)
 
@@ -63,18 +94,20 @@ def run_train_model(args, dataset):
 									   input_size=(int(image_input_size[0]), int(image_input_size[1])),
 									   output_size=image_output_size)
 
-
 	# Final Combined dataset. Set batch size
 	dataset = dataset.batch(batch_size)
 
 	# Split
 	dataset, validation_data_ds = split_dataset(dataset=dataset, train_size=0.9)
 
-
 	# Setup for strategy support, to allow multiple GPU setup.
 	options = tf.data.Options()
 	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 	dataset = dataset.with_options(options)
+	validation_data_ds = dataset.with_options(options)
+
+	# Setup builtin models
+	builtin_models = setup_builtin_models()
 
 	#
 	logging.info(len(dataset))
@@ -93,12 +126,8 @@ def run_train_model(args, dataset):
 			learning_rate=lr_schedule, beta_1=0.5, beta_2=0.9)
 
 		# Load or create models.
-		args.model_override_filepath = None # TODO remove
-		if args.model_override_filepath is not None:
-			model = tf.keras.models.load_model(
-				args.model_override_filepath, compile=False)
-		else:
-			model = create_simple_model(input_shape=image_input_size, output_shape=image_output_size)
+		model = setup_model(args=args, builtin_models=builtin_models, image_input_size=image_input_size,
+					image_output_size=image_output_size)
 
 		# Save the model as an image to directory, for easy backtracking of the model composition.
 		tf.keras.utils.plot_model(
@@ -120,12 +149,10 @@ def run_train_model(args, dataset):
 		#		save_path=tf.train.latest_checkpoint(args.checkpoint_dir))
 		# status.assert_consumed()  # Optional sanity checks.
 
-		def ssim_loss(y_true, y_pred):
-			return (1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=2.0)))
+		loss_fn = setup_loss_function(args)
 
-		loss_fn =  tf.keras.losses.MeanSquaredError()
 
-		model.compile(optimizer=model_optimizer, loss=ssim_loss, metrics=['accuracy'])
+		model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy'])
 
 		# Create a callback that saves the model's weights
 		checkpoint_path = args.checkpoint_dir
@@ -135,7 +162,7 @@ def run_train_model(args, dataset):
 														 save_weights_only=True,
 														 verbose=0)
 		checkpoint = tf.train.Checkpoint(model=model)
-		#checkpoint.restore(tf.train.latest_checkpoint(checkpoint_path)).expect_partial()
+		# checkpoint.restore(tf.train.latest_checkpoint(checkpoint_path)).expect_partial()
 		# The model weights (that are considered the best) are loaded into the model.
 		if os.path.exists(checkpoint_path):
 			model.load_weights(checkpoint_path)
@@ -187,17 +214,7 @@ def dcsuperresolution_program(vargs=None):
 	parser.add_argument('--example-batch-gridsize', dest='example_batch_grid_size',
 						type=int, metavar=('width', 'height'),
 						nargs=2, default=(8, 8), help='Set the grid size of number of example images.')
-	#
-	parser.add_argument('--use-resnet', dest='use_resnet',
-						type=bool,
-						default=False,
-						help='Enable the usage of Resnet version of the generator and discriminator.')
 
-	#
-	parser.add_argument('--weight-penalty', dest='weight_penalty',
-						default=10,
-						type=float,
-						help='Wasserstein Weight Penalty.')
 	#
 	parser.add_argument('--decay-rate', dest='learning_rate_decay',
 						default=0.96,
@@ -208,13 +225,18 @@ def dcsuperresolution_program(vargs=None):
 						help='Set Learning rate Decay Step.', type=int)
 	#
 	parser.add_argument('--model', dest='model',
-						default='dcgan',
-						choices=['dcgan', 'stylized'],
+						default='dcsr',
+						choices=['dcsr', 'dscr-post', 'dscr-pre'],
 						help='Set which model type to use.', type=str)
+	#
+	parser.add_argument('--loss-fn', dest='loss_fn',
+						default='mse',
+						choices=['mse', 'ssim'],
+						help='.', type=str)
 
-	parser.add_argument('--generate-latentspace', dest='generate_latentspace',
+	parser.add_argument('--override-latentspace-size', dest='generate_latentspace',
 						default=False,
-						help='Set which model type to use.', type=bool)
+						help='', type=bool)
 
 	# If invalid number of arguments, print help.
 	if len(sys.argv) < 2:
