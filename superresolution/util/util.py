@@ -1,3 +1,4 @@
+from ast import Dict
 import os
 from random import randrange
 
@@ -65,12 +66,12 @@ def get_last_multidim_model(model):
 											  last_multi_layer.output))
 	return feature_model
 
-
-def plotFitHistory(results, loss_label="", val_label="", title="", x_label="", y_label=""):
+def plotFitHistory(result_collection : Dict, loss_label="", val_label="", title="", x_label="", y_label=""):
 	fig = plt.figure(figsize=(10, 10), dpi=300)
-	for i, result in enumerate(results):
-		# ax = plt.subplot(1, len(results), i + 1)
-		plt.plot(result[1], label=result[0])
+
+	for i, result_key in enumerate(result_collection.keys()):
+		dataplot = result_collection[result_key]
+		plt.plot(dataplot, label=result_key)
 		plt.ylabel(ylabel=y_label)
 		plt.xlabel(xlabel=x_label)
 		plt.legend(loc="upper left")
