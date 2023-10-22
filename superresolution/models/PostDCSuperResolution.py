@@ -1,6 +1,50 @@
+import argparse
+from core import ModelBase
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+
+
+
+class DCPostSuperResolutionModel(ModelBase):
+	def __init__(self):
+		pass
+
+	def load_argument(self) -> argparse.ArgumentParser:
+		"""Load in the file for extracting text."""
+		parser = argparse.ArgumentParser(add_help=True, prog="", description="")
+
+		parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
+							help='Set the number of passes that the training set will be trained against.')
+
+		parser.add_argument('--override-latentspace-size', dest='generate_latentspace',
+							default=False,
+							help='', type=bool)
+		#
+		parser.add_argument('--regularization', dest='regularization',
+							type=float,
+							default=0.001,
+							help='Set the L1 Regularization applied.')
+		
+		#
+		parser.add_argument('--loss-fn', dest='loss_fn',
+							default='mse',
+							choices=['mses'],
+							help='.', type=str)
+
+		#
+		return parser
+
+	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
+		"""Extract text from the currently loaded file."""
+		return create_post_super_resolution(input_shape=input_shape, output_shape=output_shape)
+	
+	def get_name(self):
+		return "post super"
+
+
+def get_model_interface() -> ModelBase:
+	return DCPostSuperResolutionModel()
 
 def create_post_super_resolution(input_shape, output_shape):
 	batch_norm = False

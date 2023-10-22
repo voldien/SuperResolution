@@ -78,6 +78,9 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	parser.add_argument('--optimizer', type=str, default='adam', dest='optimizer',
 	                    choices=['adam', 'ada', 'rmsprop', 'sgd', 'adadelta'],
 	                    help='Select optimizer to be used')
+	
+	parser.add_argument('--use-valdiation', type=bool, default=True, dest='use_validation',
+	                    help='Select if use data validation step.')
 
 
 	return parser

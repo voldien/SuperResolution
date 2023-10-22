@@ -26,7 +26,7 @@ def configure_dataset_performance(ds: Dataset, use_cache: bool, cache_path: str,
 	return ds
 
 
-def load_dataset_from_directory(data_path, args, use_float16=False, **kwargs) -> Dataset:
+def load_dataset_from_directory(data_path : str, args, use_float16 : bool =False, **kwargs) -> Dataset:
 	# Determine if path or file.
 	if os.path.isdir(data_path):
 		pass
@@ -74,7 +74,7 @@ def load_dataset_from_directory(data_path, args, use_float16=False, **kwargs) ->
 	return normalized_ds
 
 
-def augment_dataset(dataset):
+def augment_dataset(dataset : Dataset) -> Dataset:
 	trainAug = tf.keras.Sequential([
 		layers.RandomFlip("horizontal_and_vertical"),
 		layers.RandomZoom(
@@ -98,7 +98,7 @@ def augment_dataset(dataset):
 	return dataset
 
 
-def dataset_super_resolution(dataset, input_size, output_size):
+def dataset_super_resolution(dataset : Dataset, input_size, output_size) -> Dataset:
 	def DownScaleLayer(x):
 		downscale = tf.keras.layers.Resizing(
 			input_size[0],
@@ -121,7 +121,7 @@ def dataset_super_resolution(dataset, input_size, output_size):
 	return tf.data.Dataset.zip((XDataSet, YDataSet))
 
 
-def split_dataset(dataset, train_size):
+def split_dataset(dataset : Dataset, train_size : float) -> tuple:
 	nrBatches = len(dataset)
 
 	offset_skip = int(train_size * nrBatches)
