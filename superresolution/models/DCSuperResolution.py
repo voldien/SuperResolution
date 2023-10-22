@@ -51,8 +51,9 @@ def get_model_interface() -> ModelBase:
 
 # Create interface object or similar.
 
-def create_simple_model(input_shape, output_shape, regularization = 0.00001):
-	batch_norm = True
+def create_simple_model(input_shape, output_shape, regularization = 0.00000):
+	batch_norm  : bool= True
+	use_bias : bool = True
 
 	init = tf.keras.initializers.HeNormal()
 	output_width, output_height, output_channels = output_shape
@@ -61,30 +62,32 @@ def create_simple_model(input_shape, output_shape, regularization = 0.00001):
 
 	# 
 	x = layers.Conv2D(output_width, kernel_size=(9, 9), strides=1, padding='same',
+				   use_bias=use_bias,
 					  kernel_initializer=init)(input)
 	if batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 	x = layers.ReLU(dtype='float32')(x)
 
 	# 
-	x = layers.Conv2D(output_width / 2, kernel_size=(1, 1), strides=1, padding='same',
+	x = layers.Conv2D(output_width / 2, kernel_size=(3, 3), strides=1, padding='same',
+				     use_bias=use_bias,
 					  kernel_initializer=init)(x)
 	if batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 	x = layers.ReLU(dtype='float32')(x)
 
 	# Upscale.
-	x = layers.Conv2DTranspose(filters=output_width / 2, kernel_size=(3, 3), strides=(
-		2, 2), padding='same', kernel_initializer=init)(x)
+	x = layers.Conv2DTranspose(filters=output_width / 2, kernel_size=(5, 5), strides=(
+		2, 2),   use_bias=use_bias, padding='same', kernel_initializer=init)(x)
 	if batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 	x = layers.ReLU(dtype='float32')(x)
 
 	# 
 	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(5, 5), strides=(
-		1, 1), padding='same', kernel_initializer=init)(x)
+		1, 1), padding='same',   use_bias=use_bias, kernel_initializer=init)(x)
 	x = layers.Activation('tanh')(x)
-	x = layers.ActivityRegularization(l1=regularization)(x)
+	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
 	#Confirm the output shape.
 	assert x.shape[1:] == output_shape

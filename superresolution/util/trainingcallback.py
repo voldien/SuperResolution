@@ -85,6 +85,13 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 			fig.savefig(os.path.join(self.dir_path, "SuperResolution_{0}_{1}.png".format(self.current_epoch, batch)))
 
 
+
+#def compare_images(target, ref):
+#    scores = []
+#    scores.append(psnr(target, ref))
+#    scores.append(mse(target, ref))
+#    scores.append(ssim(target, ref, multichannel=True))
+#    return scores
 #TODO add support with PNSS, to extract how good it is in contrast to the original data.
 class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 
@@ -114,12 +121,17 @@ class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 			fig = showResult(model=self.model, image_batch_dataset=self.trainSet, color_space=self.color_space)
 			fig.savefig(os.path.join(self.dir_path, "SuperResolution_{0}_{1}.png".format(self.current_epoch, batch)))
 
+
 class GraphHistory(tf.keras.callbacks.History):
 	def __init__(self, filepath : str):
 		super().__init__()
 		self.fig_savepath = filepath
 
-	def on_epoch_end(self, epoch, logs=None):
+	def on_train_begin(self, logs):
+		super().on_train_begin(logs=logs)
+
+	def on_epoch_end(self, epoch, logs):
 		super().on_epoch_end(epoch=epoch, logs=logs)
-		fig = plotFitHistory(self.history)
+
+		fig = plotFitHistory(self.history, x_label="Epoch", y_label="value")
 		fig.savefig(self.fig_savepath)

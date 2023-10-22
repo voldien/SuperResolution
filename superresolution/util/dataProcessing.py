@@ -16,7 +16,7 @@ from tensorflow.python.data import Dataset
 def configure_dataset_performance(ds: Dataset, use_cache: bool, cache_path: str, shuffle_size: int = 0,
 								  AUTOTUNE: object = tf.data.AUTOTUNE) -> Dataset:
 	if cache_path is not None:
-		ds = ds.cache(filename=cache_path, name='GANCache')
+		ds = ds.cache(filename=cache_path, name='SuperResolutionCache')
 	elif use_cache:
 		ds = ds.cache()
 	if shuffle_size > 0:
@@ -46,7 +46,7 @@ def load_dataset_from_directory(data_path : str, args, use_float16 : bool =False
 		color_mode=color_mode,
 		label_mode=None,
 		crop_to_aspect_ratio=True,
-		shuffle=True,
+		shuffle=False,
 		follow_links=True,
 		batch_size=None,
 		image_size=args.image_size)
@@ -65,9 +65,9 @@ def load_dataset_from_directory(data_path : str, args, use_float16 : bool =False
 		normalized_ds = train_ds.map(lambda x: preprocess_rgb2lab(
 			normalization_layer(x)) * (1.0 / 128.0))
 	else:
-		# Normalize and Translate [0,1] -> [-1, 1]
+		# Normalize and Transform [0,1] -> [-1, 1]
 		normalized_ds = train_ds.map(
-			lambda x: normalization_layer(x) * 2.0 - 1.0)
+			lambda x: (normalization_layer(x) * 2.0) - 1.0)
 
 	normalized_ds = normalized_ds.map(lambda x: tf.cast(x, float_precision))
 
@@ -99,26 +99,34 @@ def augment_dataset(dataset : Dataset) -> Dataset:
 
 
 def dataset_super_resolution(dataset : Dataset, input_size, output_size) -> Dataset:
-	def DownScaleLayer(x):
-		downscale = tf.keras.layers.Resizing(
+	def DownScaleLayer(data):
+		downScale = tf.keras.Sequential([
+		layers.Resizing(
 			input_size[0],
 			input_size[1],
 			interpolation='bilinear',
 			crop_to_aspect_ratio=False
-		)
-		aX = downscale(x)
-		return aX
+		)])
+		expected = tf.identity(data) 
+		# Remape from [-1, 1] to [0,1]
+		data = (data + 1.0) * 0.5
+		data = downScale(data)
+		# Remape from [0, 1] to [-1,1]
+		data = (2 * data) - 1
+
+
+		return data, expected
 
 	# apply augmentation image transformation to prevent overfitting of
+	#dataset = tf.data.Dataset.zip((dataset, dataset))
 
-	YDataSet = dataset
-	XDataSet = (
+	DownScaledDataSet = (
 		dataset
 		.map(DownScaleLayer,
 			 num_parallel_calls=tf.data.AUTOTUNE)
 	)
 
-	return tf.data.Dataset.zip((XDataSet, YDataSet))
+	return DownScaledDataSet 
 
 
 def split_dataset(dataset : Dataset, train_size : float) -> tuple:

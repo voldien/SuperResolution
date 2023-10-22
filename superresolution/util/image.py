@@ -10,29 +10,35 @@ def generate_image(model, latent_space):
 
 def showResult(model, image_batch_dataset, color_space, maxNumImages=6):
 
-
-
-
 	batch_iter = iter(image_batch_dataset)
-	image_batch, _ = next(batch_iter)
 
-	output = model.predict(image_batch, verbose=0)
+	data_image_batch, expected_image_batch = next(batch_iter)
+
+	output = model.predict(data_image_batch, verbose=0)
 
 	nrElements = min(len(output), maxNumImages)
 
+	rows = 3 + 3
 	fig = plt.figure(figsize=(maxNumImages * 2, 5 * 2))
 	for i in range(nrElements):
 
+		data_image = None
 		expected_image = None
 		# Convert color-space to normalize coordinates [0,1]
 		if color_space == 'rgb':
 			# Convert the raw encoded image to RGB color space.
-			expected_image = (image_batch[i % len(image_batch)] + 1.0) * 0.5
+			data_image = (data_image_batch[i % len(data_image_batch)] + 1.0) * 0.5
+			expected_image = (expected_image_batch[i % len(expected_image_batch)] + 1.0) * 0.5
 		elif color_space == 'lab':
 			# Convert the raw encoded image to LAB color space.
-			expected_image = lab2rgb(image_batch[i % len(image_batch)] * 128)
+			data_image = lab2rgb(data_image_batch[i % len(data_image_batch)] * 128)
+			expected_image = lab2rgb(expected_image_batch[i % len(expected_image_batch)] * 128)
 
-		plt.subplot(5, maxNumImages, i + 1)
+		plt.subplot(rows, maxNumImages, maxNumImages * 0 + i + 1)
+		plt.imshow((asarray(data_image).astype(dtype='float32')))
+		plt.axis("off")
+
+		plt.subplot(rows, maxNumImages, maxNumImages *1 + i + 1)
 		plt.imshow((asarray(expected_image).astype(dtype='float32')))
 		plt.axis("off")
 
@@ -40,30 +46,30 @@ def showResult(model, image_batch_dataset, color_space, maxNumImages=6):
 		# Convert color-space to normalize coordinates [0,1]
 		if color_space == 'rgb':
 			# Convert the raw encoded image to RGB color space.
-			result_image = (output[i % len(image_batch)] + 1.0) * 0.5
+			result_image = (output[i % len(data_image_batch)] + 1.0) * 0.5
 		elif color_space == 'lab':
 			# Convert the raw encoded image to LAB color space.
-			result_image = lab2rgb(output[i % len(image_batch)] * 128)
+			result_image = lab2rgb(output[i % len(data_image_batch)] * 128)
 
-		plt.subplot(5, maxNumImages, maxNumImages * 1 + i + 1)
+		plt.subplot(rows, maxNumImages, maxNumImages * 2 + i + 1)
 		plt.imshow(result_image[:, :, 0], cmap='gray')
 		plt.axis("off")
 
-		plt.subplot(5, maxNumImages, maxNumImages * 2 + i + 1)
+		plt.subplot(rows, maxNumImages, maxNumImages * 3 + i + 1)
 		plt.imshow(result_image[:, :, 1], cmap='Blues')
 		plt.axis("off")
 
-		plt.subplot(5, maxNumImages, maxNumImages * 3 + i + 1)
+		plt.subplot(rows, maxNumImages, maxNumImages * 4 + i + 1)
 		plt.imshow(result_image[:, :, 2], cmap='Greens')
 		plt.axis("off")
 
-		plt.subplot(5, maxNumImages, maxNumImages * 4 + 1 + i)
+		plt.subplot(rows, maxNumImages, maxNumImages * 5 + 1 + i)
 		plt.imshow(asarray(result_image).astype(dtype='float32'))
 		plt.axis("off")
 
-		if len(image_batch) - 1 == i:
-			image_batch, _ = next(batch_iter)
-			output = model.predict(image_batch, verbose=0)
+		if len(data_image_batch) - 1 == i:
+			data_image_batch, expected_image_batch = next(batch_iter)
+			output = model.predict(data_image_batch, verbose=0)
 
 	fig.subplots_adjust(wspace=0.05, hspace=0.05)
 	plt.close()

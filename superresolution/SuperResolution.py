@@ -132,7 +132,7 @@ def run_train_model(args, dataset):
 	dataset = dataset.batch(batch_size)
 
 	# Split training and validation.
-	dataset, validation_data_ds = split_dataset(dataset=dataset, train_size=0.9)
+	dataset, validation_data_ds = split_dataset(dataset=dataset, train_size=0.95)
 
 	# Setup for strategy support, to allow multiple GPU setup.
 	options = tf.data.Options()
@@ -141,7 +141,7 @@ def run_train_model(args, dataset):
 
 	options = tf.data.Options()
 	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-	validation_data_ds = dataset.with_options(options)
+	validation_data_ds = validation_data_ds.with_options(options)
 	
 
 	# Setup builtin models
@@ -190,11 +190,12 @@ def run_train_model(args, dataset):
 
 		loss_fn = setup_loss_builtin_function(args)
 
+		#TODO add PBNR
 		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy'])
 
 		# Create a callback that saves the model's weights
 		checkpoint_path = args.checkpoint_dir
-
+		#TODO save all checkpoints..
 		# Create a callback that saves the model's weights
 		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
 														 save_weights_only=True,
@@ -205,7 +206,7 @@ def run_train_model(args, dataset):
 		if os.path.exists(checkpoint_path):
 			training_model.load_weights(checkpoint_path)
 
-		# TODO add validation
+		#
 		graph_output = os.path.join(args.output_dir, "history_graph.png")
 		historyResult = training_model.fit(x=dataset, validation_data=validation_data_ds, verbose='auto',
 								  epochs=args.epochs, callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
@@ -218,7 +219,7 @@ def run_train_model(args, dataset):
 		training_model.save(args.model_filepath)
 
 		# Plot history result.
-		plotFitHistory(historyResult)
+		plotFitHistory(historyResult.history)
 
 
 def dcsuperresolution_program(vargs=None):
@@ -270,7 +271,7 @@ def dcsuperresolution_program(vargs=None):
 		parser.add_argument('--loss-fn', dest='loss_fn',
 							default='mse',
 							choices=['mse', 'ssim'],
-							help='.', type=str)
+							help='Loss Function', type=str)
 
 		
 		# Create logger and output information
