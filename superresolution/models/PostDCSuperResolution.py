@@ -5,7 +5,6 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 
-
 class DCPostSuperResolutionModel(ModelBase):
 	def __init__(self):
 		pass
@@ -25,7 +24,7 @@ class DCPostSuperResolutionModel(ModelBase):
 							type=float,
 							default=0.001,
 							help='Set the L1 Regularization applied.')
-		
+
 		#
 		parser.add_argument('--loss-fn', dest='loss_fn',
 							default='mse',
@@ -38,13 +37,14 @@ class DCPostSuperResolutionModel(ModelBase):
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
 		"""Extract text from the currently loaded file."""
 		return create_post_super_resolution(input_shape=input_shape, output_shape=output_shape)
-	
+
 	def get_name(self):
 		return "post super"
 
 
 def get_model_interface() -> ModelBase:
 	return DCPostSuperResolutionModel()
+
 
 def create_post_super_resolution(input_shape, output_shape):
 	batch_norm = False
@@ -77,7 +77,7 @@ def create_post_super_resolution(input_shape, output_shape):
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
 
-	#x = tf.nn.depth_to_space(x, 2)
+	# x = tf.nn.depth_to_space(x, 2)
 
 	x = layers.Conv2D(filters=3, kernel_size=(4, 4), strides=(
 		1, 1), padding='same', kernel_initializer=init)(x)
@@ -85,7 +85,7 @@ def create_post_super_resolution(input_shape, output_shape):
 
 	x = layers.add([x, upscale])
 	x = layers.Activation('tanh')(x)
-	#x = layers.ActivityRegularization(l1=0.0001)(x)
+	# x = layers.ActivityRegularization(l1=0.0001)(x)
 
 	conv_autoencoder = keras.Model(inputs=input, outputs=x)
 	return conv_autoencoder

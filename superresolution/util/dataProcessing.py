@@ -26,7 +26,7 @@ def configure_dataset_performance(ds: Dataset, use_cache: bool, cache_path: str,
 	return ds
 
 
-def load_dataset_from_directory(data_path : str, args, use_float16 : bool =False, **kwargs) -> Dataset:
+def load_dataset_from_directory(data_path: str, args, override_size=None, use_float16: bool = False, **kwargs) -> Dataset:
 	# Determine if path or file.
 	if os.path.isdir(data_path):
 		pass
@@ -37,6 +37,10 @@ def load_dataset_from_directory(data_path : str, args, use_float16 : bool =False
 	float_precision = tf.float32
 	if use_float16:
 		float_precision = tf.float16
+
+	image_size = args.image_size
+	if override_size:
+		image_size = override_size
 
 	#
 	color_mode = 'rgb' if args.color_channels == 3 else 'gray'
@@ -49,7 +53,7 @@ def load_dataset_from_directory(data_path : str, args, use_float16 : bool =False
 		shuffle=False,
 		follow_links=True,
 		batch_size=None,
-		image_size=args.image_size)
+		image_size=image_size)
 
 	@tf.function
 	def preprocess_rgb2lab(img):
@@ -60,28 +64,31 @@ def load_dataset_from_directory(data_path : str, args, use_float16 : bool =False
 	# Remap to [0,1]
 	normalization_layer = tf.keras.layers.Rescaling(1. / 255.0)
 
-	#
-	if args.color_space == 'lab':  # and args.color_channels > 1:
+	# Convert color space encoding and normalize values.
+	if args.color_space == 'lab':
+		# Convert to LAB color and Transform [-128,128] -> [-1, 1]
 		normalized_ds = train_ds.map(lambda x: preprocess_rgb2lab(
 			normalization_layer(x)) * (1.0 / 128.0))
 	else:
 		# Normalize and Transform [0,1] -> [-1, 1]
 		normalized_ds = train_ds.map(
-			lambda x: (normalization_layer(x) * 2.0) - 1.0)
+			lambda x: normalization_layer(x) * 2.0 - 1.0)
 
 	normalized_ds = normalized_ds.map(lambda x: tf.cast(x, float_precision))
 
 	return normalized_ds
 
 
-def augment_dataset(dataset : Dataset) -> Dataset:
+def augment_dataset(dataset: Dataset, output_shape : tuple) -> Dataset:
 	trainAug = tf.keras.Sequential([
+		tf.keras.layers.RandomCrop(
+			output_shape[0], output_shape[1]),
 		layers.RandomFlip("horizontal_and_vertical"),
 		layers.RandomZoom(
 			height_factor=(-0.05, -0.15),
 			width_factor=(-0.05, -0.15)),
-		layers.RandomRotation(0.65),
-		#layers.RandomTranslation(
+		layers.RandomRotation(0.65)
+		# layers.RandomTranslation(
 		#	height_factor=(-0.05, -0.15),
 		#	width_factor=(-0.05, -0.15))
 	])
@@ -98,27 +105,27 @@ def augment_dataset(dataset : Dataset) -> Dataset:
 	return dataset
 
 
-def dataset_super_resolution(dataset : Dataset, input_size, output_size) -> Dataset:
+def dataset_super_resolution(dataset: Dataset, input_size, output_size) -> Dataset:
 	def DownScaleLayer(data):
 		downScale = tf.keras.Sequential([
-		layers.Resizing(
-			input_size[0],
-			input_size[1],
-			interpolation='bilinear',
-			crop_to_aspect_ratio=False
-		)])
-		expected = tf.identity(data) 
+			layers.Resizing(
+				input_size[0],
+				input_size[1],
+				interpolation='bilinear',
+				crop_to_aspect_ratio=False
+			)])
+		# Create a copy to prevent augmention be done twice seperatedly.
+		expected = tf.identity(data)
 		# Remape from [-1, 1] to [0,1]
 		data = (data + 1.0) * 0.5
 		data = downScale(data)
 		# Remape from [0, 1] to [-1,1]
 		data = (2 * data) - 1
 
-
 		return data, expected
 
 	# apply augmentation image transformation to prevent overfitting of
-	#dataset = tf.data.Dataset.zip((dataset, dataset))
+	# dataset = tf.data.Dataset.zip((dataset, dataset))
 
 	DownScaledDataSet = (
 		dataset
@@ -126,10 +133,10 @@ def dataset_super_resolution(dataset : Dataset, input_size, output_size) -> Data
 			 num_parallel_calls=tf.data.AUTOTUNE)
 	)
 
-	return DownScaledDataSet 
+	return DownScaledDataSet
 
 
-def split_dataset(dataset : Dataset, train_size : float) -> tuple:
+def split_dataset(dataset: Dataset, train_size: float) -> tuple:
 	nrBatches = len(dataset)
 
 	offset_skip = int(train_size * nrBatches)

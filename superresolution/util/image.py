@@ -9,7 +9,6 @@ def generate_image(model, latent_space):
 
 
 def showResult(model, image_batch_dataset, color_space, maxNumImages=6):
-
 	batch_iter = iter(image_batch_dataset)
 
 	data_image_batch, expected_image_batch = next(batch_iter)
@@ -34,37 +33,41 @@ def showResult(model, image_batch_dataset, color_space, maxNumImages=6):
 			data_image = lab2rgb(data_image_batch[i % len(data_image_batch)] * 128)
 			expected_image = lab2rgb(expected_image_batch[i % len(expected_image_batch)] * 128)
 
+		# Display Input Training Data.
 		plt.subplot(rows, maxNumImages, maxNumImages * 0 + i + 1)
 		plt.imshow((asarray(data_image).astype(dtype='float32')))
 		plt.axis("off")
 
-		plt.subplot(rows, maxNumImages, maxNumImages *1 + i + 1)
+		#Display Expected(Output) Train Data.
+		plt.subplot(rows, maxNumImages, maxNumImages * 1 + i + 1)
 		plt.imshow((asarray(expected_image).astype(dtype='float32')))
 		plt.axis("off")
 
-		result_image = None
+
+		result_image_rgb_encoding = None
 		# Convert color-space to normalize coordinates [0,1]
+		output_result =  output[i % len(data_image_batch)]
 		if color_space == 'rgb':
 			# Convert the raw encoded image to RGB color space.
-			result_image = (output[i % len(data_image_batch)] + 1.0) * 0.5
+			result_image_rgb_encoding = (output[i % len(data_image_batch)] + 1.0) * 0.5
 		elif color_space == 'lab':
 			# Convert the raw encoded image to LAB color space.
-			result_image = lab2rgb(output[i % len(data_image_batch)] * 128)
+			result_image_rgb_encoding = lab2rgb(output[i % len(data_image_batch)] * 128)
 
 		plt.subplot(rows, maxNumImages, maxNumImages * 2 + i + 1)
-		plt.imshow(result_image[:, :, 0], cmap='gray')
+		plt.imshow(output_result[:, :, 0], cmap='gray')
 		plt.axis("off")
 
 		plt.subplot(rows, maxNumImages, maxNumImages * 3 + i + 1)
-		plt.imshow(result_image[:, :, 1], cmap='Blues')
+		plt.imshow(output_result[:, :, 1], cmap='Blues')
 		plt.axis("off")
 
 		plt.subplot(rows, maxNumImages, maxNumImages * 4 + i + 1)
-		plt.imshow(result_image[:, :, 2], cmap='Greens')
+		plt.imshow(output_result[:, :, 2], cmap='Greens')
 		plt.axis("off")
 
 		plt.subplot(rows, maxNumImages, maxNumImages * 5 + 1 + i)
-		plt.imshow(asarray(result_image).astype(dtype='float32'))
+		plt.imshow(asarray(result_image_rgb_encoding).astype(dtype='float32'))
 		plt.axis("off")
 
 		if len(data_image_batch) - 1 == i:
