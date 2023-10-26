@@ -5,28 +5,28 @@ import keras.callbacks
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
-from util.util import plotFitHistory
+from util.util import plotTrainingHistory
 import tensorflow as tf
 from tensorflow.keras import layers
 from util.image import generate_grid_image
 
-
-from math import log10, sqrt 
+from math import log10, sqrt
 from util.image import showResult
 
 
 def compute_PSNR(orignal, data):
-	mse = np.mean((orignal - data) ** 2) 
-	if(mse == 0):  # MSE is zero means no noise is present in the signal . 
-				# Therefore PSNR have no importance. 
+	mse = np.mean((orignal - data) ** 2)
+	if (mse == 0):  # MSE is zero means no noise is present in the signal .
+		# Therefore PSNR have no importance.
 		return 100
 	max_pixel = 255.0
-	psnr = 20 * log10(max_pixel / sqrt(mse)) 
+	psnr = 20 * log10(max_pixel / sqrt(mse))
 	return psnr
+
 
 class PBNRImageResultCallBack(tf.keras.callbacks.Callback):
 	def __init__(self, dir_path, train_data_subset, color_space, **kwargs):
-		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)		
+		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
 
 		options = tf.data.Options()
 		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
@@ -41,12 +41,12 @@ class PBNRImageResultCallBack(tf.keras.callbacks.Callback):
 	def on_epoch_begin(self, epoch, logs=None):
 		self.current_epoch = epoch
 
-		batch_iter = iter( self.trainSet)
+		batch_iter = iter(self.trainSet)
 		image_batch, _ = next(batch_iter)
 
 		output = self.model.predict(image_batch, verbose=0)
 
-		self.pbnr_history.append(compute_PSNR(image_batch,output))
+		self.pbnr_history.append(compute_PSNR(image_batch, output))
 
 		# ax = plt.subplot(1, len(results), i + 1)
 		plt.plot(self.pbnr_history)
@@ -55,6 +55,7 @@ class PBNRImageResultCallBack(tf.keras.callbacks.Callback):
 		plt.legend(loc="upper left")
 
 		self.fig.savefig(os.path.join(self.dir_path, "GANCost.png"))
+
 
 class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 
@@ -85,14 +86,13 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 			fig.savefig(os.path.join(self.dir_path, "SuperResolution_{0}_{1}.png".format(self.current_epoch, batch)))
 
 
-
-#def compare_images(target, ref):
+# def compare_images(target, ref):
 #    scores = []
 #    scores.append(psnr(target, ref))
 #    scores.append(mse(target, ref))
 #    scores.append(ssim(target, ref, multichannel=True))
 #    return scores
-#TODO add support with PNSS, to extract how good it is in contrast to the original data.
+# TODO add support with PNSS, to extract how good it is in contrast to the original data.
 class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 
 	def __init__(self, dir_path, train_data_subset, color_space, **kwargs):
@@ -123,8 +123,8 @@ class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 
 
 class GraphHistory(tf.keras.callbacks.History):
-	def __init__(self, filepath : str):
-		super().__init__()
+	def __init__(self, filepath: str, **kwargs):
+		super().__init__(**kwargs)
 		self.fig_savepath = filepath
 
 	def on_train_begin(self, logs):
@@ -133,5 +133,6 @@ class GraphHistory(tf.keras.callbacks.History):
 	def on_epoch_end(self, epoch, logs):
 		super().on_epoch_end(epoch=epoch, logs=logs)
 
-		fig = plotFitHistory(self.history, x_label="Epoch", y_label="value")
+		# Plot figure and save.
+		fig = plotTrainingHistory(self.history, x_label="Epoch", y_label="value")
 		fig.savefig(self.fig_savepath)

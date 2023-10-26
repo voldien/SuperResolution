@@ -14,22 +14,23 @@ from typing import Dict
 import tensorflow as tf
 import tensorflow.keras as keras
 
-#import models.DCSuperResolution as BuiltInModels
+# import models.DCSuperResolution as BuiltInModels
 from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
-import models.DCSuperResolution
-import models.PostDCSuperResolution
+import models.DCSuperResolution, models.PostDCSuperResolution, models.SuperResolutionEDSR, models.SuperResolutionAE
 
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset, split_dataset
 from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, PBNRImageResultCallBack
-from util.util import plotFitHistory
+from util.util import plotTrainingHistory
 
 
-def setup_dataset(dataset):
+def setup_dataset(dataset, args:list):
+
 	pass
 
 
-def setup_strategy(args : dict):
+def setup_strategy(args: dict):
+	
 	# Configure
 	devices = tf.config.list_logical_devices('GPU')
 	if args.devices is not None:
@@ -44,39 +45,39 @@ def setup_strategy(args : dict):
 
 
 def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
-	builtin_models : Dict[str, ModelBase] = {}
+	builtin_models: Dict[str, ModelBase] = {}
 
 	builtin_models['dcsr'] = models.DCSuperResolution.get_model_interface()
 	builtin_models['dcsr-post'] = models.PostDCSuperResolution.get_model_interface()
-	
+	builtin_models['edsr'] = models.SuperResolutionEDSR.get_model_interface()
+	builtin_models['dcsr-ae'] = models.SuperResolutionAE.get_model_interface()
+
 	return builtin_models
 
-def load_setup_model(interface_model ) -> tf.keras.Model:
-	pass
 
-
-def load_model_interface(model_name : str) -> ModelBase:
+def load_model_interface(model_name: str) -> ModelBase:
 	# Load ML model from either runtime from script or from builtin.
 	builtin_models = load_builtin_model_interfaces()
-	module_interface : ModelBase = None
+	module_interface: ModelBase = None
 
+	# 
 	if os.path.isfile(model_name) and model_name.endswith('.py'):
-		dynamic_module = import_module(model_name)	
-		module_interface =  dynamic_module.get_model_interface()
+		dynamic_module = import_module(model_name)
+		module_interface = dynamic_module.get_model_interface()
 	else:
 		module_interface = builtin_models.get(model_name)
 
 	return module_interface
 
-def setup_model(args, builtin_models : Dict[str, ModelBase], image_input_size, image_output_size) -> keras.Model:
 
+def setup_model(args, builtin_models: Dict[str, ModelBase], image_input_size, image_output_size) -> keras.Model:
 	args.model_override_filepath = None  # TODO remove
 	if args.model_override_filepath is not None:
 		return tf.keras.models.load_model(
 			args.model_override_filepath, compile=False)
 	else:
 
-		model_name : str =  args.model
+		model_name: str = args.model
 		# Load ML model from either runtime from script or from builtin.
 		module_interface = load_model_interface(model_name)
 
@@ -85,16 +86,17 @@ def setup_model(args, builtin_models : Dict[str, ModelBase], image_input_size, i
 			raise RuntimeError("Could not find model interface: " + model_name)
 
 		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size)
-	
 
 
 def setup_loss_builtin_function(args):
+
 	def ssim_loss(y_true, y_pred):
 		return (1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=2.0)))
 
 	builtin_loss_functions = {}
 	builtin_loss_functions['mse'] = tf.keras.losses.MeanSquaredError()
 	builtin_loss_functions['ssim'] = ssim_loss
+	builtin_loss_functions['msa'] = tf.keras.losses.MeanAbsoluteError()
 
 	return builtin_loss_functions[args.loss_fn]
 
@@ -112,7 +114,7 @@ def run_train_model(args, dataset):
 		int(args.image_size[0] / 2), int(args.image_size[1] / 2), args.color_channels)
 	image_output_size = (
 		args.image_size[0], args.image_size[1], args.color_channels)
-	
+
 	logging.info("Input Size {0}".format(image_input_size))
 	logging.info("Output Size {0}".format(image_output_size))
 
@@ -121,7 +123,7 @@ def run_train_model(args, dataset):
 											shuffle_size=args.dataset_shuffle_size)
 
 	# Apply data augmentation
-	dataset = augment_dataset(dataset=dataset)
+	dataset = augment_dataset(dataset=dataset, output_shape=image_output_size)
 
 	# Transform data to fit upscale.
 	dataset = dataset_super_resolution(dataset=dataset,
@@ -142,14 +144,13 @@ def run_train_model(args, dataset):
 	options = tf.data.Options()
 	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 	validation_data_ds = validation_data_ds.with_options(options)
-	
 
 	# Setup builtin models
 	builtin_models = load_builtin_model_interfaces()
 
 	#
 	logging.info(len(dataset))
-	
+
 	#
 	with strategy.scope():
 		# Setup Learning Rate with Decay.
@@ -166,7 +167,7 @@ def run_train_model(args, dataset):
 
 		# Load or create models.
 		training_model = setup_model(args=args, builtin_models=builtin_models, image_input_size=image_input_size,
-					image_output_size=image_output_size)
+									 image_output_size=image_output_size)
 
 		# Save the model as an image to directory, for easy backtracking of the model composition.
 		tf.keras.utils.plot_model(
@@ -190,12 +191,12 @@ def run_train_model(args, dataset):
 
 		loss_fn = setup_loss_builtin_function(args)
 
-		#TODO add PBNR
+		# TODO add PBNR
 		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy'])
 
 		# Create a callback that saves the model's weights
 		checkpoint_path = args.checkpoint_dir
-		#TODO save all checkpoints..
+		# TODO save all checkpoints..
 		# Create a callback that saves the model's weights
 		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
 														 save_weights_only=True,
@@ -205,25 +206,27 @@ def run_train_model(args, dataset):
 		# The model weights (that are considered the best) are loaded into the model.
 		if os.path.exists(checkpoint_path):
 			training_model.load_weights(checkpoint_path)
-
+		# TODO save model weights per epoch.
+		# TODO add none-augmented dataset. to see progress better.
 		#
+		validation_data_ds = None
 		graph_output = os.path.join(args.output_dir, "history_graph.png")
 		historyResult = training_model.fit(x=dataset, validation_data=validation_data_ds, verbose='auto',
-								  epochs=args.epochs, callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
-																 SaveExampleResultImageCallBack(
-																	 args.output_dir,
-																	 dataset.take(
-																		 24), args.color_space),
-																 GraphHistory(filepath=graph_output) ])
+										   epochs=args.epochs,
+										   callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
+													  SaveExampleResultImageCallBack(
+														  args.output_dir,
+														  dataset.take(
+															  24), args.color_space),
+													  GraphHistory(filepath=graph_output)])
 
 		training_model.save(args.model_filepath)
 
 		# Plot history result.
-		plotFitHistory(historyResult.history)
+		plotTrainingHistory(historyResult.history)
 
 
 def dcsuperresolution_program(vargs=None):
-
 	try:
 		parser = argparse.ArgumentParser(
 			prog='SuperResolution',
@@ -231,7 +234,6 @@ def dcsuperresolution_program(vargs=None):
 			description='Super Resolution Training Model Program',
 			parents=[DefaultArgumentParser()]
 		)
-
 
 		# Model Save Path.
 		default_generator_id = randrange(10000000)
@@ -243,7 +245,7 @@ def dcsuperresolution_program(vargs=None):
 		parser.add_argument('--output-dir', type=str, dest='output_dir',
 							default="",
 							help='Set the output directory that all the models and results will be stored at')
-		
+
 		#
 		parser.add_argument('--example-batch', dest='example_batch',  # TODO rename
 							type=int,
@@ -265,15 +267,14 @@ def dcsuperresolution_program(vargs=None):
 		#
 		parser.add_argument('--model', dest='model',
 							default='dcsr',
-							choices=['dcsr', 'dscr-post', 'dscr-pre'],
+							choices=['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae'],
 							help='Set which model type to use.', type=str)
 		#
 		parser.add_argument('--loss-fn', dest='loss_fn',
 							default='mse',
-							choices=['mse', 'ssim'],
+							choices=['mse', 'ssim', 'msa'],
 							help='Loss Function', type=str)
 
-		
 		# Create logger and output information
 		global logger
 		logger = logging.getLogger("Super Resolution Logger")
@@ -283,14 +284,13 @@ def dcsuperresolution_program(vargs=None):
 			parser.print_usage()
 			sys.exit(1)
 
-
 		model_list = load_builtin_model_interfaces()
 
-		for  model_object_inter in model_list.values():
+		for model_object_inter in model_list.values():
 			logger.info("Found Model: " + model_object_inter.get_name())
 			parser.add_argument_group(model_object_inter.get_name(), model_object_inter.load_argument())
-	
-		# Load models 
+
+		# Load models
 
 		# TODO add exception
 		args = parser.parse_args(args=vargs)
@@ -343,7 +343,7 @@ def dcsuperresolution_program(vargs=None):
 					pass
 			data_dir = pathlib.Path(args.data_sets_directory_paths)
 			logging.info("Loading dataset directory {0}".format(data_dir))
-			dataset = load_dataset_from_directory(data_dir, args)
+			dataset = load_dataset_from_directory(data_path=data_dir, args=args, override_size=(256, 256))
 
 		if not dataset:
 			logger.error("Failed to construct dataset")
@@ -362,12 +362,14 @@ def dcsuperresolution_program(vargs=None):
 		# Main Train Model
 		run_train_model(args, dataset)
 
-	except Exception as ex :
+	except Exception as ex:
 		logger.error(ex)
 		print(ex)
-		traceback.print_exc() 
+		traceback.print_exc()
 
 
 # If running the script as main executable
+
+
 if __name__ == '__main__':
 	dcsuperresolution_program(vargs=sys.argv[1:])

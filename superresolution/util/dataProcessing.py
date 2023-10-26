@@ -26,7 +26,8 @@ def configure_dataset_performance(ds: Dataset, use_cache: bool, cache_path: str,
 	return ds
 
 
-def load_dataset_from_directory(data_path: str, args, override_size=None, use_float16: bool = False, **kwargs) -> Dataset:
+def load_dataset_from_directory(data_path: str, args, override_size=None, use_float16: bool = False,
+								**kwargs) -> Dataset:
 	# Determine if path or file.
 	if os.path.isdir(data_path):
 		pass
@@ -64,6 +65,9 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 	# Remap to [0,1]
 	normalization_layer = tf.keras.layers.Rescaling(1. / 255.0)
 
+	#TODO 
+	def setup_color_encoding():
+		pass
 	# Convert color space encoding and normalize values.
 	if args.color_space == 'lab':
 		# Convert to LAB color and Transform [-128,128] -> [-1, 1]
@@ -79,7 +83,7 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 	return normalized_ds
 
 
-def augment_dataset(dataset: Dataset, output_shape : tuple) -> Dataset:
+def augment_dataset(dataset: Dataset, output_shape: tuple) -> Dataset:
 	trainAug = tf.keras.Sequential([
 		tf.keras.layers.RandomCrop(
 			output_shape[0], output_shape[1]),
@@ -88,20 +92,18 @@ def augment_dataset(dataset: Dataset, output_shape : tuple) -> Dataset:
 			height_factor=(-0.05, -0.15),
 			width_factor=(-0.05, -0.15)),
 		layers.RandomRotation(0.65)
-		# layers.RandomTranslation(
-		#	height_factor=(-0.05, -0.15),
-		#	width_factor=(-0.05, -0.15))
 	])
 
 	def AgumentFunc(x):
 		aX = trainAug(x)
 		return aX
 
+	# 
 	dataset = (
 		dataset
 		.map(AgumentFunc,
-			 num_parallel_calls=tf.data.AUTOTUNE)
-	)
+			 num_parallel_calls=tf.data.AUTOTUNE))
+	
 	return dataset
 
 
@@ -114,18 +116,17 @@ def dataset_super_resolution(dataset: Dataset, input_size, output_size) -> Datas
 				interpolation='bilinear',
 				crop_to_aspect_ratio=False
 			)])
+		
 		# Create a copy to prevent augmention be done twice seperatedly.
 		expected = tf.identity(data)
+
 		# Remape from [-1, 1] to [0,1]
 		data = (data + 1.0) * 0.5
 		data = downScale(data)
 		# Remape from [0, 1] to [-1,1]
-		data = (2 * data) - 1
+		data = (2.0 * data) - 1.0
 
 		return data, expected
-
-	# apply augmentation image transformation to prevent overfitting of
-	# dataset = tf.data.Dataset.zip((dataset, dataset))
 
 	DownScaledDataSet = (
 		dataset

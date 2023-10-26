@@ -8,25 +8,19 @@ from tensorflow.keras import layers
 
 class DCSuperResolutionModel(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=True, prog="", description="")
-
-		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
-								 help='Set the number of passes that the training set will be trained against.')
-
-		self.parser.add_argument('--override-latentspace-size', dest='generate_latentspace',
-								 default=False,
-								 help='', type=bool)
+		self.parser = argparse.ArgumentParser(add_help=True, prog="Basic SuperResolution", description="Basic Deep Convolutional Super Resolution")
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
 								 default=0.001,
 								 help='Set the L1 Regularization applied.')
 
+		#
 		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
-								 type=str,
-								 choices=[''],
-								 default='',
-								 help='Set the L1 Regularization applied.')
+								 type=int,
+								 choices=[2,4,],
+								 default=2,
+								 help='Upscale Mode')
 
 		#
 		self.parser.add_argument('--loss-fn', dest='loss_fn',
@@ -35,29 +29,26 @@ class DCSuperResolutionModel(ModelBase):
 								 help='.', type=str)
 
 	def load_argument(self) -> argparse.ArgumentParser:
-		"""Load in the file for extracting text."""
-
-		#
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		"""Extract text from the currently loaded file."""
 		#
-		# parser_result = self.parser.parse_known_args(sys.argv[1:])
+		parser_result = self.parser.parse_args(sys.argv[1:])
 
 		#
 		return create_simple_model(input_shape=input_shape,
-								   output_shape=output_shape)  # , regularization=parser_result.regularization)
+								   output_shape=output_shape, regularization=parser_result.regularization, upscale_mode=parser_result.upscale_mode)
 
 	def get_name(self):
-		return "basic super"
+		return "Basic SuperResolution"
 
 
 def get_model_interface() -> ModelBase:
 	return DCSuperResolutionModel()
 
+
 # Create interface object or similar.
-def create_simple_model(input_shape, output_shape, regularization=0.00000):
+def create_simple_model(input_shape, output_shape, regularization=0.00000, upscale_mode=2):
 	batch_norm: bool = True
 	use_bias: bool = True
 
@@ -82,7 +73,7 @@ def create_simple_model(input_shape, output_shape, regularization=0.00000):
 		x = layers.BatchNormalization(dtype='float32')(x)
 	x = layers.ReLU(dtype='float32')(x)
 
-	# Upscale.
+	# Upscale - 
 	x = layers.Conv2DTranspose(filters=output_width / 2, kernel_size=(5, 5), strides=(
 		2, 2), use_bias=use_bias, padding='same', kernel_initializer=init)(x)
 	if batch_norm:
@@ -103,7 +94,7 @@ def create_simple_model(input_shape, output_shape, regularization=0.00000):
 
 
 def create_simple_model4(input_shape, output_shape):
-	batch_norm : bool = True
+	batch_norm: bool = True
 	use_bias: bool = True
 
 	init = tf.keras.initializers.Orthogonal()
@@ -121,7 +112,7 @@ def create_simple_model4(input_shape, output_shape):
 		filter_size = 2 ** (i + 6)
 		filter_size = min(filter_size, 1024)
 
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=init)(x)
+		x = layers.Conv2D(filter_size, kernel_size=(3, 3),  strides=1, padding='same', kernel_initializer=init)(x)
 		if batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
@@ -216,4 +207,3 @@ def create_simple_model3(input_shape, output_shape):
 
 	conv_autoencoder = keras.Model(inputs=input, outputs=x)
 	return conv_autoencoder
-

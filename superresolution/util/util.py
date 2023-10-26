@@ -17,6 +17,7 @@ from util.image import showResult
 def compute_PSNR(orignal, data):
 	pass
 
+
 def generate_latentspace(generator_model, disc_model_features, latent_spaces, dataset):
 	generated_result = generator_model.predict(latent_spaces, batch_size=16, verbose=1)
 
@@ -66,7 +67,8 @@ def get_last_multidim_model(model):
 											  last_multi_layer.output))
 	return feature_model
 
-def plotFitHistory(result_collection : Dict, loss_label="", val_label="", title="", x_label="", y_label=""):
+
+def plotTrainingHistory(result_collection: Dict, loss_label="", val_label="", title="", x_label="", y_label=""):
 	fig = plt.figure(figsize=(10, 10), dpi=300)
 
 	for i, result_key in enumerate(result_collection.keys()):
@@ -76,4 +78,3 @@ def plotFitHistory(result_collection : Dict, loss_label="", val_label="", title=
 		plt.xlabel(xlabel=x_label)
 		plt.legend(loc="upper left")
 	return fig
-
