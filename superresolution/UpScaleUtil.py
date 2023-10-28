@@ -14,6 +14,7 @@ import logging
 import os
 from multiprocessing import Pool
 
+
 def pixel_shuffle(scale):
 	return lambda x: tf.nn.depth_to_space(x, scale)
 
@@ -26,15 +27,15 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> Image:
 
 	for i in range(0, len(result_upscale_raw)):
 
-		# 
+		#
 		if color_space == 'lab':
 			decoder_image = np.asarray(lab2rgb(result_upscale_raw[i] * 128)).astype(dtype='float32')
 		elif color_space == 'rgb':
-			decoder_image = np.asarray(result_upscale_raw[i] + 1.0).astype(dtype='float32')  * 0.5
-
+			decoder_image = np.asarray(result_upscale_raw[i] + 1.0).astype(dtype='float32') * 0.5
 
 		# Convert to uint8.
 		decoder_image_u8 = np.uint8(decoder_image * 255)
+
 		# Convert numpy to Image.
 		compressed_crop_im = Image.fromarray(decoder_image_u8, "RGB")
 
@@ -57,27 +58,27 @@ def super_resolution_upscale(argv):
 	parser = argparse.ArgumentParser(
 		description='UpScale')
 
-	# 
+	#
 	parser.add_argument('--save-output', dest='save_path', default=None, help='')
 
-	# 
+	#
 	parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
 						help='number images processed at the same time.')
 
-	# 
+	#
 	parser.add_argument('--threads', type=int, default=1, dest='task_threads',
 						help='number images processed at the same time.')
 
 	#
 	parser.add_argument('--model', dest='model_filepath', default=None, help='')
 
-	# 
+	#
 	parser.add_argument('--input-file', action='store', dest='input_files')
 
-	# 
+	#
 	parser.add_argument('--device', type=str, dest='', default=None, help='')
 
-	# 
+	#
 	parser.add_argument('--verbosity', type=int, dest='accumulate',
 						default=1,
 						help='Define the save/load model path')
@@ -86,7 +87,7 @@ def super_resolution_upscale(argv):
 	parser.add_argument('--color-space', type=str, default="rgb", dest='color_space', choices=['rgb', 'lab'],
 						help='Select Color Space Image wisll be decode from the output model data.')
 
-	# 
+	#
 	parser.add_argument('--color-channels', type=int, default=3, dest='color_channels', choices=[1, 3, 4],
 						help='Select Number of channels in the color space. GrayScale, RGB and RGBA.')
 
@@ -117,9 +118,9 @@ def super_resolution_upscale(argv):
 
 		logger.info("Number of files {0}".format(len(input_filepaths)))
 
-		upscale_model = tf.keras.models.load_model(filepath=args.model_filepath, compile=False, custom_objects={'pixel_shuffle' : pixel_shuffle})
+		upscale_model = tf.keras.models.load_model(filepath=args.model_filepath, compile=False)
 
-		color_space : str = args.color_space
+		color_space: str = args.color_space
 
 		upscale_model.summary()
 
@@ -179,7 +180,7 @@ def super_resolution_upscale(argv):
 					normalized_subimage_color = (np.array(crop_batch) * (1.0 / 255.0)).astype(
 						dtype='float32')
 
-					# 
+					#
 					if color_space == 'lab':
 						cropped_sub_input_image = rgb2lab(normalized_subimage_color) * (1.0 / 128.0)
 					elif color_space == 'rgb':

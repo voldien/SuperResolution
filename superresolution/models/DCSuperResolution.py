@@ -13,31 +13,27 @@ class DCSuperResolutionModel(ModelBase):
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
 								 default=0.001,
+								 required=False,
 								 help='Set the L1 Regularization applied.')
 
 		#
 		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
 								 type=int,
-								 choices=[2,4,],
+								 choices=[2,4],
 								 default=2,
+								required=False,
 								 help='Upscale Mode')
-
-		#
-		self.parser.add_argument('--loss-fn', dest='loss_fn',
-								 default='mse',
-								 choices=['mses'],
-								 help='.', type=str)
 
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
 		#
-		parser_result = self.parser.parse_args(sys.argv[1:])
+		parser_result = self.parser.parse_known_args(sys.argv[1:])
 
 		#
 		return create_simple_model(input_shape=input_shape,
-								   output_shape=output_shape, regularization=parser_result.regularization, upscale_mode=parser_result.upscale_mode)
+								   output_shape=output_shape)#, regularization=parser_result.regularization, upscale_mode=parser_result.upscale_mode)
 
 	def get_name(self):
 		return "Basic SuperResolution"
@@ -48,7 +44,7 @@ def get_model_interface() -> ModelBase:
 
 
 # Create interface object or similar.
-def create_simple_model(input_shape, output_shape, regularization=0.00000, upscale_mode=2):
+def create_simple_model(input_shape, output_shape, regularization=0.000001, upscale_mode=2):
 	batch_norm: bool = True
 	use_bias: bool = True
 
@@ -57,32 +53,43 @@ def create_simple_model(input_shape, output_shape, regularization=0.00000, upsca
 
 	input = layers.Input(shape=input_shape)
 
-	#
-	x = layers.Conv2D(output_width, kernel_size=(9, 9), strides=1, padding='same',
-					  use_bias=use_bias,
-					  kernel_initializer=init)(input)
-	if batch_norm:
-		x = layers.BatchNormalization(dtype='float32')(x)
-	x = layers.ReLU(dtype='float32')(x)
 
-	#
-	x = layers.Conv2D(output_width / 2, kernel_size=(3, 3), strides=1, padding='same',
-					  use_bias=use_bias,
-					  kernel_initializer=init)(x)
-	if batch_norm:
-		x = layers.BatchNormalization(dtype='float32')(x)
-	x = layers.ReLU(dtype='float32')(x)
+	for i in range(0, upscale_mode / 2):
+		nrfilters = output_width
+		#
+		x = layers.Conv2D(filters=nrfilters, kernel_size=(9, 9), strides=1,  padding='same',
+						use_bias=use_bias,
+						kernel_initializer=init, bias_initializer=init)(input)
+		if batch_norm:
+			x = layers.BatchNormalization(dtype='float32')(x)
+		x = layers.ReLU(dtype='float32')(x)
 
-	# Upscale - 
-	x = layers.Conv2DTranspose(filters=output_width / 2, kernel_size=(5, 5), strides=(
-		2, 2), use_bias=use_bias, padding='same', kernel_initializer=init)(x)
-	if batch_norm:
-		x = layers.BatchNormalization(dtype='float32')(x)
-	x = layers.ReLU(dtype='float32')(x)
+		#
+		x = layers.Conv2D(filters=nrfilters / 2, kernel_size=(4, 4), strides=1, padding='same',
+						use_bias=use_bias,
+						kernel_initializer=init, bias_initializer=init)(x)
+		if batch_norm:
+			x = layers.BatchNormalization(dtype='float32')(x)
+		x = layers.ReLU(dtype='float32')(x)
 
-	#
-	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(5, 5), strides=(
-		1, 1), padding='same', use_bias=use_bias, kernel_initializer=init)(x)
+		#
+		x = layers.Conv2D(filters=nrfilters / 4, kernel_size=(3, 3), strides=1, padding='same',
+						use_bias=use_bias,
+						kernel_initializer=init, bias_initializer=init)(x)
+		if batch_norm:
+			x = layers.BatchNormalization(dtype='float32')(x)
+		x = layers.ReLU(dtype='float32')(x)
+
+		# Upscale - 
+		x = layers.Conv2DTranspose(filters=output_width / 2, kernel_size=(5, 5),  strides=(
+			2, 2), use_bias=use_bias, padding='same', kernel_initializer=init, bias_initializer=init)(x)
+		if batch_norm:
+			x = layers.BatchNormalization(dtype='float32')(x)
+		x = layers.ReLU(dtype='float32')(x)
+
+	# Output to 3 channel output.
+	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
+		1, 1), padding='same', use_bias=use_bias, kernel_initializer=init, bias_initializer=init)(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 

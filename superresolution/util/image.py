@@ -11,7 +11,7 @@ def generate_image(model, latent_space):
 def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrCol=6):
 
 	batch_iter = iter(image_batch_dataset)
-	data_image_batch, expected_image_batch = next(batch_iter)
+	data_image_batch, expected_image_batch = batch_iter.next()
 
 	output = model.predict(data_image_batch, verbose=0)
 
@@ -71,7 +71,7 @@ def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrC
 		plt.axis("off")
 
 		if len(data_image_batch) - 1 == i:
-			data_image_batch, expected_image_batch = next(batch_iter)
+			data_image_batch, expected_image_batch = batch_iter.next()
 			output = model.predict(data_image_batch, verbose=0)
 
 	fig.subplots_adjust(wspace=0.05, hspace=0.05)

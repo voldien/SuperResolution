@@ -10,6 +10,7 @@ from random import randrange
 import traceback
 from core import ModelBase
 from typing import Dict
+from util.math import psnr
 
 import tensorflow as tf
 import tensorflow.keras as keras
@@ -29,17 +30,18 @@ def setup_dataset(dataset, args:list):
 	pass
 
 
-def setup_strategy(args: dict):
-	
+def setup_tensorflow_strategy(args: dict):
+
 	# Configure
-	devices = tf.config.list_logical_devices('GPU')
+	selected_devices = tf.config.list_logical_devices('GPU')
 	if args.devices is not None:
 		# TODO add support
-		devices = args.devices
+		selected_devices = args.devices
 
 	# initialize tf.distribute.MirroredStrategy
 	# strategy = tf.distribute.MirroredStrategy(devices=devices)
-	strategy = tf.distribute.MirroredStrategy()
+	selected_devices = None
+	strategy = tf.distribute.MirroredStrategy(devices=selected_devices)
 	logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
 	return strategy
 
@@ -91,18 +93,26 @@ def setup_model(args, builtin_models: Dict[str, ModelBase], image_input_size, im
 def setup_loss_builtin_function(args):
 
 	def ssim_loss(y_true, y_pred):
-		return (1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=2.0)))
+		# TODO convert color space.
+		return (1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=2.0, filter_size=11,
+                          filter_sigma=1.5, k1=0.01, k2=0.03)))
+	
+	def pnbr_loss(y_true, y_pred):
+		return (1 - psnr(y_true, y_pred))
 
 	builtin_loss_functions = {}
 	builtin_loss_functions['mse'] = tf.keras.losses.MeanSquaredError()
 	builtin_loss_functions['ssim'] = ssim_loss
 	builtin_loss_functions['msa'] = tf.keras.losses.MeanAbsoluteError()
+	builtin_loss_functions['pnbr'] = tf.keras.losses.MeanAbsoluteError()
 
 	return builtin_loss_functions[args.loss_fn]
 
 
-def run_train_model(args, dataset):
-	strategy = setup_strategy(args=args)
+def run_train_model(args : dict, dataset):
+
+	# Configure how models will be executed.
+	strategy = setup_tensorflow_strategy(args=args)
 
 	# Compute the total batch size.
 	batch_size = args.batch_size * strategy.num_replicas_in_sync
@@ -118,6 +128,7 @@ def run_train_model(args, dataset):
 	logging.info("Input Size {0}".format(image_input_size))
 	logging.info("Output Size {0}".format(image_output_size))
 
+	#TODO add augmented and none augmented.*
 	# Configure cache, shuffle and performance of the dataset.
 	dataset = configure_dataset_performance(ds=dataset, use_cache=args.cache_ram, cache_path=args.cache_path,
 											shuffle_size=args.dataset_shuffle_size)
@@ -262,7 +273,7 @@ def dcsuperresolution_program(vargs=None):
 							help='Set Learning rate Decay.', type=float)
 		#
 		parser.add_argument('--decay-step', dest='learning_rate_decay_step',
-							default=10000,
+							default=20000,
 							help='Set Learning rate Decay Step.', type=int)
 		#
 		parser.add_argument('--model', dest='model',
@@ -273,26 +284,24 @@ def dcsuperresolution_program(vargs=None):
 		parser.add_argument('--loss-fn', dest='loss_fn',
 							default='mse',
 							choices=['mse', 'ssim', 'msa'],
-							help='Loss Function', type=str)
+							help='Set Loss Function', type=str)
 
 		# Create logger and output information
 		global logger
 		logger = logging.getLogger("Super Resolution Logger")
 
-		# If invalid number of arguments, print help.
-		if len(sys.argv) < 2:
-			parser.print_usage()
-			sys.exit(1)
-
+		# Load model and iterate existing models.
 		model_list = load_builtin_model_interfaces()
 
 		for model_object_inter in model_list.values():
 			logger.info("Found Model: " + model_object_inter.get_name())
 			parser.add_argument_group(model_object_inter.get_name(), model_object_inter.load_argument())
 
-		# Load models
+		# If invalid number of arguments, print help.
+		if len(sys.argv) < 2:
+			parser.print_usage()
+			sys.exit(1)
 
-		# TODO add exception
 		args = parser.parse_args(args=vargs)
 
 		# Parse for common arguments.
@@ -301,6 +310,7 @@ def dcsuperresolution_program(vargs=None):
 		# Set init seed.
 		tf.random.set_seed(args.seed)
 
+		# Setup logging
 		logger.setLevel(args.verbosity)
 
 		console_handler = logging.StreamHandler()
@@ -331,22 +341,35 @@ def dcsuperresolution_program(vargs=None):
 		logger.info(str.format("Image ColorSpace: {0}", args.color_space))
 		logger.info(str.format("Output directory: {0}", args.output_dir))
 
-		# Create directory path where the model will saved.
+		# Create absolute path for model file, if relative path.
 		if not os.path.isabs(args.model_filepath):
 			args.model_filepath = os.path.join(args.output_dir, args.model_filepath)
 
+		# Allow override to enable cropping for increase details in the dataset.
+		override_size : tuple = (512, 512)
+		data_set_filepaths = args.data_sets_directory_paths
+
 		# Setup Dataset
 		dataset = None
-		if args.data_sets_directory_paths:
-			for directory_path in args.data_sets_directory_paths:
+		if data_set_filepaths:
+			for directory_path in data_set_filepaths:
+				# Check if directory.
 				if os.path.isdir(directory_path):
 					pass
-			data_dir = pathlib.Path(args.data_sets_directory_paths)
-			logging.info("Loading dataset directory {0}".format(data_dir))
-			dataset = load_dataset_from_directory(data_path=data_dir, args=args, override_size=(256, 256))
+
+				data_dir = pathlib.Path(directory_path)
+				logging.info("Loading dataset directory {0}".format(data_dir))
+
+				local_dataset = load_dataset_from_directory(data_path=data_dir, args=args, override_size=override_size)
+				if not dataset:
+					dataset = local_dataset
+				else:
+					dataset.concatenate(local_dataset)
+
 
 		if not dataset:
 			logger.error("Failed to construct dataset")
+			raise RuntimeError("Could not create dataset from {0}".format(data_set_filepaths))
 
 		# Make a copy of the command line.
 		commandline = ' '.join(vargs)

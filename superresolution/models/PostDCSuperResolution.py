@@ -10,7 +10,7 @@ class DCPostSuperResolutionModel(ModelBase):
 		pass
 
 	def load_argument(self) -> argparse.ArgumentParser:
-		"""Load in the file for extracting text."""
+		
 		parser = argparse.ArgumentParser(add_help=True, prog="", description="")
 
 		parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
@@ -28,14 +28,13 @@ class DCPostSuperResolutionModel(ModelBase):
 		#
 		parser.add_argument('--loss-fn', dest='loss_fn',
 							default='mse',
-							choices=['mses'],
+							choices=['mse'],
 							help='.', type=str)
 
 		#
 		return parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		"""Extract text from the currently loaded file."""
 		return create_post_super_resolution(input_shape=input_shape, output_shape=output_shape)
 
 	def get_name(self):
@@ -47,11 +46,14 @@ def get_model_interface() -> ModelBase:
 
 
 def create_post_super_resolution(input_shape, output_shape):
-	batch_norm = False
+	batch_norm: bool = True
+	use_bias: bool = True
 
-	init = tf.keras.initializers.Orthogonal()
+	init = tf.keras.initializers.HeNormal()
+	output_width, output_height, output_channels = output_shape
 
 	input = layers.Input(shape=input_shape)
+
 	number_layers = 3
 
 	x = layers.Conv2DTranspose(filters=64, kernel_size=(4, 4), strides=(

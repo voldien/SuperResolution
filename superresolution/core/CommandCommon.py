@@ -28,9 +28,14 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						dest='learning_rate', default=0.0002, help='Set the initial Learning Rate')
 
 	# Default, all devices will be used.
-	parser.add_argument('--device', type=list,
-						dest='devices', default=None, help='Select the device that will be used.',
+	parser.add_argument('--device', type=list, action='append', default=None,
+						dest='devices', help='Select the device that will be used.',
 						choices=device_lib.list_local_devices())
+	
+
+	parser.add_argument('--distribute-strategy', type=str, action='store', default=None,
+						dest='distribute_strategy', help='Select Distribute Strategy.',
+						choices=['mirror'])
 
 	parser.add_argument('--verbosity', type=int, dest='verbosity',
 						default=logging.INFO,
@@ -49,10 +54,10 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	parser.add_argument('--shuffle-data-set-size', type=int,
 						dest='dataset_shuffle_size', default=512,
 						help='Set the size of the shuffle buffer size, zero disables shuffling.')
+	
 	# TODO add support for appending multiple directories
-	parser.add_argument('--data-set-directory', type=str, dest='data_sets_directory_paths',
-						#	                    action='append', nargs='*',
-						# nargs=1,
+	parser.add_argument('--data-set-directory', dest='data_sets_directory_paths', type=str,
+							                    action='append',
 						help='Directory path where the images are located dataset images')
 	#
 	parser.add_argument('--image-size', type=int, dest='image_size',
@@ -65,9 +70,6 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 
 	parser.add_argument('--nr_image_example_generate', type=int, default=16, dest='num_examples_to_generate',
 						help='Number')
-	#
-	parser.add_argument('--latent-space', type=int, default=128, dest='latent_space',
-						help='Set the size of the latent space dimensions.')
 	#
 	parser.add_argument('--color-space', type=str, default="rgb", dest='color_space', choices=['rgb', 'lab'],
 						help='Select Color Space used in the model.')
