@@ -9,7 +9,6 @@ def generate_image(model, latent_space):
 
 
 def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrCol=6):
-
 	batch_iter = iter(image_batch_dataset)
 	data_image_batch, expected_image_batch = batch_iter.next()
 
@@ -22,7 +21,7 @@ def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrC
 
 		data_image = None
 		expected_image = None
-		
+
 		# Convert color-space to normalize coordinates [0,1]
 		if color_space == 'rgb':
 			# Convert the raw encoded image to RGB color space.
@@ -48,10 +47,11 @@ def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrC
 		output_result = output[i % len(data_image_batch)]
 		if color_space == 'rgb':
 			# Convert the raw encoded image to RGB color space.
-			result_image_rgb_encoding = asarray( (output[i % len(data_image_batch)] + 1.0) * 0.5).astype(dtype='float32')
+			result_image_rgb_encoding = asarray((output[i % len(data_image_batch)] + 1.0) * 0.5).astype(dtype='float32')
 		elif color_space == 'lab':
 			# Convert the raw encoded image to LAB color space.
-			result_image_rgb_encoding = asarray(lab2rgb(output[i % len(data_image_batch)] * 128)).astype(dtype='float32')
+			result_image_rgb_encoding = asarray(lab2rgb(output[i % len(data_image_batch)] * 128)).astype(
+				dtype='float32')
 
 		plt.subplot(rows, nrCol, nrCol * 2 + i + 1)
 		plt.imshow(output_result[:, :, 0], cmap='gray')
@@ -65,7 +65,7 @@ def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrC
 		plt.imshow(output_result[:, :, 2], cmap='Greens')
 		plt.axis("off")
 
-		# 
+		#
 		plt.subplot(rows, nrCol, nrCol * 5 + 1 + i)
 		plt.imshow(asarray(result_image_rgb_encoding).astype(dtype='float32'))
 		plt.axis("off")

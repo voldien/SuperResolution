@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 from random import randrange
+
 import tensorflow as tf
 from tensorflow.keras import mixed_precision
 from tensorflow.python.client import device_lib
@@ -31,7 +32,6 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	parser.add_argument('--device', type=list, action='append', default=None,
 						dest='devices', help='Select the device that will be used.',
 						choices=device_lib.list_local_devices())
-	
 
 	parser.add_argument('--distribute-strategy', type=str, action='store', default=None,
 						dest='distribute_strategy', help='Select Distribute Strategy.',
@@ -54,10 +54,10 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	parser.add_argument('--shuffle-data-set-size', type=int,
 						dest='dataset_shuffle_size', default=512,
 						help='Set the size of the shuffle buffer size, zero disables shuffling.')
-	
+
 	# TODO add support for appending multiple directories
 	parser.add_argument('--data-set-directory', dest='data_sets_directory_paths', type=str,
-							                    action='append',
+						action='append',
 						help='Directory path where the images are located dataset images')
 	#
 	parser.add_argument('--image-size', type=int, dest='image_size',

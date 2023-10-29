@@ -1,37 +1,38 @@
 # !/usr/bin/env python3
 import argparse
-from importlib import import_module
 import json
 import logging
 import os
 import pathlib
 import sys
-from random import randrange
 import traceback
-from core import ModelBase
+from importlib import import_module
+from random import randrange
 from typing import Dict
-from util.math import psnr
 
 import tensorflow as tf
 import tensorflow.keras as keras
 
+import models.DCSuperResolution
+import models.PostDCSuperResolution
+import models.SuperResolutionAE
+import models.SuperResolutionEDSR
+from core import ModelBase
 # import models.DCSuperResolution as BuiltInModels
 from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
-import models.DCSuperResolution, models.PostDCSuperResolution, models.SuperResolutionEDSR, models.SuperResolutionAE
-
+from superresolution.util.metrics import PSNRMetric
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset, split_dataset
+from util.math import psnr
 from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, PBNRImageResultCallBack
 from util.util import plotTrainingHistory
 
 
-def setup_dataset(dataset, args:list):
-
+def setup_dataset(dataset, args: list):
 	pass
 
 
 def setup_tensorflow_strategy(args: dict):
-
 	# Configure
 	selected_devices = tf.config.list_logical_devices('GPU')
 	if args.devices is not None:
@@ -62,7 +63,7 @@ def load_model_interface(model_name: str) -> ModelBase:
 	builtin_models = load_builtin_model_interfaces()
 	module_interface: ModelBase = None
 
-	# 
+	#
 	if os.path.isfile(model_name) and model_name.endswith('.py'):
 		dynamic_module = import_module(model_name)
 		module_interface = dynamic_module.get_model_interface()
@@ -87,16 +88,15 @@ def setup_model(args, builtin_models: Dict[str, ModelBase], image_input_size, im
 		if module_interface is None:
 			raise RuntimeError("Could not find model interface: " + model_name)
 
-		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size)
+		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size, kwargs=args)
 
 
 def setup_loss_builtin_function(args):
-
 	def ssim_loss(y_true, y_pred):
 		# TODO convert color space.
 		return (1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=2.0, filter_size=11,
-                          filter_sigma=1.5, k1=0.01, k2=0.03)))
-	
+												 filter_sigma=1.5, k1=0.01, k2=0.03)))
+
 	def pnbr_loss(y_true, y_pred):
 		return (1 - psnr(y_true, y_pred))
 
@@ -109,8 +109,7 @@ def setup_loss_builtin_function(args):
 	return builtin_loss_functions[args.loss_fn]
 
 
-def run_train_model(args : dict, dataset):
-
+def run_train_model(args: dict, dataset):
 	# Configure how models will be executed.
 	strategy = setup_tensorflow_strategy(args=args)
 
@@ -120,6 +119,7 @@ def run_train_model(args : dict, dataset):
 		len(dataset), batch_size))
 
 	# Create Input and Output Size
+	# TODO determine size.
 	image_input_size = (
 		int(args.image_size[0] / 2), int(args.image_size[1] / 2), args.color_channels)
 	image_output_size = (
@@ -128,7 +128,13 @@ def run_train_model(args : dict, dataset):
 	logging.info("Input Size {0}".format(image_input_size))
 	logging.info("Output Size {0}".format(image_output_size))
 
-	#TODO add augmented and none augmented.*
+	# Setup none-augmented version for presentation.
+	non_augmented_dataset_train = dataset_super_resolution(dataset=dataset,
+														   input_size=image_input_size,
+														   output_size=image_output_size)
+	non_augmented_dataset_train = dataset.batch(batch_size)
+	non_augmented_dataset_train, non_augmented_dataset_validation = split_dataset(dataset=dataset, train_size=0.95)
+
 	# Configure cache, shuffle and performance of the dataset.
 	dataset = configure_dataset_performance(ds=dataset, use_cache=args.cache_ram, cache_path=args.cache_path,
 											shuffle_size=args.dataset_shuffle_size)
@@ -138,7 +144,7 @@ def run_train_model(args : dict, dataset):
 
 	# Transform data to fit upscale.
 	dataset = dataset_super_resolution(dataset=dataset,
-									   input_size=(int(image_input_size[0]), int(image_input_size[1])),
+									   input_size=image_input_size,
 									   output_size=image_output_size)
 
 	# Final Combined dataset. Set batch size
@@ -192,45 +198,44 @@ def run_train_model(args : dict, dataset):
 
 		# NOTE currently, only support checkpoint if generated model and not when using existing.
 		checkpoint = None
-
-		# if args.generator_model_override_filepath is None and args.discriminator_model_override_filepath is None and args.checkpoint_every_nth_epoch > 0:
-		#	checkpoint = tf.train.Checkpoint(generator_optimizer=model_optimizer,
-		#									 generator=model)
-		#	status = checkpoint.restore(
-		#		save_path=tf.train.latest_checkpoint(args.checkpoint_dir))
-		# status.assert_consumed()  # Optional sanity checks.
-
 		loss_fn = setup_loss_builtin_function(args)
 
 		# TODO add PBNR
-		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy'])
+		pbnrMetric = PSNRMetric()
+		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy', pbnrMetric])
+		# Save copy.
+		training_model.save(args.model_filepath)
 
 		# Create a callback that saves the model's weights
 		checkpoint_path = args.checkpoint_dir
-		# TODO save all checkpoints..
+
 		# Create a callback that saves the model's weights
-		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:02d}-{val_acc:.2f}.hdf5"),
+														 monitor='val_loss',
 														 save_weights_only=True,
+														 save_freq='epoch',
 														 verbose=0)
 		checkpoint = tf.train.Checkpoint(model=training_model)
-		# checkpoint.restore(tf.train.latest_checkpoint(checkpoint_path)).expect_partial()
-		# The model weights (that are considered the best) are loaded into the model.
+
+		# If exists, load weights.
 		if os.path.exists(checkpoint_path):
 			training_model.load_weights(checkpoint_path)
-		# TODO save model weights per epoch.
+
 		# TODO add none-augmented dataset. to see progress better.
 		#
+
 		validation_data_ds = None
-		graph_output = os.path.join(args.output_dir, "history_graph.png")
+		graph_output_filepath = os.path.join(args.output_dir, "history_graph.png")
 		historyResult = training_model.fit(x=dataset, validation_data=validation_data_ds, verbose='auto',
 										   epochs=args.epochs,
 										   callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
 													  SaveExampleResultImageCallBack(
 														  args.output_dir,
-														  dataset.take(
-															  24), args.color_space),
-													  GraphHistory(filepath=graph_output)])
+														  non_augmented_dataset_train.take(
+															  32), args.color_space),
+													  GraphHistory(filepath=graph_output_filepath)])
 
+		# Save final model.
 		training_model.save(args.model_filepath)
 
 		# Plot history result.
@@ -339,14 +344,14 @@ def dcsuperresolution_program(vargs=None):
 		logger.info(str.format(
 			"Learning Decay Step: {0}", args.learning_rate_decay_step))
 		logger.info(str.format("Image ColorSpace: {0}", args.color_space))
-		logger.info(str.format("Output directory: {0}", args.output_dir))
+		logger.info(str.format("Output Directory: {0}", args.output_dir))
 
 		# Create absolute path for model file, if relative path.
 		if not os.path.isabs(args.model_filepath):
 			args.model_filepath = os.path.join(args.output_dir, args.model_filepath)
 
 		# Allow override to enable cropping for increase details in the dataset.
-		override_size : tuple = (512, 512)
+		override_size: tuple = (512, 512)
 		data_set_filepaths = args.data_sets_directory_paths
 
 		# Setup Dataset
@@ -365,7 +370,6 @@ def dcsuperresolution_program(vargs=None):
 					dataset = local_dataset
 				else:
 					dataset.concatenate(local_dataset)
-
 
 		if not dataset:
 			logger.error("Failed to construct dataset")

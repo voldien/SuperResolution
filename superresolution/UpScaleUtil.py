@@ -1,18 +1,18 @@
 # !/usr/bin/env python3
 import argparse
-import math
-from random import randrange
-import sys
-
-from PIL import Image
-import tensorflow as tf
-import numpy as np
-from skimage.color import lab2rgb, rgb2lab
-import sys
-from random import randrange
 import logging
+import math
 import os
+import sys
+import sys
 from multiprocessing import Pool
+from random import randrange
+from random import randrange
+
+import numpy as np
+import tensorflow as tf
+from PIL import Image
+from skimage.color import lab2rgb, rgb2lab
 
 
 def pixel_shuffle(scale):
@@ -33,8 +33,10 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> Image:
 		elif color_space == 'rgb':
 			decoder_image = np.asarray(result_upscale_raw[i] + 1.0).astype(dtype='float32') * 0.5
 
+		decoder_image = decoder_image.clip(0.0, 1.0)
+
 		# Convert to uint8.
-		decoder_image_u8 = np.uint8(decoder_image * 255)
+		decoder_image_u8 = np.uint8((decoder_image * 255).round())
 
 		# Convert numpy to Image.
 		compressed_crop_im = Image.fromarray(decoder_image_u8, "RGB")
@@ -74,6 +76,9 @@ def super_resolution_upscale(argv):
 
 	#
 	parser.add_argument('--input-file', action='store', dest='input_files')
+
+	#
+	parser.add_argument('--model-weight', action='store', dest='model_weight_path', type=str, help='', default=None)
 
 	#
 	parser.add_argument('--device', type=str, dest='', default=None, help='')
@@ -119,6 +124,9 @@ def super_resolution_upscale(argv):
 		logger.info("Number of files {0}".format(len(input_filepaths)))
 
 		upscale_model = tf.keras.models.load_model(filepath=args.model_filepath, compile=False)
+		# Optionally, load specific weight.
+		if args.model_weight_path:
+			upscale_model.load_weights(filepath=args.model_weight_path)
 
 		color_space: str = args.color_space
 
@@ -187,6 +195,7 @@ def super_resolution_upscale(argv):
 						cropped_sub_input_image = (normalized_subimage_color + 1) * 0.5
 					# cropped_sub_input_image = np.expand_dims(cropped_sub_input_image, axis=0)
 
+					# Upscale.
 					upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,
 															color_space=color_space)
 

@@ -11,4 +11,4 @@ def psnr(target, ref):
 
 	rmse = np.sqrt(np.mean(diff ** 2.))
 
-	return 20 * np.log10(255. / rmse)
+	return 20 * np.log10(255.0 / rmse)

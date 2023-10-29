@@ -1,17 +1,16 @@
 import os
+from math import log10, sqrt
 from random import randrange
 
 import keras.callbacks
 import numpy as np
+import tensorflow as tf
 from matplotlib import pyplot as plt
 from sklearn.manifold import TSNE
-from util.util import plotTrainingHistory
-import tensorflow as tf
 from tensorflow.keras import layers
 from util.image import generate_grid_image
-
-from math import log10, sqrt
 from util.image import showResult
+from util.util import plotTrainingHistory
 
 
 def compute_PSNR(orignal, data):
@@ -62,6 +61,7 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 	def __init__(self, dir_path, train_data_subset, color_space, **kwargs):
 		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
 
+		#
 		options = tf.data.Options()
 		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 		self.trainSet = train_data_subset.with_options(options)
