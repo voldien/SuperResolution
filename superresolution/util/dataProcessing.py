@@ -4,12 +4,13 @@ import os.path
 import pathlib
 import zipfile
 from io import BytesIO  # for Python 3
-from tensorflow.keras import layers
+
 import PIL
 import PIL.Image
 import numpy as np
 import tensorflow as tf
 import tensorflow_io as tfio
+from tensorflow.keras import layers
 from tensorflow.python.data import Dataset
 
 
@@ -65,9 +66,10 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 	# Remap to [0,1]
 	normalization_layer = tf.keras.layers.Rescaling(1. / 255.0)
 
-	#TODO 
+	# TODO
 	def setup_color_encoding():
 		pass
+
 	# Convert color space encoding and normalize values.
 	if args.color_space == 'lab':
 		# Convert to LAB color and Transform [-128,128] -> [-1, 1]
@@ -116,7 +118,7 @@ def dataset_super_resolution(dataset: Dataset, input_size, output_size) -> Datas
 				interpolation='bilinear',
 				crop_to_aspect_ratio=False
 			)])
-		
+
 		# Create a copy to prevent augmention be done twice seperatedly.
 		expected = tf.identity(data)
 

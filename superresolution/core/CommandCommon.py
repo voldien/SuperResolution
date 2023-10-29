@@ -103,9 +103,8 @@ def ParseDefaultArgument(args):
 				tf.config.experimental.set_memory_growth(gpu, True)
 		finally:
 			pass
-	# Setup files paths.
 
-	#
+	# Allow device override if not present automatically.
 	tf.config.set_soft_device_placement(True)
 
 	# Create output directory if not exists.

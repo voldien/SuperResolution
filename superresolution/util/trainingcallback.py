@@ -126,9 +126,15 @@ class GraphHistory(tf.keras.callbacks.History):
 	def __init__(self, filepath: str, **kwargs):
 		super().__init__(**kwargs)
 		self.fig_savepath = filepath
+		self.batch_history = {}
 
 	def on_train_begin(self, logs):
 		super().on_train_begin(logs=logs)
+
+	def on_train_batch_end(self, batch, logs=None):
+		super().on_train_batch_end(batch=batch, logs=logs)
+		for k, v in logs.items():
+			self.batch_history.setdefault(k, []).append(v)
 
 	def on_epoch_end(self, epoch, logs):
 		super().on_epoch_end(epoch=epoch, logs=logs)
@@ -136,3 +142,7 @@ class GraphHistory(tf.keras.callbacks.History):
 		# Plot figure and save.
 		fig = plotTrainingHistory(self.history, x_label="Epoch", y_label="value")
 		fig.savefig(self.fig_savepath)
+
+		# Plot detailed
+		fig = plotTrainingHistory(self.batch_history, x_label="Epoch", y_label="value")
+		fig.savefig(self.fig_savepath + ".batch")

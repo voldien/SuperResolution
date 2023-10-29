@@ -18,7 +18,7 @@ class DCSuperResolutionModel(ModelBase):
 								 required=False,
 								 help='Set the L1 Regularization applied.')
 
-		#
+		# 
 		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
 								 type=int,
 								 choices=[2, 4],
@@ -30,7 +30,6 @@ class DCSuperResolutionModel(ModelBase):
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		# parser_result = self.parser.parse_known_args(sys.argv[1:])
 		regularization = kwargs.get("regularization", 0.000001)  #
 		upscale_mode = kwargs.get("upscale_mode", 2)  #
 

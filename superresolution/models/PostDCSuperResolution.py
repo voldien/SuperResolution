@@ -1,6 +1,7 @@
 import argparse
-from core import ModelBase
+
 import tensorflow as tf
+from core import ModelBase
 from tensorflow import keras
 from tensorflow.keras import layers
 
@@ -10,7 +11,6 @@ class DCPostSuperResolutionModel(ModelBase):
 		pass
 
 	def load_argument(self) -> argparse.ArgumentParser:
-		
 		parser = argparse.ArgumentParser(add_help=True, prog="", description="")
 
 		parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
@@ -22,7 +22,7 @@ class DCPostSuperResolutionModel(ModelBase):
 		#
 		parser.add_argument('--regularization', dest='regularization',
 							type=float,
-							default=0.001,
+							default=0.0001,
 							help='Set the L1 Regularization applied.')
 
 		#

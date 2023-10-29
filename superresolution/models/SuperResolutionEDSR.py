@@ -12,27 +12,23 @@ class EDSRSuperResolutionModel(ModelBase):
 		self.parser = argparse.ArgumentParser(add_help=True, prog="", description="")
 
 		#
-		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
-								 help='Set the number of passes that the training set will be trained against.')
-
-		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
 								 default=0.001,
+								 required=False,
 								 help='Set the L1 Regularization applied.')
 
 		#
 		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
-								 type=str,
-								 choices=[''],
-								 default='',
-								 help='Set the L1 Regularization applied.')
-
+								 type=int,
+								 choices=[2, 4],
+								 default=2,
+								 required=False,
+								 help='Upscale Mode')
 		#
-		self.parser.add_argument('--loss-fn', dest='loss_fn',
-								 default='mse',
-								 choices=['mses'],
-								 help='.', type=str)
+		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
+								 help='Set the number of passes that the training set will be trained against.')
+
 
 	def load_argument(self) -> argparse.ArgumentParser:
 		#
@@ -40,14 +36,15 @@ class EDSRSuperResolutionModel(ModelBase):
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
 		#
-		# parser_result = self.parser.parse_known_args(sys.argv[1:])
-		upscale_scale = 2  # parser_result.upscale_mode
-		regularization = 0.00001  # parser_result.regularization
+		regularization = kwargs.get("regularization", 0.00001)  #
+		upscale_mode = kwargs.get("upscale_mode", 2)  #
+		num_input_filters = kwargs.get("edsr_filters", 128)  #
+		use_resnet = kwargs.get("use_resnet", True)  #
 
 		#
 		return create_model(input_shape=input_shape,
-							output_shape=output_shape, scale=upscale_scale,
-							num_filters=128, regularization=regularization)
+							output_shape=output_shape, scale=upscale_mode,
+							num_filters=num_input_filters, regularization=regularization)
 
 	def get_name(self):
 		return "basic super"
