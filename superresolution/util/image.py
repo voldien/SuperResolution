@@ -4,10 +4,6 @@ from numpy import asarray
 from skimage.color import lab2rgb
 
 
-def generate_image(model, latent_space):
-	return model(latent_space, training=False)
-
-
 def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrCol=6):
 	batch_iter = iter(image_batch_dataset)
 	data_image_batch, expected_image_batch = batch_iter.next()

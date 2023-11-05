@@ -4,38 +4,48 @@ import logging
 import math
 import os
 import sys
-import sys
 from multiprocessing import Pool
-from random import randrange
-from random import randrange
 
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-from skimage.color import lab2rgb, rgb2lab
+from skimage.color import rgb2lab
+
+from util.util import convert_color_space
 
 
-def pixel_shuffle(scale):
-	return lambda x: tf.nn.depth_to_space(x, scale)
+# def pixel_shuffle(scale):
+#	return lambda x: tf.nn.depth_to_space(x, scale)
 
 
-def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> Image:
+def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
+	"""_summary_
+
+	Args:
+		model (tf.keras.Model): _description_
+		image (_type_): _description_
+		color_space (str): _description_
+
+	Returns:
+		list: _description_
+	"""
 	# Perform upscale.
 	result_upscale_raw = model(image, training=False)
 
-	packed_cropped_result = []
+	packed_cropped_result: list = []
 
-	for i in range(0, len(result_upscale_raw)):
-
+	# Convert from Raw to specified ColorSpace.
+	decoder_images = np.asarray(convert_color_space(result_upscale_raw, color_space=color_space)).astype(dtype='float32')
+	#
+	for decoder_image in decoder_images:
 		#
-		if color_space == 'lab':
-			decoder_image = np.asarray(lab2rgb(result_upscale_raw[i] * 128)).astype(dtype='float32')
-		elif color_space == 'rgb':
-			decoder_image = np.asarray(result_upscale_raw[i] + 1.0).astype(dtype='float32') * 0.5
+		# if color_space == 'lab':
+		#	decoder_image = np.asarray(lab2rgb(result_upscale_raw[i] * 128.0)).astype(dtype='float32')
+		# elif color_space == 'rgb':
+		#	decoder_image = np.asarray(result_upscale_raw[i] + 1.0).astype(dtype='float32') * 0.5
 
+		# Clip to valid color value and convert to uint8.
 		decoder_image = decoder_image.clip(0.0, 1.0)
-
-		# Convert to uint8.
 		decoder_image_u8 = np.uint8((decoder_image * 255).round())
 
 		# Convert numpy to Image.
@@ -78,15 +88,16 @@ def super_resolution_upscale(argv):
 	parser.add_argument('--input-file', action='store', dest='input_files')
 
 	#
-	parser.add_argument('--model-weight', action='store', dest='model_weight_path', type=str, help='', default=None)
+	parser.add_argument('--model-weight', action='store', dest='model_weight_path', type=str,
+						help='Select Model Weight Path', default=None)
 
 	#
-	parser.add_argument('--device', type=str, dest='', default=None, help='')
+	parser.add_argument('--device', type=str, dest='', default=None, help='Select Device')
 
 	#
 	parser.add_argument('--verbosity', type=int, dest='accumulate',
 						default=1,
-						help='Define the save/load model path')
+						help='')
 
 	#
 	parser.add_argument('--color-space', type=str, default="rgb", dest='color_space', choices=['rgb', 'lab'],
@@ -124,6 +135,7 @@ def super_resolution_upscale(argv):
 		logger.info("Number of files {0}".format(len(input_filepaths)))
 
 		upscale_model = tf.keras.models.load_model(filepath=args.model_filepath, compile=False)
+
 		# Optionally, load specific weight.
 		if args.model_weight_path:
 			upscale_model.load_weights(filepath=args.model_weight_path)
@@ -132,41 +144,53 @@ def super_resolution_upscale(argv):
 
 		upscale_model.summary()
 
-		image_input_shape = upscale_model.input_shape[1:]
-		image_output_shape = upscale_model.output_shape[1:]
+		#
+		image_input_shape: tuple = upscale_model.input_shape[1:]
+		image_output_shape: tuple = upscale_model.output_shape[1:]
 
+		#
 		input_width, input_height, input_channels = image_input_shape
 		output_width, output_height, output_channels = image_output_shape
 
-		width_scale = float(output_width) / float(input_width)
-		height_scale = float(output_height) / float(input_height)
+		#
+		width_scale: float = float(output_width) / float(input_width)
+		height_scale: float = float(output_height) / float(input_height)
 		logger.info("Upscale X" + str(width_scale) + " UpscaleY " + str(height_scale))
 
+		# Create a pool of task scheduler.
 		with Pool(processes=10) as p:
 
 			# TODO add batch, if possible.
+
 			for file_path in input_filepaths:
 				if not os.path.isfile(file_path):
 					continue
 				logger.info("Starting Image {0}".format(file_path))
 
-				base_filepath = os.path.basename(file_path)
-				full_output_path = os.path.join(output_path, base_filepath)
+				#
+				base_filepath: str = os.path.basename(file_path)
+				full_output_path: str = os.path.join(output_path, base_filepath)
 
-				input_im = Image.open(file_path)
-				input_im = input_im.convert('RGB')
+				# Open File and Convert to RGB Color Space.
+				input_im: Image = Image.open(file_path)
+				input_im: Image = input_im.convert('RGB')
 
-				upscale_new_size = (int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
+				#
+				upscale_new_size: tuple = (int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
 				logger.info("Upscale Size " + str(upscale_new_size))
 
+				#
 				upscale_image = Image.new("RGB", upscale_new_size, (0, 0, 0))
 
-				nr_width_block = math.ceil(input_im.width / input_width)
-				nr_height_block = math.ceil(input_im.height / input_height)
+				#
+				nr_width_block: int = math.ceil(float(input_im.width) / float(input_width))
+				nr_height_block: int = math.ceil(float(input_im.height) / float(input_height))
 
+				# Construct all crops.
 				image_crop_list: list = []
 				for x in range(0, nr_width_block):
 					for y in range(0, nr_height_block):
+
 						# Compute subset view.
 						left = x * input_width
 						top = y * input_height
@@ -174,9 +198,10 @@ def super_resolution_upscale(argv):
 						bottom = (y + 1) * input_height
 						image_crop_list.append((left, top, right, bottom))
 
-				#
-				nr_cropped_batchs = int(len(image_crop_list) / batch_size)
+				# Compute number of cropped batches.
+				nr_cropped_batchs: int = int(math.ceil(len(image_crop_list) / batch_size))
 
+				#
 				for nth_batch in range(0, nr_cropped_batchs):
 					cropped_batch = image_crop_list[nth_batch * batch_size:(nth_batch + 1) * batch_size]
 
@@ -188,7 +213,7 @@ def super_resolution_upscale(argv):
 					normalized_subimage_color = (np.array(crop_batch) * (1.0 / 255.0)).astype(
 						dtype='float32')
 
-					#
+					# TODO fix color space converation.
 					if color_space == 'lab':
 						cropped_sub_input_image = rgb2lab(normalized_subimage_color) * (1.0 / 128.0)
 					elif color_space == 'rgb':
@@ -199,12 +224,14 @@ def super_resolution_upscale(argv):
 					upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,
 															color_space=color_space)
 
+					#
 					for index, (crop, upscale) in enumerate(zip(cropped_batch, upscale_raw_result)):
 						# TODO fix
 						output_left = int(crop[0] * width_scale)
 						output_top = int(crop[1] * width_scale)
 						output_right = int(crop[2] * width_scale)
 						output_bottom = int(crop[3] * width_scale)
+
 						upscale_image.paste(upscale, (output_left, output_top, output_right, output_bottom))
 
 				# Offload final crop and save to seperate thread.
@@ -214,4 +241,7 @@ def super_resolution_upscale(argv):
 
 # If running the script as main executable
 if __name__ == '__main__':
-	super_resolution_upscale(sys.argv[1:])
+	try:
+		super_resolution_upscale(sys.argv[1:])
+	except:
+		pass

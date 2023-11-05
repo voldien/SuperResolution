@@ -1,14 +1,9 @@
 import os
 from math import log10, sqrt
-from random import randrange
 
-import keras.callbacks
 import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
-from sklearn.manifold import TSNE
-from tensorflow.keras import layers
-from util.image import generate_grid_image
 from util.image import showResult
 from util.util import plotTrainingHistory
 
@@ -24,7 +19,7 @@ def compute_PSNR(orignal, data):
 
 
 class PBNRImageResultCallBack(tf.keras.callbacks.Callback):
-	def __init__(self, dir_path, train_data_subset, color_space, **kwargs):
+	def __init__(self, dir_path, train_data_subset, color_space: str, **kwargs):
 		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
 
 		options = tf.data.Options()
@@ -139,10 +134,6 @@ class GraphHistory(tf.keras.callbacks.History):
 	def on_epoch_end(self, epoch, logs):
 		super().on_epoch_end(epoch=epoch, logs=logs)
 
-		# Plot figure and save.
-		fig = plotTrainingHistory(self.history, x_label="Epoch", y_label="value")
-		fig.savefig(self.fig_savepath)
-
 		# Plot detailed
 		fig = plotTrainingHistory(self.batch_history, x_label="Epoch", y_label="value")
-		fig.savefig(self.fig_savepath + ".batch")
+		fig.savefig(self.fig_savepath)

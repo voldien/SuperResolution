@@ -9,7 +9,8 @@ from tensorflow.python.client import device_lib
 
 
 def DefaultArgumentParser() -> argparse.ArgumentParser:
-	parser = argparse.ArgumentParser(add_help=False)
+	parser = argparse.ArgumentParser(add_help=True)
+
 	#
 	parser.add_argument('--epochs', type=int, default=48, dest='epochs',
 						help='Set the number of passes that the training set will be trained against.')
@@ -33,14 +34,17 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						dest='devices', help='Select the device that will be used.',
 						choices=device_lib.list_local_devices())
 
+	#
 	parser.add_argument('--distribute-strategy', type=str, action='store', default=None,
 						dest='distribute_strategy', help='Select Distribute Strategy.',
 						choices=['mirror'])
 
+	#
 	parser.add_argument('--verbosity', type=int, dest='verbosity',
 						default=logging.INFO,
 						help='Set the verbosity level of the program')
 
+	#
 	parser.add_argument('--use-float16',  # action='store_true',
 						dest='use_float16', default=False, help='Hint the usage of Float 16 (FP16) in the model.')
 	#
@@ -52,10 +56,9 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						help='Set the cache file path that will be used to store dataset cached data.')
 	#
 	parser.add_argument('--shuffle-data-set-size', type=int,
-						dest='dataset_shuffle_size', default=512,
+						dest='dataset_shuffle_size', default=1024,
 						help='Set the size of the shuffle buffer size, zero disables shuffling.')
 
-	# TODO add support for appending multiple directories
 	parser.add_argument('--data-set-directory', dest='data_sets_directory_paths', type=str,
 						action='append',
 						help='Directory path where the images are located dataset images')
@@ -63,6 +66,11 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	parser.add_argument('--image-size', type=int, dest='image_size',
 						nargs=2,
 						default=(128, 128),
+						help='Set the size of the images in width and height for the model.')
+
+	parser.add_argument('--output-image-size', type=int, dest='output_image_size',
+						nargs=2,
+						default=(256, 256),
 						help='Set the size of the images in width and height for the model.')
 	#
 	parser.add_argument('--seed', type=int, default=randrange(10000000), dest='seed',
@@ -87,7 +95,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	return parser
 
 
-def ParseDefaultArgument(args):
+def ParseDefaultArgument(args: dict):
 	#
 	tf.config.experimental.enable_tensor_float_32_execution(True)
 	# Set global precision default policy.

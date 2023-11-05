@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 import tensorflow as tf
 from core import ModelBase
@@ -29,16 +28,15 @@ class EDSRSuperResolutionModel(ModelBase):
 		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
 								 help='Set the number of passes that the training set will be trained against.')
 
-
 	def load_argument(self) -> argparse.ArgumentParser:
 		#
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		#
+		# Model constructor parameters.
 		regularization = kwargs.get("regularization", 0.00001)  #
 		upscale_mode = kwargs.get("upscale_mode", 2)  #
-		num_input_filters = kwargs.get("edsr_filters", 128)  #
+		num_input_filters = kwargs.get("edsr_filters", 192)  #
 		use_resnet = kwargs.get("use_resnet", True)  #
 
 		#
@@ -47,7 +45,7 @@ class EDSRSuperResolutionModel(ModelBase):
 							num_filters=num_input_filters, regularization=regularization)
 
 	def get_name(self):
-		return "basic super"
+		return "SuperResolution - EDSR"
 
 
 def get_model_interface() -> ModelBase:

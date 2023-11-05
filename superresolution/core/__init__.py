@@ -5,13 +5,29 @@ import tensorflow.keras as keras
 
 class ModelBase(object):
 	def load_argument(self) -> argparse.ArgumentParser:
-		"""Load in the file for extracting text."""
+		"""_summary_
+
+		Returns:
+			argparse.ArgumentParser: _description_
+		"""
 		return None
 
 	def create_model(self, input_shape: tuple, output_shape: tuple, **kwargs) -> keras.Model:
-		"""Extract text from the currently loaded file."""
+		"""_summary_
+
+		Args:
+			input_shape (tuple): _description_
+			output_shape (tuple): _description_
+
+		Returns:
+			keras.Model: _description_
+		"""
 		return None
 
 	def get_name(self) -> str:
-		""""""
+		"""Get Model Name.
+
+		Returns:
+			str: _description_
+		"""
 		return ""

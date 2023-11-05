@@ -1,17 +1,33 @@
 from ast import Dict
-import os
-from random import randrange
 
-import keras.callbacks
 import numpy as np
-from matplotlib import pyplot as plt
-from sklearn.manifold import TSNE
 import tensorflow as tf
+from matplotlib import pyplot as plt
+from skimage.color import lab2rgb
+from sklearn.manifold import TSNE
 from tensorflow.keras import layers
 
-from util.image import generate_grid_image
 
-from util.image import showResult
+def convert_color_space(image_data, color_space: str):
+	"""_summary_
+
+	Args:
+		image_data (_type_): _description_
+		color_space (str): _description_
+
+	Returns:
+		_type_: _description_
+	"""
+	#
+	if color_space == 'lab':
+		if isinstance(image_data, list):
+			return np.asarray([lab2rgb(image * 128.0) for image in image_data]).astype(dtype='float32')
+		else:
+			return lab2rgb(image_data * 128.0)
+	elif color_space == 'rgb':
+		return (image_data + 1.0) * 0.5
+	else:
+		assert 0
 
 
 def compute_PSNR(orignal, data):

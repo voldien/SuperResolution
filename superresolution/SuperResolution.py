@@ -12,6 +12,7 @@ from typing import Dict
 
 import tensorflow as tf
 import tensorflow.keras as keras
+import tensorflow_io as tfio
 
 import models.DCSuperResolution
 import models.PostDCSuperResolution
@@ -20,16 +21,34 @@ import models.SuperResolutionEDSR
 from core import ModelBase
 # import models.DCSuperResolution as BuiltInModels
 from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
-from superresolution.util.metrics import PSNRMetric
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset, split_dataset
 from util.math import psnr
-from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, PBNRImageResultCallBack
+from util.metrics import PSNRMetric
+from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack
 from util.util import plotTrainingHistory
 
 
-def setup_dataset(dataset, args: list):
+def setup_dataset(dataset, args: dict):
 	pass
+
+
+def create_setup_optimizer(args: dict):
+	learning_rate: float = args.learning_rate
+	learning_decay_step: int = args.learning_rate_decay_step
+	learning_decay_rate: float = args.learning_rate_decay
+	# Setup Learning Rate with Decay.
+	lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+		learning_rate,
+		decay_steps=learning_decay_step,
+		decay_rate=learning_decay_rate,
+		staircase=False)
+
+	#
+	parameters = {'beta_1': 0.5, 'beta_2': 0.9, 'learning_rate': lr_schedule}
+	model_optimizer = tf.keras.optimizers.get(args.optimizer, kwargs=parameters)
+
+	return model_optimizer
 
 
 def setup_tensorflow_strategy(args: dict):
@@ -63,7 +82,7 @@ def load_model_interface(model_name: str) -> ModelBase:
 	builtin_models = load_builtin_model_interfaces()
 	module_interface: ModelBase = None
 
-	#
+	# Load model module from python file if provided.
 	if os.path.isfile(model_name) and model_name.endswith('.py'):
 		dynamic_module = import_module(model_name)
 		module_interface = dynamic_module.get_model_interface()
@@ -73,7 +92,8 @@ def load_model_interface(model_name: str) -> ModelBase:
 	return module_interface
 
 
-def setup_model(args, builtin_models: Dict[str, ModelBase], image_input_size, image_output_size) -> keras.Model:
+def setup_model(args: dict, builtin_models: Dict[str, ModelBase], image_input_size: tuple,
+				image_output_size: tuple) -> keras.Model:
 	args.model_override_filepath = None  # TODO remove
 	if args.model_override_filepath is not None:
 		return tf.keras.models.load_model(
@@ -91,20 +111,30 @@ def setup_model(args, builtin_models: Dict[str, ModelBase], image_input_size, im
 		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size, kwargs=args)
 
 
-def setup_loss_builtin_function(args):
+def setup_loss_builtin_function(args: dict):
 	def ssim_loss(y_true, y_pred):
 		# TODO convert color space.
-		return (1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=2.0, filter_size=11,
+		y_true_color = None
+		y_pred_color = None
+
+		if args.color_space == 'rgb':
+			y_true_color = ((y_true + 1.0) * 0.5)
+			y_pred_color = ((y_pred + 1.0) * 0.5)
+		elif args.color_space == 'lab':
+			y_true_color = tfio.experimental.color.lab_to_rgb(y_true * 128)
+			y_pred_color = tfio.experimental.color.lab_to_rgb(y_pred * 128)
+		else:
+			assert 0
+
+		return (1 - tf.reduce_mean(tf.image.ssim(y_true_color, y_pred_color, max_val=1.0, filter_size=11,
 												 filter_sigma=1.5, k1=0.01, k2=0.03)))
 
 	def pnbr_loss(y_true, y_pred):
-		return (1 - psnr(y_true, y_pred))
+		return 1 - psnr(y_true, y_pred)
 
-	builtin_loss_functions = {}
-	builtin_loss_functions['mse'] = tf.keras.losses.MeanSquaredError()
-	builtin_loss_functions['ssim'] = ssim_loss
-	builtin_loss_functions['msa'] = tf.keras.losses.MeanAbsoluteError()
-	builtin_loss_functions['pnbr'] = tf.keras.losses.MeanAbsoluteError()
+	#
+	builtin_loss_functions = {'mse': tf.keras.losses.MeanSquaredError(), 'ssim': ssim_loss,
+							  'msa': tf.keras.losses.MeanAbsoluteError(), 'pnbr': pnbr_loss}
 
 	return builtin_loss_functions[args.loss_fn]
 
@@ -114,7 +144,7 @@ def run_train_model(args: dict, dataset):
 	strategy = setup_tensorflow_strategy(args=args)
 
 	# Compute the total batch size.
-	batch_size = args.batch_size * strategy.num_replicas_in_sync
+	batch_size: int = args.batch_size * strategy.num_replicas_in_sync
 	logger.info("Number of batches {0} of {1} elements".format(
 		len(dataset), batch_size))
 
@@ -132,6 +162,8 @@ def run_train_model(args: dict, dataset):
 	non_augmented_dataset_train = dataset_super_resolution(dataset=dataset,
 														   input_size=image_input_size,
 														   output_size=image_output_size)
+
+	non_augmented_dataset_train = tf.data.Dataset.zip((non_augmented_dataset_train, non_augmented_dataset_train))
 	non_augmented_dataset_train = dataset.batch(batch_size)
 	non_augmented_dataset_train, non_augmented_dataset_validation = split_dataset(dataset=dataset, train_size=0.95)
 
@@ -140,7 +172,7 @@ def run_train_model(args: dict, dataset):
 											shuffle_size=args.dataset_shuffle_size)
 
 	# Apply data augmentation
-	dataset = augment_dataset(dataset=dataset, output_shape=image_output_size)
+	dataset = augment_dataset(dataset=dataset, image_crop_shape=image_output_size)
 
 	# Transform data to fit upscale.
 	dataset = dataset_super_resolution(dataset=dataset,
@@ -170,17 +202,9 @@ def run_train_model(args: dict, dataset):
 
 	#
 	with strategy.scope():
-		# Setup Learning Rate with Decay.
-		learning_rate = args.learning_rate
-		lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-			learning_rate,
-			decay_steps=args.learning_rate_decay_step,
-			decay_rate=args.learning_rate_decay,
-			staircase=False)
 
 		# Creating optimizer.
-		model_optimizer = tf.keras.optimizers.Adam(
-			learning_rate=lr_schedule, beta_1=0.5, beta_2=0.9)
+		model_optimizer = create_setup_optimizer(args=args)
 
 		# Load or create models.
 		training_model = setup_model(args=args, builtin_models=builtin_models, image_input_size=image_input_size,
@@ -197,25 +221,23 @@ def run_train_model(args: dict, dataset):
 		logger.debug(training_model.summary())
 
 		# NOTE currently, only support checkpoint if generated model and not when using existing.
-		checkpoint = None
 		loss_fn = setup_loss_builtin_function(args)
 
 		# TODO add PBNR
 		pbnrMetric = PSNRMetric()
-		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy', pbnrMetric])
+		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy'])
 		# Save copy.
 		training_model.save(args.model_filepath)
 
 		# Create a callback that saves the model's weights
-		checkpoint_path = args.checkpoint_dir
+		checkpoint_path: str = args.checkpoint_dir
 
 		# Create a callback that saves the model's weights
-		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:02d}-{val_acc:.2f}.hdf5"),
+		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:02d}.hdf5"),
 														 monitor='val_loss',
 														 save_weights_only=True,
 														 save_freq='epoch',
 														 verbose=0)
-		checkpoint = tf.train.Checkpoint(model=training_model)
 
 		# If exists, load weights.
 		if os.path.exists(checkpoint_path):
@@ -223,17 +245,22 @@ def run_train_model(args: dict, dataset):
 
 		# TODO add none-augmented dataset. to see progress better.
 		#
+		args.example_batch_grid_size
 
+		ExampleResultCallBack = SaveExampleResultImageCallBack(
+			args.output_dir,
+			dataset.take(
+				32), args.color_space)
+		graph_output_filepath: str = os.path.join(args.output_dir, "history_graph.png")
+		graphHistory = GraphHistory(filepath=graph_output_filepath)
+
+		# TODO
 		validation_data_ds = None
-		graph_output_filepath = os.path.join(args.output_dir, "history_graph.png")
 		historyResult = training_model.fit(x=dataset, validation_data=validation_data_ds, verbose='auto',
 										   epochs=args.epochs,
 										   callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
-													  SaveExampleResultImageCallBack(
-														  args.output_dir,
-														  non_augmented_dataset_train.take(
-															  32), args.color_space),
-													  GraphHistory(filepath=graph_output_filepath)])
+													  ExampleResultCallBack,
+													  graphHistory])
 
 		# Save final model.
 		training_model.save(args.model_filepath)
@@ -274,11 +301,11 @@ def dcsuperresolution_program(vargs=None):
 
 		#
 		parser.add_argument('--decay-rate', dest='learning_rate_decay',
-							default=0.96,
+							default=0.98,
 							help='Set Learning rate Decay.', type=float)
 		#
 		parser.add_argument('--decay-step', dest='learning_rate_decay_step',
-							default=20000,
+							default=40000,
 							help='Set Learning rate Decay Step.', type=int)
 		#
 		parser.add_argument('--model', dest='model',

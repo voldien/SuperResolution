@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 import tensorflow as tf
 from core import ModelBase
@@ -14,11 +13,11 @@ class DCSuperResolutionModel(ModelBase):
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
-								 default=0.001,
+								 default=0.000001,
 								 required=False,
 								 help='Set the L1 Regularization applied.')
 
-		# 
+		#
 		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
 								 type=int,
 								 choices=[2, 4],
@@ -30,6 +29,7 @@ class DCSuperResolutionModel(ModelBase):
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
+		# Model Construct Parameters.
 		regularization = kwargs.get("regularization", 0.000001)  #
 		upscale_mode = kwargs.get("upscale_mode", 2)  #
 
@@ -46,7 +46,7 @@ def get_model_interface() -> ModelBase:
 
 
 # Create interface object or similar.
-def create_simple_model(input_shape, output_shape, regularization=0.000001, upscale_mode=2):
+def create_simple_model(input_shape: tuple, output_shape: tuple, regularization: float, upscale_mode: int):
 	batch_norm: bool = True
 	use_bias: bool = True
 

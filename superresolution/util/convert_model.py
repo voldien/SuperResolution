@@ -12,7 +12,7 @@ def convert_model(model, dataset=None):
 							# enable TensorFlow ops.
 							tf.lite.OpsSet.SELECT_TF_OPS
 							]
-							
+
 	converter.post_training_quantize = True
 	if dataset:
 		converter.representative_dataset = tf.lite.RepresentativeDataset(
