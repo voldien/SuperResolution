@@ -46,7 +46,8 @@ def create_setup_optimizer(args: dict):
 
 	#
 	parameters = {'beta_1': 0.5, 'beta_2': 0.9, 'learning_rate': lr_schedule}
-	model_optimizer = tf.keras.optimizers.get(args.optimizer, kwargs=parameters)
+	return tf.keras.optimizers.Adam(learning_rate=lr_schedule, beta_1=0.5, beta_2=0.9)
+	# model_optimizer = tf.keras.optimizers.get(args.optimizer, kwargs=parameters)
 
 	return model_optimizer
 
@@ -202,7 +203,6 @@ def run_train_model(args: dict, dataset):
 
 	#
 	with strategy.scope():
-
 		# Creating optimizer.
 		model_optimizer = create_setup_optimizer(args=args)
 
@@ -225,7 +225,7 @@ def run_train_model(args: dict, dataset):
 
 		# TODO add PBNR
 		pbnrMetric = PSNRMetric()
-		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy'])
+		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy', pbnrMetric])
 		# Save copy.
 		training_model.save(args.model_filepath)
 
@@ -271,6 +271,10 @@ def run_train_model(args: dict, dataset):
 
 def dcsuperresolution_program(vargs=None):
 	try:
+		# Create logger and output information
+		global logger
+		logger = logging.getLogger("Super Resolution Logger")
+
 		parser = argparse.ArgumentParser(
 			prog='SuperResolution',
 			add_help=True,
@@ -317,10 +321,6 @@ def dcsuperresolution_program(vargs=None):
 							default='mse',
 							choices=['mse', 'ssim', 'msa'],
 							help='Set Loss Function', type=str)
-
-		# Create logger and output information
-		global logger
-		logger = logging.getLogger("Super Resolution Logger")
 
 		# Load model and iterate existing models.
 		model_list = load_builtin_model_interfaces()
@@ -417,8 +417,9 @@ def dcsuperresolution_program(vargs=None):
 		run_train_model(args, dataset)
 
 	except Exception as ex:
-		logger.error(ex)
 		print(ex)
+		logger.error(ex)
+
 		traceback.print_exc()
 
 

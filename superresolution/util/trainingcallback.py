@@ -1,21 +1,30 @@
 import os
-from math import log10, sqrt
 
-import numpy as np
 import tensorflow as tf
 from matplotlib import pyplot as plt
 from util.image import showResult
 from util.util import plotTrainingHistory
+import math
 
-
-def compute_PSNR(orignal, data):
-	mse = np.mean((orignal - data) ** 2)
-	if (mse == 0):  # MSE is zero means no noise is present in the signal .
+def compute_normalized_PSNR(orignal, data):
+	mse = tf.reduce_mean((orignal - data) ** 2)
+	if (mse == 0.0):  # MSE is zero means no noise is present in the signal .
 		# Therefore PSNR have no importance.
-		return 100
+		return 100.0
+	
+	max_pixel = 2.0
+	return 20 * math.log10(max_pixel) - 10 * tf.math.log(mse)
+
+
+def compute_rgb_PSNR(orignal, data):
+	mse = tf.reduce_mean((orignal - data) ** 2)
+	if (mse == 0.0):  # MSE is zero means no noise is present in the signal .
+		# Therefore PSNR have no importance.
+		return 100.0
+	
 	max_pixel = 255.0
-	psnr = 20 * log10(max_pixel / sqrt(mse))
-	return psnr
+	psnr = 20.0 * tf.math.log(max_pixel / tf.math.sqrt(mse))
+	return 10 * math.log10(max_pixel) - 10 * tf.math.log(mse)
 
 
 class PBNRImageResultCallBack(tf.keras.callbacks.Callback):
@@ -40,7 +49,7 @@ class PBNRImageResultCallBack(tf.keras.callbacks.Callback):
 
 		output = self.model.predict(image_batch, verbose=0)
 
-		self.pbnr_history.append(compute_PSNR(image_batch, output))
+		self.pbnr_history.append(compute_normalized_PSNR(image_batch, output))
 
 		# ax = plt.subplot(1, len(results), i + 1)
 		plt.plot(self.pbnr_history)

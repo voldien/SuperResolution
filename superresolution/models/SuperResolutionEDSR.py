@@ -28,6 +28,10 @@ class EDSRSuperResolutionModel(ModelBase):
 		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
 								 help='Set the number of passes that the training set will be trained against.')
 
+		#
+		self.parser.add_argument('--edsr_filters', type=int, default=192, dest='edsr_filters',
+								 help='')
+
 	def load_argument(self) -> argparse.ArgumentParser:
 		#
 		return self.parser

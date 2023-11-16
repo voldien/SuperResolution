@@ -11,7 +11,7 @@ import tensorflow as tf
 from PIL import Image
 from skimage.color import rgb2lab
 
-from util.util import convert_color_space
+from util.util import convert_nontensor_color_space
 
 
 # def pixel_shuffle(scale):
@@ -35,7 +35,8 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 	packed_cropped_result: list = []
 
 	# Convert from Raw to specified ColorSpace.
-	decoder_images = np.asarray(convert_color_space(result_upscale_raw, color_space=color_space)).astype(dtype='float32')
+	decoder_images = np.asarray(convert_nontensor_color_space(result_upscale_raw, color_space=color_space)).astype(
+		dtype='float32')
 	#
 	for decoder_image in decoder_images:
 		#
@@ -190,7 +191,6 @@ def super_resolution_upscale(argv):
 				image_crop_list: list = []
 				for x in range(0, nr_width_block):
 					for y in range(0, nr_height_block):
-
 						# Compute subset view.
 						left = x * input_width
 						top = y * input_height

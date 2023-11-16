@@ -58,7 +58,9 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 		@tf.function
 		def setup_color_encoding(img, color_space):
 			def preprocess_rgb2lab(tensorData):
+
 				image = tf.cast(tensorData, float_precision)
+
 				return tf.cast(tfio.experimental.color.rgb_to_lab(image), float_precision)
 
 			# Convert color space encoding and normalize values.
@@ -74,7 +76,7 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 		train_ds = train_ds.map(lambda x: normalization_layer(x))
 
 		# Setup color space mapping.
-		normalized_ds = train_ds.map(lambda x: setup_color_encoding(setup_color_encoding, args.color_space))
+		normalized_ds = train_ds.map(lambda x: setup_color_encoding(x, args.color_space))
 		# Cast data.
 		normalized_ds = normalized_ds.map(lambda x: tf.cast(x, float_precision))
 

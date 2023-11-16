@@ -8,7 +8,7 @@ from sklearn.manifold import TSNE
 from tensorflow.keras import layers
 
 
-def convert_color_space(image_data, color_space: str):
+def convert_nontensor_color_space(image_data, color_space: str):
 	"""_summary_
 
 	Args:

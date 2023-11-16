@@ -26,12 +26,6 @@ class DCPostSuperResolutionModel(ModelBase):
 							help='Set the L1 Regularization applied.')
 
 		#
-		parser.add_argument('--loss-fn', dest='loss_fn',
-							default='mse',
-							choices=['mse'],
-							help='.', type=str)
-
-		#
 		return parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:

@@ -9,12 +9,13 @@ from tensorflow.python.client import device_lib
 
 
 def DefaultArgumentParser() -> argparse.ArgumentParser:
-	parser = argparse.ArgumentParser(add_help=True)
+	parser = argparse.ArgumentParser(add_help=False)
 
 	#
 	parser.add_argument('--epochs', type=int, default=48, dest='epochs',
 						help='Set the number of passes that the training set will be trained against.')
 	#
+
 	parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
 						help='number of training element per each batch, during training.')
 	#
@@ -62,6 +63,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	parser.add_argument('--data-set-directory', dest='data_sets_directory_paths', type=str,
 						action='append',
 						help='Directory path where the images are located dataset images')
+
 	#
 	parser.add_argument('--image-size', type=int, dest='image_size',
 						nargs=2,
@@ -91,7 +93,6 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 
 	parser.add_argument('--use-valdiation', type=bool, default=True, dest='use_validation',
 						help='Select if use data validation step.')
-
 	return parser
 
 
