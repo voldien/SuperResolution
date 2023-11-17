@@ -7,7 +7,8 @@ from util.util import plotTrainingHistory
 import math
 
 def compute_normalized_PSNR(orignal, data):
-	mse = tf.reduce_mean((orignal - data) ** 2)
+	# Remape [-1, 1] to [0,2]
+	mse = tf.reduce_mean((( orignal + 1) - (data +1)) ** 2)
 	if (mse == 0.0):  # MSE is zero means no noise is present in the signal .
 		# Therefore PSNR have no importance.
 		return 100.0
@@ -23,7 +24,6 @@ def compute_rgb_PSNR(orignal, data):
 		return 100.0
 	
 	max_pixel = 255.0
-	psnr = 20.0 * tf.math.log(max_pixel / tf.math.sqrt(mse))
 	return 10 * math.log10(max_pixel) - 10 * tf.math.log(mse)
 
 

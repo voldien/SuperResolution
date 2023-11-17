@@ -223,16 +223,19 @@ def run_train_model(args: dict, dataset):
 		# NOTE currently, only support checkpoint if generated model and not when using existing.
 		loss_fn = setup_loss_builtin_function(args)
 
-		# TODO add PBNR
-		pbnrMetric = PSNRMetric()
-		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=['accuracy', pbnrMetric])
+		# TODO metric list.
+		metrics = ['accuracy',]
+		if args.show_psnr:
+			metrics.append(PSNRMetric())
+
+		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=metrics)
 		# Save copy.
 		training_model.save(args.model_filepath)
 
-		# Create a callback that saves the model's weights
+		# Create a callback that saves the model's.py weights
 		checkpoint_path: str = args.checkpoint_dir
 
-		# Create a callback that saves the model's weights
+		# Create a callback that saves the model's.py weights
 		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:02d}.hdf5"),
 														 monitor='val_loss',
 														 save_weights_only=True,
@@ -302,6 +305,16 @@ def dcsuperresolution_program(vargs=None):
 		parser.add_argument('--example-batch-gridsize', dest='example_batch_grid_size',
 							type=int, metavar=('width', 'height'),
 							nargs=2, default=(8, 8), help='Set the grid size of number of example images.')
+		
+		#
+		parser.add_argument('--show-psnr', dest='show_psnr',
+							type=bool,
+							nargs=1, default=False, help='Set the grid size of number of example images.')
+		
+		#TODO add support
+		parser.add_argument('--metrics', dest='metrics',
+							type=str, action='append',
+							nargs=1, default=False, help='Set what metric to capture.')
 
 		#
 		parser.add_argument('--decay-rate', dest='learning_rate_decay',

@@ -55,8 +55,10 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 			batch_size=None,
 			image_size=image_size)
 
+		normalization_layer = tf.keras.layers.Rescaling(1. / 255.0)
 		@tf.function
-		def setup_color_encoding(img, color_space):
+		def setup_color_encoding(img, color_space : str):
+			@tf.function
 			def preprocess_rgb2lab(tensorData):
 
 				image = tf.cast(tensorData, float_precision)
@@ -65,15 +67,12 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 
 			# Convert color space encoding and normalize values.
 			if color_space == 'lab':
-				# Convert to LAB color and Transform [-128,128] -> [-1, 1]
-				return preprocess_rgb2lab(img)
+				# Convert to LAB color and Transform [0, 255] -> [-128,128] -> [-1, 1]
+				return preprocess_rgb2lab(normalization_layer(img)) * (1.0 / 128.0)
 			elif color_space == 'rgb':
-				# Normalize and Transform [0,1] -> [-1, 1]
-				return (img * 2.0) - 1
-
-		# Remap to [0,1]
-		normalization_layer = tf.keras.layers.Rescaling(1. / 255.0)
-		train_ds = train_ds.map(lambda x: normalization_layer(x))
+				# Normalize and Transform [0, 255] -> [0,1] -> [-1, 1]
+				return (normalization_layer(img) * 2.0) - 1.0
+			assert 0
 
 		# Setup color space mapping.
 		normalized_ds = train_ds.map(lambda x: setup_color_encoding(x, args.color_space))
@@ -81,8 +80,7 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 		normalized_ds = normalized_ds.map(lambda x: tf.cast(x, float_precision))
 
 		return normalized_ds
-
-		pass
+	
 	elif os.path.isfile(data_path):
 		assert 0  # TODO add support
 

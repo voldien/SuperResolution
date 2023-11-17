@@ -38,9 +38,9 @@ class EDSRSuperResolutionModel(ModelBase):
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
 		# Model constructor parameters.
-		regularization = kwargs.get("regularization", 0.00001)  #
-		upscale_mode = kwargs.get("upscale_mode", 2)  #
-		num_input_filters = kwargs.get("edsr_filters", 192)  #
+		regularization  : float = kwargs.get("regularization", 0.00001)  #
+		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
+		num_input_filters : int = kwargs.get("edsr_filters", 192)  #
 		use_resnet = kwargs.get("use_resnet", True)  #
 
 		#
