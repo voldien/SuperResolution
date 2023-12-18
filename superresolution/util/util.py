@@ -18,9 +18,9 @@ def convert_nontensor_color_space(image_data, color_space: str):
 	Returns:
 		_type_: _description_
 	"""
-	#
 	if color_space == 'lab':
 		if isinstance(image_data, list):
+			# Convert [-1,1] -> [-128,128] -> [0,1]
 			return np.asarray([lab2rgb(image * 128.0) for image in image_data]).astype(dtype='float32')
 		else:
 			return lab2rgb(image_data * 128.0)

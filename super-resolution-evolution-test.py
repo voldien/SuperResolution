@@ -4,7 +4,7 @@ import os
 import random
 import sys
 
-from superresolution.SuperResolution import run_train_model
+from superresolution.SuperResolution import dcsuperresolution_program
 
 # Epochs, dataset, batch, size, imagesize, output dir
 parser = argparse.ArgumentParser(add_help=True, prog="", description="")
@@ -43,6 +43,7 @@ output_dir : str = args.output_dir
 batch_size : int = args.batch_size
 dataset_paths = args.data_sets_directory_paths
 image_size :tuple = args.image_size
+image_output_size :tuple = args.output_image_size
 
 hyperparameters = {
 	#
@@ -57,14 +58,17 @@ hyperparameters = {
 	"--model": ['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae'],
 	"--cache-file": ["/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir ))) + str(sys.argv[4])],
 	"--epochs": [epochs],
+	"--shuffle-data-set-size": [2048],
 	"--checkpoint-every-epoch": [0],
 	"--data-set-directory": [dataset_paths],
 	"--batch-size": [args.batch_size],
 }
 
+# 
 keys, values = zip(*hyperparameters.items())
 hyperparameter_combinations = [dict(zip(keys, v)) for v in itertools.product(*values)]
 
+# 
 random.shuffle(hyperparameter_combinations)
 
 for i, custom_argv in enumerate(hyperparameter_combinations):
@@ -93,4 +97,4 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 	argvlist.append(output_dir)
 
 	print(argvlist)
-	run_train_model(argvlist)
+	dcsuperresolution_program(argvlist)

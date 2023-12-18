@@ -76,6 +76,7 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 
 		# Setup color space mapping.
 		normalized_ds = train_ds.map(lambda x: setup_color_encoding(x, args.color_space))
+		
 		# Cast data.
 		normalized_ds = normalized_ds.map(lambda x: tf.cast(x, float_precision))
 
@@ -140,7 +141,7 @@ def dataset_super_resolution(dataset: Dataset, input_size, output_size) -> Datas
 				input_size[1],
 				interpolation='bilinear',
 				crop_to_aspect_ratio=False
-			)])
+			)]) 
 
 		# Create a copy to prevent augmentation be done twice separately.
 		expected = tf.identity(data)

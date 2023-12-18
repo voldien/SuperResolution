@@ -119,9 +119,11 @@ def setup_loss_builtin_function(args: dict):
 		y_pred_color = None
 
 		if args.color_space == 'rgb':
+			# Remape [-1,1] to [0,1]
 			y_true_color = ((y_true + 1.0) * 0.5)
 			y_pred_color = ((y_pred + 1.0) * 0.5)
 		elif args.color_space == 'lab':
+			# Remape [-1,1] -> [-128, 128] -> [0,1]
 			y_true_color = tfio.experimental.color.lab_to_rgb(y_true * 128)
 			y_pred_color = tfio.experimental.color.lab_to_rgb(y_pred * 128)
 		else:

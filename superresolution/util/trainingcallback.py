@@ -6,15 +6,9 @@ from util.image import showResult
 from util.util import plotTrainingHistory
 import math
 
+
 def compute_normalized_PSNR(orignal, data):
-	# Remape [-1, 1] to [0,2]
-	mse = tf.reduce_mean((( orignal + 1) - (data +1)) ** 2)
-	if (mse == 0.0):  # MSE is zero means no noise is present in the signal .
-		# Therefore PSNR have no importance.
-		return 100.0
-	
-	max_pixel = 2.0
-	return 20 * math.log10(max_pixel) - 10 * tf.math.log(mse)
+	return tf.psnr((orignal + 1), (data + 1), max_val=2.0)
 
 
 def compute_rgb_PSNR(orignal, data):
@@ -25,40 +19,6 @@ def compute_rgb_PSNR(orignal, data):
 	
 	max_pixel = 255.0
 	return 10 * math.log10(max_pixel) - 10 * tf.math.log(mse)
-
-
-class PBNRImageResultCallBack(tf.keras.callbacks.Callback):
-	def __init__(self, dir_path, train_data_subset, color_space: str, **kwargs):
-		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
-
-		options = tf.data.Options()
-		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-		self.trainSet = train_data_subset.with_options(options)
-
-		self.dir_path = dir_path
-		self.current_epoch = 0
-
-		self.fig = plt.figure(figsize=(10, 10), dpi=300)
-		self.pbnr_history = []
-
-	def on_epoch_begin(self, epoch, logs=None):
-		self.current_epoch = epoch
-
-		batch_iter = iter(self.trainSet)
-		image_batch, _ = next(batch_iter)
-
-		output = self.model.predict(image_batch, verbose=0)
-
-		self.pbnr_history.append(compute_normalized_PSNR(image_batch, output))
-
-		# ax = plt.subplot(1, len(results), i + 1)
-		plt.plot(self.pbnr_history)
-		plt.ylabel(ylabel="y_label")
-		plt.xlabel(xlabel="x_label")
-		plt.legend(loc="upper left")
-
-		self.fig.savefig(os.path.join(self.dir_path, "GANCost.png"))
-
 
 class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 
@@ -90,13 +50,6 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 			fig.savefig(os.path.join(self.dir_path, "SuperResolution_{0}_{1}.png".format(self.current_epoch, batch)))
 
 
-# def compare_images(target, ref):
-#    scores = []
-#    scores.append(psnr(target, ref))
-#    scores.append(mse(target, ref))
-#    scores.append(ssim(target, ref, multichannel=True))
-#    return scores
-# TODO add support with PNSS, to extract how good it is in contrast to the original data.
 class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 
 	def __init__(self, dir_path, train_data_subset, color_space, **kwargs):
@@ -139,6 +92,11 @@ class GraphHistory(tf.keras.callbacks.History):
 		super().on_train_batch_end(batch=batch, logs=logs)
 		for k, v in logs.items():
 			self.batch_history.setdefault(k, []).append(v)
+		# Append learning rate. #TODO fix how to extract learning rate
+		learning_rate = 0.0
+		if isinstance(self.model.optimizer.lr, tf.keras.optimizers.schedules.ExponentialDecay):
+			learning_rate = 0.0#self.model.optimizer.lr()
+		self.batch_history.setdefault("learning-rate", []).append(learning_rate)
 
 	def on_epoch_end(self, epoch, logs):
 		super().on_epoch_end(epoch=epoch, logs=logs)

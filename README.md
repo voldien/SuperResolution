@@ -6,7 +6,7 @@ A SuperResolution training program for creating upscaling machine model.
 ## Basic Program Command Line
 
 ```bash
-python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model edsr --learning-rate 0.0003 --color-space lab  --loss-fn msa
+python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model edsr --learning-rate 0.0003 --color-space lab  --loss-fn msa --shuffle-data-set-size 2048
 ```
 
 
