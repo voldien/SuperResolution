@@ -67,7 +67,7 @@ hyperparameters = {
 	"--shuffle-data-set-size": [2048],
 	"--checkpoint-every-epoch": [0],
 	"--data-set-directory": [dataset_paths],
-	"--batch-size": [args.batch_size],
+	"--batch-size": [batch_size],
 }
 
 # 

@@ -17,9 +17,6 @@ def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrC
 	fig = plt.figure(figsize=(nrCol * 2, 5 * 2))
 	for i in range(nrCol):
 
-		data_image = None
-		expected_image = None
-
 		data_image = convert_nontensor_color_space(data_image_batch[i % len(data_image_batch)], color_space=color_space) 
 		expected_image = convert_nontensor_color_space(expected_image_batch[i % len(expected_image_batch)],color_space=color_space) 
 

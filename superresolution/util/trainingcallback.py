@@ -85,7 +85,7 @@ class GraphHistory(tf.keras.callbacks.History):
 		self.fig_savepath = filepath
 		self.batch_history = {}
 
-	def on_train_begin(self, logs):
+	def on_train_begin(self, logs=None):
 		super().on_train_begin(logs=logs)
 
 	def on_train_batch_end(self, batch, logs=None):
@@ -98,7 +98,7 @@ class GraphHistory(tf.keras.callbacks.History):
 			learning_rate = 0.0#self.model.optimizer.lr()
 		self.batch_history.setdefault("learning-rate", []).append(learning_rate)
 
-	def on_epoch_end(self, epoch, logs):
+	def on_epoch_end(self, epoch, logs=None):
 		super().on_epoch_end(epoch=epoch, logs=logs)
 
 		# Plot detailed
