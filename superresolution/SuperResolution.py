@@ -14,12 +14,13 @@ import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow_io as tfio
 
+from core import ModelBase
+
 import models.DCSuperResolution
 import models.PostDCSuperResolution
 import models.SuperResolutionAE
 import models.SuperResolutionEDSR
-from core import ModelBase
-# import models.DCSuperResolution as BuiltInModels
+
 from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset, split_dataset

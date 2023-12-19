@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from superresolution.util.util import convert_nontensor_color_space
+from util.util import convert_nontensor_color_space
 import tensorflow as tf
 from numpy import asarray
 from skimage.color import lab2rgb
