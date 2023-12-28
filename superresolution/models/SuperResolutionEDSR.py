@@ -29,7 +29,7 @@ class EDSRSuperResolutionModel(ModelBase):
 								 help='Set the number of passes that the training set will be trained against.')
 
 		#
-		self.parser.add_argument('--edsr_filters', type=int, default=192, dest='edsr_filters',
+		self.parser.add_argument('--edsr_filters', type=int, default=256, dest='edsr_filters',
 								 help='')
 
 	def load_argument(self) -> argparse.ArgumentParser:
@@ -40,11 +40,11 @@ class EDSRSuperResolutionModel(ModelBase):
 		# Model constructor parameters.
 		regularization  : float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
-		num_input_filters : int = kwargs.get("edsr_filters", 192)  #
+		num_input_filters : int = kwargs.get("edsr_filters", 256)  #
 		use_resnet = kwargs.get("use_resnet", True)  #
 
 		#
-		return create_model(input_shape=input_shape,
+		return create_edsr_model(input_shape=input_shape,
 							output_shape=output_shape, scale=upscale_mode,
 							num_filters=num_input_filters, regularization=regularization)
 
@@ -56,7 +56,7 @@ def get_model_interface() -> ModelBase:
 	return EDSRSuperResolutionModel()
 
 
-def create_model(input_shape, output_shape, scale, num_filters=64, num_res_blocks=8, res_block_scaling=None,
+def create_edsr_model(input_shape, output_shape, scale, num_filters=64, num_res_blocks=8, res_block_scaling=None,
 				 regularization=0.00001):
 	"""Creates an EDSR model."""
 
