@@ -47,7 +47,7 @@ class ResNetSuperResolutionModel(ModelBase):
 
 		#
 		return create_simple_model(input_shape=input_shape,
-								   output_shape=output_shape, num_res_blocks=num_res_blocks, regularization=regularization)
+								   output_shape=output_shape, upscale_mode=upscale_mode, num_res_blocks=num_res_blocks, regularization=regularization)
 
 	def get_name(self):
 		return "basic super"
@@ -75,49 +75,56 @@ def residual_block(input, filters=64, use_batch_norm=False):
 	if use_batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 	x = layers.ReLU(dtype='float32')(x)
-	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=init)(input)
+
+	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=init)(x)
+	if use_batch_norm:
+		x = layers.BatchNormalization(dtype='float32')(x)
 
 	x = layers.add([start_ref, x])
+
+	x = layers.ReLU(dtype='float32')(x)
 
 	return x
 
 
-def create_simple_model(input_shape, output_shape, num_res_blocks=8, regularization=0.00001):
+def create_simple_model(input_shape, output_shape, upscale_mode : int = 2, num_res_blocks : int =8, regularization:float=0.00001):
 	batch_norm: bool = True
 	use_bias: bool = True
 
 	init = tf.keras.initializers.HeNormal()
 	output_width, output_height, output_channels = output_shape
-
-	input = layers.Input(shape=input_shape)
 	number_layers = 2
 
-	x = input
+	input = layers.Input(shape=input_shape)
+	x = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias, kernel_initializer=init)(input)
+
 	for i in range(0, num_res_blocks):
 		x = residual_block(input=x, filters=64, use_batch_norm= False)
 
-	for i in range(0, number_layers):
-		filter_size = 2 ** (i + 7)
-		filter_size = min(filter_size, 1024)
+	for _ in range(0, int(upscale_mode / 2)):
+		for i in range(0, number_layers):
+			filter_size = 2 ** (i + 7)
+			filter_size = min(filter_size, 1024)
 
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=init)(x)
-		if batch_norm:
-			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
+			x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same',use_bias=use_bias, kernel_initializer=init)(x)
+			if batch_norm:
+				x = layers.BatchNormalization(dtype='float32')(x)
+			x = layers.ReLU(dtype='float32')(x)
 
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=init)(x)
-		if batch_norm:
-			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
+			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1,use_bias=use_bias, kernel_initializer=init)(x)
+			if batch_norm:
+				x = layers.BatchNormalization(dtype='float32')(x)
+			x = layers.ReLU(dtype='float32')(x)
 
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=init)(x)
-		if batch_norm:
-			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
+			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1,use_bias=use_bias, kernel_initializer=init)(x)
+			if batch_norm:
+				x = layers.BatchNormalization(dtype='float32')(x)
+			x = layers.ReLU(dtype='float32')(x)
+		
+		#TODO add mode of upscale.
+		x = tf.nn.depth_to_space(x, 2)
 
-	x = tf.nn.depth_to_space(x, 2)
-
-	# Upscale.
+	# Upscale and output channel.
 	x = layers.Conv2DTranspose(filters=3, kernel_size=(9, 9), strides=(
 		1, 1), padding='same', kernel_initializer=init)(x)
 	x = layers.Activation('tanh')(x)
@@ -126,5 +133,4 @@ def create_simple_model(input_shape, output_shape, num_res_blocks=8, regularizat
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	conv_autoencoder = keras.Model(inputs=input, outputs=x)
-	return conv_autoencoder
+	return keras.Model(inputs=input, outputs=x)

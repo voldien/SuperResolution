@@ -41,7 +41,6 @@ class EDSRSuperResolutionModel(ModelBase):
 		regularization: float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
 		num_input_filters: int = kwargs.get("edsr_filters", 256)  #
-		use_resnet = kwargs.get("use_resnet", True)  #
 
 		#
 		return create_edsr_model(input_shape=input_shape,
@@ -49,15 +48,15 @@ class EDSRSuperResolutionModel(ModelBase):
 								 num_filters=num_input_filters, regularization=regularization)
 
 	def get_name(self):
-		return "SuperResolution - EDSR"
+		return "SuperResolution - EDSR - Enchanced Deep Super Resolution"
 
 
 def get_model_interface() -> ModelBase:
 	return EDSRSuperResolutionModel()
 
 
-def create_edsr_model(input_shape, output_shape, scale, num_filters=64, num_res_blocks=8, res_block_scaling=None,
-					  regularization=0.00001):
+def create_edsr_model(input_shape, output_shape, scale:int, num_filters:int=64, num_res_blocks:int=8, res_block_scaling:int=None,
+					  regularization:float=0.00001):
 	"""Creates an EDSR model."""
 
 	output_width, output_height, output_channels = output_shape
@@ -65,16 +64,18 @@ def create_edsr_model(input_shape, output_shape, scale, num_filters=64, num_res_
 	x_in = layers.Input(shape=input_shape)
 
 	#
-	x = b = layers.Conv2D(num_filters, kernel_size=(3, 3), padding='same')(x_in)
-	for i in range(num_res_blocks):
+	x = b = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same')(x_in)
+	for _ in range(num_res_blocks):
 		b = res_block(b, num_filters, res_block_scaling)
 
 	#
-	b = layers.Conv2D(num_filters, kernel_size=(3, 3), padding='same')(b)
+	b = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same')(b)
 	x = layers.Add()([x, b])
 
 	#
 	x = upsample(x, scale, num_filters)
+
+	#
 	x = layers.Conv2D(filters=output_channels, kernel_size=(3, 3), padding='same')(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
@@ -85,20 +86,22 @@ def create_edsr_model(input_shape, output_shape, scale, num_filters=64, num_res_
 	return keras.Model(x_in, x, name="edsr")
 
 
-def res_block(x_in, filters, scaling):
+def res_block(x_in, filters: int, scaling):
 	"""Creates an EDSR residual block."""
-	x = layers.Conv2D(filters, 3, padding='same', activation='relu')(x_in)
-	x = layers.Conv2D(filters, 3, padding='same')(x)
+	x = layers.Conv2D(filters=filters, kernel_size=3, padding='same', activation='relu')(x_in)
+	#x = layers.ReLU(dtype='float32')(x)
+	x = layers.Conv2D(filters=filters, kernel_size=3, padding='same')(x)
+
 	if scaling:
 		x = layers.Lambda(lambda t: t * scaling)(x)
 	x = layers.Add()([x_in, x])
 	return x
 
 
-def upsample(x, scale, num_filters):
+def upsample(x, scale : int, num_filters: int):
 	def upsample_1(x, factor, **kwargs):
 		"""Sub-pixel convolution."""
-		x = layers.Conv2D(num_filters * (factor ** 2), 3, padding='same', **kwargs)(x)
+		x = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=3, padding='same', **kwargs)(x)
 		return tf.nn.depth_to_space(x, 2)
 
 	if scale == 2:

@@ -23,7 +23,6 @@ class AESuperResolutionModel(ModelBase):
 								 help='Set the L1 Regularization applied.')
 
 	def load_argument(self) -> argparse.ArgumentParser:
-		#
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
@@ -33,7 +32,7 @@ class AESuperResolutionModel(ModelBase):
 		regularization: float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
 		num_input_filters: int = kwargs.get("edsr_filters", 256)  #
-		use_resnet = kwargs.get("use_resnet", True)  #
+		use_resnet: bool = kwargs.get("use_resnet", True)  #
 
 		#
 		return create_dscr_auto_encoder_model(input_shape=input_shape,
@@ -41,14 +40,14 @@ class AESuperResolutionModel(ModelBase):
 											  regularization=regularization)  # , regularization=parser_result.regularization)
 
 	def get_name(self):
-		return "basic super"
+		return "Auto Encoder Super Resolution"
 
 
 def get_model_interface() -> ModelBase:
 	return AESuperResolutionModel()
 
 
-def create_dscr_auto_encoder_model(input_shape, output_shape, use_resnet: bool, regularization: float = 0.00000,
+def create_dscr_auto_encoder_model(input_shape, output_shape, use_resnet: bool = True, regularization: float = 0.00000,
 								   kernel_activation: str = 'relu'):
 	def create_activation(activation):
 		if activation == "leaky_relu":
@@ -60,17 +59,17 @@ def create_dscr_auto_encoder_model(input_shape, output_shape, use_resnet: bool, 
 		else:
 			assert "Should never be reached"
 
-	batch_norm = True
+	use_batch_norm : bool = True
 
 	init = tf.keras.initializers.GlorotUniform()
 
 	input = layers.Input(shape=input_shape)
-	number_layers :int = 3
+	number_layers : int = 2
 	offset_degre : int = 6
 
 	x = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same',
 					  kernel_initializer=init)(input)
-	if batch_norm:
+	if use_batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 	x = create_activation(kernel_activation)(x)
 
@@ -81,19 +80,19 @@ def create_dscr_auto_encoder_model(input_shape, output_shape, use_resnet: bool, 
 		filter_size = min(filter_size, 1024)
 
 		x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=init)(x)
-		if batch_norm:
-			x = layers.BatchNormalization(dtype='float32')(x)
-		x = create_activation(kernel_activation)(x)
-
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=init)(x)
-		if batch_norm:
+		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
 
 		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=2, kernel_initializer=init)(x)
-		if batch_norm:
+		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
+
+		#x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=2, kernel_initializer=init)(x)
+		#if use_batch_norm:
+		#	x = layers.BatchNormalization(dtype='float32')(x)
+		#x = create_activation(kernel_activation)(x)
 
 		AttachLayer = x
 		if use_resnet:
@@ -122,12 +121,12 @@ def create_dscr_auto_encoder_model(input_shape, output_shape, use_resnet: bool, 
 		x = layers.UpSampling2D(size=(2, 2))(x)
 
 		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=init)(x)
-		if batch_norm:
+		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
 
 		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=init)(x)
-		if batch_norm:
+		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
 
