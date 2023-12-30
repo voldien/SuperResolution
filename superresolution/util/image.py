@@ -6,7 +6,6 @@ from skimage.color import lab2rgb
 
 
 def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrCol=6):
-	
 	batch_iter = iter(image_batch_dataset)
 	data_image_batch, expected_image_batch = batch_iter.next()
 
@@ -17,8 +16,9 @@ def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrC
 	fig = plt.figure(figsize=(nrCol * 2, 5 * 2))
 	for i in range(nrCol):
 
-		data_image = convert_nontensor_color_space(data_image_batch[i % len(data_image_batch)], color_space=color_space) 
-		expected_image = convert_nontensor_color_space(expected_image_batch[i % len(expected_image_batch)],color_space=color_space) 
+		data_image = convert_nontensor_color_space(data_image_batch[i % len(data_image_batch)], color_space=color_space)
+		expected_image = convert_nontensor_color_space(expected_image_batch[i % len(expected_image_batch)],
+													   color_space=color_space)
 
 		# Display Input Training Data.
 		plt.subplot(rows, nrCol, nrCol * 0 + i + 1)
@@ -32,7 +32,8 @@ def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrC
 
 		# Convert color-space to normalize coordinates [0,1]
 		output_result_raw = output[i % len(data_image_batch)]
-		result_image_rgb_encoding = convert_nontensor_color_space(output[i % len(data_image_batch)],color_space=color_space) 
+		result_image_rgb_encoding = convert_nontensor_color_space(output[i % len(data_image_batch)],
+																  color_space=color_space)
 
 		plt.subplot(rows, nrCol, nrCol * 2 + i + 1)
 		if color_space == 'lab':

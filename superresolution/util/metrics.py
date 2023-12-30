@@ -19,6 +19,6 @@ class PSNRMetric(base_metric.MeanMetricWrapper):
 			if y_true.dtype != y_pred.dtype:
 				y_pred = tf.cast(y_pred, y_true.dtype)
 
-			return tf.cast(compute_normalized_PSNR(y_true, y_pred), tf.float32) #TODO determine cast type.
+			return tf.cast(compute_normalized_PSNR(y_true, y_pred), tf.float32)  # TODO determine cast type.
 
 		super().__init__(psnr, name, dtype=dtype)

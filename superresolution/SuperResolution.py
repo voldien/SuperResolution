@@ -20,6 +20,7 @@ import models.DCSuperResolution
 import models.PostDCSuperResolution
 import models.SuperResolutionAE
 import models.SuperResolutionEDSR
+import models.SuperResolutionResNet
 
 from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
 from util.dataProcessing import load_dataset_from_directory, \
@@ -75,6 +76,7 @@ def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
 	builtin_models['dcsr-post'] = models.PostDCSuperResolution.get_model_interface()
 	builtin_models['edsr'] = models.SuperResolutionEDSR.get_model_interface()
 	builtin_models['dcsr-ae'] = models.SuperResolutionAE.get_model_interface()
+	builtin_models['dcsr-resnet'] = models.SuperResolutionResNet.get_model_interface()
 
 	return builtin_models
 
@@ -227,7 +229,7 @@ def run_train_model(args: dict, dataset):
 		loss_fn = setup_loss_builtin_function(args)
 
 		# TODO metric list.
-		metrics = ['accuracy',]
+		metrics = ['accuracy', ]
 		if args.show_psnr:
 			metrics.append(PSNRMetric())
 
@@ -308,13 +310,13 @@ def dcsuperresolution_program(vargs=None):
 		parser.add_argument('--example-batch-gridsize', dest='example_batch_grid_size',
 							type=int, metavar=('width', 'height'),
 							nargs=2, default=(8, 8), help='Set the grid size of number of example images.')
-		
+
 		#
 		parser.add_argument('--show-psnr', dest='show_psnr',
 							type=bool,
 							nargs=1, default=False, help='Set the grid size of number of example images.')
-		
-		#TODO add support
+
+		# TODO add support
 		parser.add_argument('--metrics', dest='metrics',
 							type=str, action='append',
 							nargs=1, default=False, help='Set what metric to capture.')
@@ -330,7 +332,7 @@ def dcsuperresolution_program(vargs=None):
 		#
 		parser.add_argument('--model', dest='model',
 							default='dcsr',
-							choices=['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae'],
+							choices=['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae','dcsr-resnet'],
 							help='Set which model type to use.', type=str)
 		#
 		parser.add_argument('--loss-fn', dest='loss_fn',

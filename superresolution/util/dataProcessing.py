@@ -22,7 +22,8 @@ def configure_dataset_performance(ds: Dataset, use_cache: bool, cache_path: str,
 	elif use_cache:
 		ds = ds.cache()
 	if shuffle_size > 0:
-		ds = ds.shuffle(buffer_size=shuffle_size, reshuffle_each_iteration=True)
+		ds = ds.shuffle(buffer_size=shuffle_size * 2, reshuffle_each_iteration=True)
+
 	ds = ds.prefetch(buffer_size=AUTOTUNE)
 
 	return ds
@@ -56,8 +57,9 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 			image_size=image_size)
 
 		normalization_layer = tf.keras.layers.Rescaling(1. / 255.0)
+
 		@tf.function
-		def setup_color_encoding(img, color_space : str):
+		def setup_color_encoding(img, color_space: str):
 			@tf.function
 			def preprocess_rgb2lab(tensorData):
 
@@ -76,12 +78,12 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 
 		# Setup color space mapping.
 		normalized_ds = train_ds.map(lambda x: setup_color_encoding(x, args.color_space))
-		
+
 		# Cast data.
 		normalized_ds = normalized_ds.map(lambda x: tf.cast(x, float_precision))
 
 		return normalized_ds
-	
+
 	elif os.path.isfile(data_path):
 		assert 0  # TODO add support
 
@@ -141,7 +143,7 @@ def dataset_super_resolution(dataset: Dataset, input_size, output_size) -> Datas
 				input_size[1],
 				interpolation='bilinear',
 				crop_to_aspect_ratio=False
-			)]) 
+			)])
 
 		# Create a copy to prevent augmentation be done twice separately.
 		expected = tf.identity(data)

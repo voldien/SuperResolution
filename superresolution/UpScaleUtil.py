@@ -76,11 +76,11 @@ def super_resolution_upscale(argv):
 
 	#
 	parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
-	                    help='number images processed at the same time.')
+						help='number images processed at the same time.')
 
 	#
 	parser.add_argument('--threads', type=int, default=1, dest='task_threads',
-	                    help='number images processed at the same time.')
+						help='number images processed at the same time.')
 
 	#
 	parser.add_argument('--model', dest='model_filepath', default=None, help='')
@@ -90,23 +90,23 @@ def super_resolution_upscale(argv):
 
 	#
 	parser.add_argument('--model-weight', action='store', dest='model_weight_path', type=str,
-	                    help='Select Model Weight Path', default=None)
+						help='Select Model Weight Path', default=None)
 
 	#
 	parser.add_argument('--device', type=str, dest='', default=None, help='Select Device')
 
 	#
 	parser.add_argument('--verbosity', type=int, dest='accumulate',
-	                    default=1,
-	                    help='')
+						default=1,
+						help='')
 
 	#
 	parser.add_argument('--color-space', type=str, default="rgb", dest='color_space', choices=['rgb', 'lab'],
-	                    help='Select Color Space Image wisll be decode from the output model data.')
+						help='Select Color Space Image wisll be decode from the output model data.')
 
 	#
 	parser.add_argument('--color-channels', type=int, default=3, dest='color_channels', choices=[1, 3, 4],
-	                    help='Select Number of channels in the color space. GrayScale, RGB and RGBA.')
+						help='Select Number of channels in the color space. GrayScale, RGB and RGBA.')
 
 	args = parser.parse_args(args=argv)
 
@@ -222,7 +222,7 @@ def super_resolution_upscale(argv):
 
 					# Upscale.
 					upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,
-					                                        color_space=color_space)
+															color_space=color_space)
 
 					#
 					for index, (crop, upscale) in enumerate(zip(cropped_batch, upscale_raw_result)):

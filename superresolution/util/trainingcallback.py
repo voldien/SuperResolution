@@ -16,9 +16,10 @@ def compute_rgb_PSNR(orignal, data):
 	if (mse == 0.0):  # MSE is zero means no noise is present in the signal .
 		# Therefore PSNR have no importance.
 		return 100.0
-	
+
 	max_pixel = 255.0
 	return 10 * math.log10(max_pixel) - 10 * tf.math.log(mse)
+
 
 class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 
@@ -95,7 +96,7 @@ class GraphHistory(tf.keras.callbacks.History):
 		# Append learning rate. #TODO fix how to extract learning rate
 		learning_rate = 0.0
 		if isinstance(self.model.optimizer.lr, tf.keras.optimizers.schedules.ExponentialDecay):
-			learning_rate = 0.0#self.model.optimizer.lr()
+			learning_rate = 0.0  # self.model.optimizer.lr()
 		self.batch_history.setdefault("learning-rate", []).append(learning_rate)
 
 	def on_epoch_end(self, epoch, logs=None):

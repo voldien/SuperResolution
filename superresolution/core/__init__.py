@@ -6,6 +6,7 @@ import tensorflow.keras as keras
 class ModelBase(object):
 	"""_summary_
 	"""
+
 	def load_argument(self) -> argparse.ArgumentParser:
 		"""_summary_
 
