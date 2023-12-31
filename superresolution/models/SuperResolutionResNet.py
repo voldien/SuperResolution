@@ -4,6 +4,7 @@ import tensorflow as tf
 from core import ModelBase
 from tensorflow import keras
 from tensorflow.keras import layers
+from models import create_activation
 
 
 class ResNetSuperResolutionModel(ModelBase):
@@ -46,21 +47,11 @@ class ResNetSuperResolutionModel(ModelBase):
 		num_res_blocks = kwargs.get("num_res_blocks", 8)  #
 
 		#
-		return create_simple_model(input_shape=input_shape,
+		return create_resnet_model(input_shape=input_shape,
 								   output_shape=output_shape, upscale_mode=upscale_mode, num_res_blocks=num_res_blocks, regularization=regularization)
 
 	def get_name(self):
-		return "basic super"
-
-def create_activation(activation):
-	if activation == "leaky_relu":
-		return layers.LeakyReLU(alpha=0.2, dtype='float32')
-	elif activation == "relu":
-		return layers.ReLU(dtype='float32')
-	elif activation == "sigmoid":
-		return layers.Activation(activation='sigmoid', dtype='float32')
-	else:
-		assert "Should never be reached"
+		return "Resnet"
 
 def get_model_interface() -> ModelBase:
 	return ResNetSuperResolutionModel()
@@ -82,12 +73,12 @@ def residual_block(input, filters=64, use_batch_norm=False):
 
 	x = layers.add([start_ref, x])
 
-	x = layers.ReLU(dtype='float32')(x)
+	#x = layers.ReLU(dtype='float32')(x)
 
 	return x
 
 
-def create_simple_model(input_shape, output_shape, upscale_mode : int = 2, num_res_blocks : int =8, regularization:float=0.00001):
+def create_resnet_model(input_shape: tuple, output_shape: tuple, upscale_mode : int = 2, num_res_blocks : int =8, regularization:float=0.00001):
 	batch_norm: bool = True
 	use_bias: bool = True
 
@@ -128,7 +119,7 @@ def create_simple_model(input_shape, output_shape, upscale_mode : int = 2, num_r
 	x = layers.Conv2DTranspose(filters=3, kernel_size=(9, 9), strides=(
 		1, 1), padding='same', kernel_initializer=init)(x)
 	x = layers.Activation('tanh')(x)
-	x = layers.ActivityRegularization(l1=regularization)(x)
+	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape

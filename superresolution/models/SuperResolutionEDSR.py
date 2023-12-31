@@ -55,7 +55,7 @@ def get_model_interface() -> ModelBase:
 	return EDSRSuperResolutionModel()
 
 
-def create_edsr_model(input_shape, output_shape, scale:int, num_filters:int=64, num_res_blocks:int=8, res_block_scaling:int=None,
+def create_edsr_model(input_shape: tuple, output_shape: tuple, scale:int, num_filters:int=64, num_res_blocks:int=8, res_block_scaling:int=None,
 					  regularization:float=0.00001):
 	"""Creates an EDSR model."""
 
@@ -88,9 +88,9 @@ def create_edsr_model(input_shape, output_shape, scale:int, num_filters:int=64, 
 
 def res_block(x_in, filters: int, scaling):
 	"""Creates an EDSR residual block."""
-	x = layers.Conv2D(filters=filters, kernel_size=3, padding='same', activation='relu')(x_in)
-	#x = layers.ReLU(dtype='float32')(x)
-	x = layers.Conv2D(filters=filters, kernel_size=3, padding='same')(x)
+	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same', activation='relu')(x_in)
+	x = layers.ReLU(dtype='float32')(x)
+	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same')(x)
 
 	if scaling:
 		x = layers.Lambda(lambda t: t * scaling)(x)
@@ -101,7 +101,7 @@ def res_block(x_in, filters: int, scaling):
 def upsample(x, scale : int, num_filters: int):
 	def upsample_1(x, factor, **kwargs):
 		"""Sub-pixel convolution."""
-		x = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=3, padding='same', **kwargs)(x)
+		x = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=(3, 3), padding='same', **kwargs)(x)
 		return tf.nn.depth_to_space(x, 2)
 
 	if scale == 2:

@@ -1,4 +1,5 @@
 import argparse
+from models import create_activation
 
 import tensorflow as tf
 from core import ModelBase
@@ -25,7 +26,7 @@ class AESuperResolutionModel(ModelBase):
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser
 
-	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
+	def create_model(self, input_shape: tuple, output_shape: tuple, **kwargs) -> keras.Model:
 		#
 		# parser_result = self.parser.parse_known_args(sys.argv[1:])
 		# Model constructor parameters.
@@ -37,7 +38,7 @@ class AESuperResolutionModel(ModelBase):
 		#
 		return create_dscr_auto_encoder_model(input_shape=input_shape,
 											  output_shape=output_shape, use_resnet=use_resnet,
-											  regularization=regularization)  # , regularization=parser_result.regularization)
+											  regularization=regularization,kernel_activation = 'relu')  # , regularization=parser_result.regularization)
 
 	def get_name(self):
 		return "Auto Encoder Super Resolution"
@@ -47,17 +48,7 @@ def get_model_interface() -> ModelBase:
 	return AESuperResolutionModel()
 
 
-def create_dscr_auto_encoder_model(input_shape, output_shape, use_resnet: bool = True, regularization: float = 0.00000,
-								   kernel_activation: str = 'relu'):
-	def create_activation(activation):
-		if activation == "leaky_relu":
-			return layers.LeakyReLU(alpha=0.2, dtype='float32')
-		elif activation == "relu":
-			return layers.ReLU(dtype='float32')
-		elif activation == "sigmoid":
-			return layers.Activation(activation='sigmoid', dtype='float32')
-		else:
-			assert "Should never be reached"
+def create_dscr_auto_encoder_model(input_shape: tuple, output_shape: tuple, use_resnet: bool, regularization: float, kernel_activation: str):
 
 	use_batch_norm : bool = True
 

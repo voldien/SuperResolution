@@ -39,7 +39,7 @@ def get_model_interface() -> ModelBase:
 	return DCPostSuperResolutionModel()
 
 
-def create_post_super_resolution(input_shape, output_shape):
+def create_post_super_resolution(input_shape: tuple, output_shape: tuple):
 	batch_norm: bool = True
 	use_bias: bool = True
 

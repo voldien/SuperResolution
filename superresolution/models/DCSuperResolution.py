@@ -44,10 +44,8 @@ class DCSuperResolutionModel(ModelBase):
 def get_model_interface() -> ModelBase:
 	return DCSuperResolutionModel()
 
-
-# Create interface object or similar.
 def create_simple_model(input_shape: tuple, output_shape: tuple, regularization: float, upscale_mode: int):
-	batch_norm: bool = True
+	use_batch_norm: bool = True
 	use_bias: bool = True
 
 	init = tf.keras.initializers.HeNormal()
@@ -61,7 +59,7 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 		x = layers.Conv2D(filters=nrfilters, kernel_size=(9, 9), strides=1, padding='same',
 						  use_bias=use_bias,
 						  kernel_initializer=init, bias_initializer=init)(input)
-		if batch_norm:
+		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
 
@@ -69,7 +67,7 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 		x = layers.Conv2D(filters=nrfilters / 2, kernel_size=(4, 4), strides=1, padding='same',
 						  use_bias=use_bias,
 						  kernel_initializer=init, bias_initializer=init)(x)
-		if batch_norm:
+		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
 
@@ -77,14 +75,14 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 		x = layers.Conv2D(filters=nrfilters / 4, kernel_size=(3, 3), strides=1, padding='same',
 						  use_bias=use_bias,
 						  kernel_initializer=init, bias_initializer=init)(x)
-		if batch_norm:
+		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
 
 		# Upscale -
 		x = layers.Conv2DTranspose(filters=output_width, kernel_size=(5, 5), strides=(
 			2, 2), use_bias=use_bias, padding='same', kernel_initializer=init, bias_initializer=init)(x)
-		if batch_norm:
+		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
 
@@ -92,7 +90,7 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 		x = layers.Conv2D(filters=nrfilters, kernel_size=(4, 4), strides=1, padding='same',
 						  use_bias=use_bias,
 						  kernel_initializer=init, bias_initializer=init)(x)
-		if batch_norm:
+		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
 
@@ -105,6 +103,5 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	conv_autoencoder = keras.Model(inputs=input, outputs=x)
-	return conv_autoencoder
+	return keras.Model(inputs=input, outputs=x)
 
