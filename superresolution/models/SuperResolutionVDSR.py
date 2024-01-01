@@ -33,14 +33,14 @@ class VDSRSuperResolutionModel(ModelBase):
 		# Model constructor parameters.
 		regularization: float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
-		num_input_filters: int = kwargs.get("edsr_filters", 64)  #
+		num_input_filters: int = kwargs.get("edsr_filters", 128)  #
 		use_resnet: bool = kwargs.get("use_resnet", True)  #
 
 		#
 		return create_vdsr_model(input_shape=input_shape,
 											  output_shape=output_shape, 
 											  filters=num_input_filters,
-                                              upscale_mode=upscale_mode,
+											  upscale_mode=upscale_mode,
 											  regularization=regularization,
 											  kernel_activation = 'relu')
 	def get_name(self):
@@ -54,50 +54,48 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters:int, kern
 	use_batch_norm: bool = True
 	use_bias: bool = True
 
+	number_layers : int = 2
+	num_conv_block :int = 2
+
+
 	init = tf.keras.initializers.HeNormal()
 	output_width, output_height, output_channels = output_shape
 
 	input = layers.Input(shape=input_shape)
 	x = input
 
-	number_layers = 2
+	# Upscale to fit the end upscaled version.
+	upscale = input
+	for _ in range(0, int(upscale_mode / 2)):
+		#TODO add upscale modes.
+		upscale = layers.Conv2DTranspose(filters=filter_size, kernel_size=(4, 4), strides=(
+			2, 2), padding='same', kernel_initializer=init)(upscale)
+
 
 	for i in range(0, number_layers):
 		filter_size = filters << i
 		filter_size = min(filter_size, 1024)
-
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=init)(x)
-		if use_batch_norm:
-			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
-
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=init)(x)
-		if use_batch_norm:
-			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
-
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=init)(x)
-		if use_batch_norm:
-			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
 		
+		for _ in range(0, num_conv_block):
+			x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias, kernel_initializer=init)(x)
+			if use_batch_norm:
+				x = layers.BatchNormalization(dtype='float32')(x)
+			x = create_activation(kernel_activation)(x)
 
-	x = layers.Conv2DTranspose(filters=64, kernel_size=(4, 4), strides=(
-		2, 2), padding='same', kernel_initializer=init)(x)
-    #upscale_mode
-		
-	upscale = layers.Conv2DTranspose(filters=64, kernel_size=(4, 4), strides=(
-		2, 2), padding='same', kernel_initializer=init)(input)
-	
+	for _ in range(0, int(upscale_mode / 2)):
+		x = layers.Conv2DTranspose(filters=filter_size, kernel_size=(4, 4), strides=(
+			2, 2), padding='same', kernel_initializer=init)(x)
+
+	# Combine orignal with end.
 	x = layers.add([x, upscale])
 
-    #Output
-	x = layers.Conv2D(filters=3, kernel_size=(4, 4), strides=(1, 1),
+	#Output
+	x = layers.Conv2D(filters=output_channels, kernel_size=(4, 4), strides=(1, 1),
 				padding='same', kernel_initializer=init)(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization,l2=0)(x)
 	
-    # Confirm the output shape.
+	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	return keras.Model(inputs=input, outputs=x)
+	return keras.Model(inputs=input, outputs=x,name="vdsr")

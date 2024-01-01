@@ -48,10 +48,12 @@ class ResNetSuperResolutionModel(ModelBase):
 
 		#
 		return create_resnet_model(input_shape=input_shape,
-								   output_shape=output_shape, upscale_mode=upscale_mode, num_res_blocks=num_res_blocks, regularization=regularization)
+								   output_shape=output_shape, upscale_mode=upscale_mode, num_res_blocks=num_res_blocks,
+								   regularization=regularization)
 
 	def get_name(self):
 		return "Resnet"
+
 
 def get_model_interface() -> ModelBase:
 	return ResNetSuperResolutionModel()
@@ -73,12 +75,13 @@ def residual_block(input, filters=64, use_batch_norm=False):
 
 	x = layers.add([start_ref, x])
 
-	#x = layers.ReLU(dtype='float32')(x)
+	# x = layers.ReLU(dtype='float32')(x)
 
 	return x
 
 
-def create_resnet_model(input_shape: tuple, output_shape: tuple, upscale_mode : int = 2, num_res_blocks : int =8, regularization:float=0.00001):
+def create_resnet_model(input_shape: tuple, output_shape: tuple, upscale_mode: int = 2, num_res_blocks: int = 8,
+						regularization: float = 0.00001):
 	batch_norm: bool = True
 	use_bias: bool = True
 
@@ -87,32 +90,36 @@ def create_resnet_model(input_shape: tuple, output_shape: tuple, upscale_mode : 
 	number_layers = 2
 
 	input = layers.Input(shape=input_shape)
-	x = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias, kernel_initializer=init)(input)
+	x = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias, kernel_initializer=init)(
+		input)
 
 	for i in range(0, num_res_blocks):
-		x = residual_block(input=x, filters=64, use_batch_norm= False)
+		x = residual_block(input=x, filters=64, use_batch_norm=False)
 
 	for _ in range(0, int(upscale_mode / 2)):
 		for i in range(0, number_layers):
 			filter_size = 2 ** (i + 7)
 			filter_size = min(filter_size, 1024)
 
-			x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same',use_bias=use_bias, kernel_initializer=init)(x)
+			x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias,
+							  kernel_initializer=init)(x)
 			if batch_norm:
 				x = layers.BatchNormalization(dtype='float32')(x)
 			x = layers.ReLU(dtype='float32')(x)
 
-			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1,use_bias=use_bias, kernel_initializer=init)(x)
+			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, use_bias=use_bias,
+							  kernel_initializer=init)(x)
 			if batch_norm:
 				x = layers.BatchNormalization(dtype='float32')(x)
 			x = layers.ReLU(dtype='float32')(x)
 
-			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1,use_bias=use_bias, kernel_initializer=init)(x)
+			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, use_bias=use_bias,
+							  kernel_initializer=init)(x)
 			if batch_norm:
 				x = layers.BatchNormalization(dtype='float32')(x)
 			x = layers.ReLU(dtype='float32')(x)
-		
-		#TODO add mode of upscale.
+
+		# TODO add mode of upscale.
 		x = tf.nn.depth_to_space(x, 2)
 
 	# Upscale and output channel.

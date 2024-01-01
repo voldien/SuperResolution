@@ -55,27 +55,29 @@ def get_model_interface() -> ModelBase:
 	return EDSRSuperResolutionModel()
 
 
-def create_edsr_model(input_shape: tuple, output_shape: tuple, scale:int, num_filters:int=64, num_res_blocks:int=8, res_block_scaling:int=None,
-					  regularization:float=0.00001):
+def create_edsr_model(input_shape: tuple, output_shape: tuple, scale: int, num_filters: int = 64,
+					  num_res_blocks: int = 8, res_block_scaling: int = None,
+					  regularization: float = 0.00001):
 	"""Creates an EDSR model."""
 
 	output_width, output_height, output_channels = output_shape
+	init = tf.keras.initializers.GlorotUniform()
 
 	x_in = layers.Input(shape=input_shape)
 
 	#
-	x = b = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same')(x_in)
+	x = res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same')(x_in)
 	for _ in range(num_res_blocks):
-		b = res_block(b, num_filters, res_block_scaling)
+		res_block = res_block(res_block, num_filters, res_block_scaling)
 
 	#
-	b = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same')(b)
-	x = layers.Add()([x, b])
+	res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same')(res_block)
+	x = layers.Add()([x, res_block])
 
 	#
 	x = upsample(x, scale, num_filters)
 
-	#
+	# Output layer.
 	x = layers.Conv2D(filters=output_channels, kernel_size=(3, 3), padding='same')(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
@@ -98,7 +100,7 @@ def res_block(x_in, filters: int, scaling):
 	return x
 
 
-def upsample(x, scale : int, num_filters: int):
+def upsample(x, scale: int, num_filters: int):
 	def upsample_1(x, factor, **kwargs):
 		"""Sub-pixel convolution."""
 		x = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=(3, 3), padding='same', **kwargs)(x)

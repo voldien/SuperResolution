@@ -1,4 +1,5 @@
 import argparse
+from models import create_activation
 
 import tensorflow as tf
 from core import ModelBase
@@ -30,12 +31,13 @@ class DCSuperResolutionModel(ModelBase):
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
 		# Model Construct Parameters.
-		regularization : float = kwargs.get("regularization", 0.000001)  #
-		upscale_mode : int = kwargs.get("upscale_mode", 2)  #
+		regularization: float = kwargs.get("regularization", 0.000001)  #
+		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
 
 		#
 		return create_simple_model(input_shape=input_shape,
-								   output_shape=output_shape, regularization=regularization, upscale_mode=upscale_mode)
+								   output_shape=output_shape, regularization=regularization, upscale_mode=upscale_mode,
+								   kernel_activation='relu')
 
 	def get_name(self):
 		return "Basic SuperResolution"
@@ -44,7 +46,9 @@ class DCSuperResolutionModel(ModelBase):
 def get_model_interface() -> ModelBase:
 	return DCSuperResolutionModel()
 
-def create_simple_model(input_shape: tuple, output_shape: tuple, regularization: float, upscale_mode: int):
+
+def create_simple_model(input_shape: tuple, output_shape: tuple, regularization: float, upscale_mode: int,
+						kernel_activation: str):
 	use_batch_norm: bool = True
 	use_bias: bool = True
 
@@ -61,7 +65,7 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 						  kernel_initializer=init, bias_initializer=init)(input)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
+		x = create_activation(kernel_activation)(x)
 
 		#
 		x = layers.Conv2D(filters=nrfilters / 2, kernel_size=(4, 4), strides=1, padding='same',
@@ -69,7 +73,7 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 						  kernel_initializer=init, bias_initializer=init)(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
+		x = create_activation(kernel_activation)(x)
 
 		#
 		x = layers.Conv2D(filters=nrfilters / 4, kernel_size=(3, 3), strides=1, padding='same',
@@ -77,14 +81,14 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 						  kernel_initializer=init, bias_initializer=init)(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
+		x = create_activation(kernel_activation)(x)
 
 		# Upscale -
 		x = layers.Conv2DTranspose(filters=output_width, kernel_size=(5, 5), strides=(
 			2, 2), use_bias=use_bias, padding='same', kernel_initializer=init, bias_initializer=init)(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
+		x = create_activation(kernel_activation)(x)
 
 		#
 		x = layers.Conv2D(filters=nrfilters, kernel_size=(4, 4), strides=1, padding='same',
@@ -92,7 +96,7 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 						  kernel_initializer=init, bias_initializer=init)(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
-		x = layers.ReLU(dtype='float32')(x)
+		x = create_activation(kernel_activation)(x)
 
 	# Output to 3 channel output.
 	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
@@ -104,4 +108,3 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 	assert x.shape[1:] == output_shape
 
 	return keras.Model(inputs=input, outputs=x)
-

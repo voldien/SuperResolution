@@ -24,7 +24,6 @@ class DCPostSuperResolutionModel(ModelBase):
 							type=float,
 							default=0.0001,
 							help='Set the L1 Regularization applied.')
-
 		#
 		return parser
 
