@@ -60,7 +60,7 @@ hyperparameters = {
 	"--decay-rate": [0.85, 0.90, 0.96],
 	"--use-float16": [False, True],
 	"--seed": [seed],
-	"--model": ['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae'],
+	"--model": ['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae','dcsr-resnet','vdsr'],
 	"--cache-file": [
 		"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
 	"--epochs": [epochs],
