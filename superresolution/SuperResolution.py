@@ -22,6 +22,7 @@ import models.SuperResolutionAE
 import models.SuperResolutionEDSR
 import models.SuperResolutionResNet
 import models.SuperResolutionVDSR
+import models.SuperResolutionCNN
 
 from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
 from util.dataProcessing import load_dataset_from_directory, \
@@ -79,6 +80,9 @@ def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
 	builtin_models['dcsr-ae'] = models.SuperResolutionAE.get_model_interface()
 	builtin_models['dcsr-resnet'] = models.SuperResolutionResNet.get_model_interface()
 	builtin_models['vdsr'] = models.SuperResolutionVDSR.get_model_interface()
+	builtin_models['dcnnsr'] = models.SuperResolutionCNN.get_model_interface()
+
+	
 
 	return builtin_models
 
@@ -334,12 +338,12 @@ def dcsuperresolution_program(vargs=None):
 		#
 		parser.add_argument('--model', dest='model',
 							default='dcsr',
-							choices=['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae','dcsr-resnet','vdsr'],
+							choices=['dcnnsr' 'dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae','dcsr-resnet','vdsr'],
 							help='Set which model type to use.', type=str)
 		#
 		parser.add_argument('--loss-fn', dest='loss_fn',
 							default='mse',
-							choices=['mse', 'ssim', 'msa'],
+							choices=['mse', 'ssim', 'msa','psnr'],
 							help='Set Loss Function', type=str)
 
 		# Load model and iterate existing models.

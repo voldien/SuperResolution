@@ -142,5 +142,4 @@ def create_dscr_auto_encoder_model(input_shape: tuple, output_shape: tuple, use_
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	conv_autoencoder = keras.Model(inputs=input, outputs=x, name="aesr")
-	return conv_autoencoder
+	return keras.Model(inputs=input, outputs=x, name="aesr")

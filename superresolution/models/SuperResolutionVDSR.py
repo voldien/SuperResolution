@@ -55,8 +55,7 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters:int, kern
 	use_bias: bool = True
 
 	number_layers : int = 2
-	num_conv_block :int = 2
-
+	num_conv_block : int = 2
 
 	init = tf.keras.initializers.HeNormal()
 	output_width, output_height, output_channels = output_shape
