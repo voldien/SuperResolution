@@ -22,7 +22,7 @@ def configure_dataset_performance(ds: Dataset, use_cache: bool, cache_path: str,
 	elif use_cache:
 		ds = ds.cache()
 	if shuffle_size > 0:
-		ds = ds.shuffle(buffer_size=shuffle_size * 2, reshuffle_each_iteration=True)
+		ds = ds.shuffle(buffer_size=shuffle_size, reshuffle_each_iteration=True)
 
 	ds = ds.prefetch(buffer_size=AUTOTUNE)
 
@@ -103,10 +103,14 @@ def augment_dataset(dataset: Dataset, image_crop_shape: tuple) -> Dataset:
 		layers.RandomFlip("horizontal_and_vertical"),
 		# Random Zoom.
 		layers.RandomZoom(
-			height_factor=(-0.05, -0.15),
-			width_factor=(-0.05, -0.15)),
+			height_factor=(-0.05, 0.05),
+			width_factor=(-0.05, 0.05),
+			fill_mode='reflect',
+			interpolation='bilinear'),
 		# Random Rotation.
-		layers.RandomRotation(0.65)
+		layers.RandomRotation(factor=0.65,
+							  fill_mode='reflect',
+							  interpolation='bilinear')
 	])
 
 	def AgumentFunc(x):

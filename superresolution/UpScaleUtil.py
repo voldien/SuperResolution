@@ -39,11 +39,6 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 		dtype='float32')
 	#
 	for decoder_image in decoder_images:
-		#
-		# if color_space == 'lab':
-		#	decoder_image = np.asarray(lab2rgb(result_upscale_raw[i] * 128.0)).astype(dtype='float32')
-		# elif color_space == 'rgb':
-		#	decoder_image = np.asarray(result_upscale_raw[i] + 1.0).astype(dtype='float32') * 0.5
 
 		# Clip to valid color value and convert to uint8.
 		decoder_image = decoder_image.clip(0.0, 1.0)
@@ -125,7 +120,7 @@ def super_resolution_upscale(argv):
 		input_filepaths: str = args.input_files
 		logging.info(input_filepaths)
 		if os.path.isdir(input_filepaths):
-			all_files = os.listdir(input_filepaths)  # os.path.dirname(os.path.realpath(__file__))
+			all_files = os.listdir(input_filepaths)
 			base_bath = input_filepaths
 			input_filepaths: list = [os.path.join(base_bath, path) for path in all_files]
 		else:  # Convert to list

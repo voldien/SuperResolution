@@ -32,15 +32,15 @@ from util.metrics import PSNRMetric
 from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack
 from util.util import plotTrainingHistory
 
-
 def setup_dataset(dataset, args: dict):
 	pass
 
-
 def create_setup_optimizer(args: dict):
+
 	learning_rate: float = args.learning_rate
 	learning_decay_step: int = args.learning_rate_decay_step
 	learning_decay_rate: float = args.learning_rate_decay
+
 	# Setup Learning Rate with Decay.
 	lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
 		learning_rate,
@@ -55,21 +55,22 @@ def create_setup_optimizer(args: dict):
 
 	return model_optimizer
 
-
 def setup_tensorflow_strategy(args: dict):
 	# Configure
-	selected_devices = tf.config.list_logical_devices('GPU')
-	if args.devices is not None:
-		# TODO add support
-		selected_devices = args.devices
+	if args.use_explicit_cpu:
+		selected_devices = tf.config.list_logical_devices('CPU')
+	else:
+		selected_devices = tf.config.list_logical_devices('GPU')
+		if args.devices is not None:
+			# TODO add support
+			selected_devices = args.devices
+		else:
+			pass
 
-	# initialize tf.distribute.MirroredStrategy
-	# strategy = tf.distribute.MirroredStrategy(devices=devices)
-	selected_devices = None
+	# initialize
 	strategy = tf.distribute.MirroredStrategy(devices=selected_devices)
 	logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
 	return strategy
-
 
 def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
 	builtin_models: Dict[str, ModelBase] = {}
@@ -80,12 +81,9 @@ def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
 	builtin_models['dcsr-ae'] = models.SuperResolutionAE.get_model_interface()
 	builtin_models['dcsr-resnet'] = models.SuperResolutionResNet.get_model_interface()
 	builtin_models['vdsr'] = models.SuperResolutionVDSR.get_model_interface()
-	builtin_models['dcnnsr'] = models.SuperResolutionCNN.get_model_interface()
-
-	
+	builtin_models['cnnsr'] = models.SuperResolutionCNN.get_model_interface()
 
 	return builtin_models
-
 
 def load_model_interface(model_name: str) -> ModelBase:
 	# Load ML model from either runtime from script or from builtin.
@@ -104,6 +102,7 @@ def load_model_interface(model_name: str) -> ModelBase:
 
 def setup_model(args: dict, builtin_models: Dict[str, ModelBase], image_input_size: tuple,
 				image_output_size: tuple) -> keras.Model:
+	
 	args.model_override_filepath = None  # TODO remove
 	if args.model_override_filepath is not None:
 		return tf.keras.models.load_model(
@@ -119,7 +118,6 @@ def setup_model(args: dict, builtin_models: Dict[str, ModelBase], image_input_si
 			raise RuntimeError("Could not find model interface: " + model_name)
 
 		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size, kwargs=args)
-
 
 def setup_loss_builtin_function(args: dict):
 	def ssim_loss(y_true, y_pred):
@@ -338,12 +336,12 @@ def dcsuperresolution_program(vargs=None):
 		#
 		parser.add_argument('--model', dest='model',
 							default='dcsr',
-							choices=['dcnnsr' 'dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae','dcsr-resnet','vdsr'],
+							choices=['cnnsr', 'dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae','dcsr-resnet','vdsr'],
 							help='Set which model type to use.', type=str)
 		#
 		parser.add_argument('--loss-fn', dest='loss_fn',
 							default='mse',
-							choices=['mse', 'ssim', 'msa','psnr'],
+							choices=['mse', 'ssim', 'msa', 'pnbr', 'vgg16', 'none'],
 							help='Set Loss Function', type=str)
 
 		# Load model and iterate existing models.
@@ -369,11 +367,14 @@ def dcsuperresolution_program(vargs=None):
 		# Setup logging
 		logger.setLevel(args.verbosity)
 
+		#
 		console_handler = logging.StreamHandler()
-
+		
+		#
 		log_format = '%(asctime)s | %(levelname)s: %(message)s'
 		console_handler.setFormatter(logging.Formatter(log_format))
 
+		#
 		logger.addHandler(console_handler)
 		logger.addHandler(logging.FileHandler(filename=os.path.join(args.output_dir, "log.txt")))
 

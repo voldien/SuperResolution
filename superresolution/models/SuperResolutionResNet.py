@@ -13,10 +13,6 @@ class ResNetSuperResolutionModel(ModelBase):
 
 		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
 								 help='Set the number of passes that the training set will be trained against.')
-
-		self.parser.add_argument('--override-latentspace-size', dest='generate_latentspace',
-								 default=False,
-								 help='', type=bool)
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,

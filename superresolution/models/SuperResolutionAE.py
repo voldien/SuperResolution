@@ -36,10 +36,11 @@ class AESuperResolutionModel(ModelBase):
 		use_resnet: bool = kwargs.get("use_resnet", True)  #
 
 		#
-		return create_dscr_auto_encoder_model(input_shape=input_shape,
+		return create_dscr_autoencoder_model(input_shape=input_shape,
 											  output_shape=output_shape, use_resnet=use_resnet,
 											  input_filters=num_input_filters,
-											  regularization=regularization,use_upresize = False, kernel_activation='relu')
+											  regularization=regularization, use_upresize=False,
+											  kernel_activation='relu')
 
 	def get_name(self):
 		return "Auto Encoder Super Resolution"
@@ -49,7 +50,8 @@ def get_model_interface() -> ModelBase:
 	return AESuperResolutionModel()
 
 
-def create_dscr_auto_encoder_model(input_shape: tuple, output_shape: tuple, use_resnet: bool, regularization: float, use_upresize:bool,
+def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_resnet: bool, regularization: float,
+								   use_upresize: bool,
 								   kernel_activation: str, input_filters: int):
 	use_batch_norm: bool = True
 	use_bias: bool = True
@@ -100,22 +102,22 @@ def create_dscr_auto_encoder_model(input_shape: tuple, output_shape: tuple, use_
 	connect_conv_shape = x.shape
 
 	x = layers.Flatten(name="latentspace")(x)
-	x = layers.ActivityRegularization(l1=regularization,l2=0)(x)
+	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
 	x = layers.Reshape(target_shape=(
 		connect_conv_shape[1], connect_conv_shape[2], connect_conv_shape[3]))(x)
 
 	lastSumLayer = x
 	for i in range(0, number_layers + 1):
-		filter_size = input_filters << ( number_layers - i + 1)
+		filter_size = input_filters << (number_layers - i + 1)
 		filter_size = min(filter_size, 1024)
-		
+
 		if use_upresize:
 			x = layers.UpSampling2D(size=(2, 2))(x)
 		else:
 			x = layers.Conv2DTranspose(filters=filter_size, kernel_size=(
-								4, 4), kernel_initializer=init, strides=(2, 2), padding='same')(x)
-		
+				4, 4), kernel_initializer=init, strides=(2, 2), padding='same')(x)
+
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)

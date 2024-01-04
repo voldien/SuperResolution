@@ -32,8 +32,14 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 
 	# Default, all devices will be used.
 	parser.add_argument('--device', type=list, action='append', default=None,
-						dest='devices', help='Select the device that will be used.',
+						dest='devices', help='Select the device explicity that will be used.',
 						choices=device_lib.list_local_devices())
+	
+	parser.add_argument('--cpu', type=bool, action='store_true', default=None,
+						dest='use_explicit_cpu', help='Explicit use of CPU')
+	
+	parser.add_argument('--gpu', type=bool, action='store_true', default=None,
+						dest='use_explicit_cpu', help='Explicit use of CPU')
 
 	#
 	parser.add_argument('--distribute-strategy', type=str, action='store', default=None,
