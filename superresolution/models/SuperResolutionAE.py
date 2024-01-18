@@ -16,7 +16,7 @@ class AESuperResolutionModel(ModelBase):
 
 		self.parser.add_argument('--override-latentspace-size', dest='generate_latentspace',
 								 default=False,
-								 help='', type=bool)
+								 help='override latent space size', type=bool)
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,

@@ -11,18 +11,17 @@ from tensorflow.keras import layers
 class VDSRSuperResolutionModel(ModelBase):
 	def __init__(self):
 		self.parser = argparse.ArgumentParser(add_help=True, prog="", description="")
-
-		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
-								 help='Set the number of passes that the training set will be trained against.')
-
-		self.parser.add_argument('--override-latentspace-size', dest='generate_latentspace',
-								 default=False,
-								 help='', type=bool)
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
 								 default=0.00001,
 								 help='Set the L1 Regularization applied.')
+		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
+								 type=int,
+								 choices=[2, 4],
+								 default=2,
+								 required=False,
+								 help='Upscale Mode')
 
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser
@@ -34,7 +33,6 @@ class VDSRSuperResolutionModel(ModelBase):
 		regularization: float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
 		num_input_filters: int = kwargs.get("edsr_filters", 128)  #
-		use_resnet: bool = kwargs.get("use_resnet", True)  #
 
 		#
 		return create_vdsr_model(input_shape=input_shape,

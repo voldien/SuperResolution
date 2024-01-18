@@ -5,10 +5,26 @@ A SuperResolution training program for creating upscaling machine model.
 
 ## Basic Program Command Line
 
+### EDSR - 
 ```bash
-python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model edsr --learning-rate 0.0003 --color-space lab  --loss-fn msa --shuffle-data-set-size 2048
+python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model edsr --learning-rate 0.0003 --color-space lab --loss-fn msa --shuffle-data-set-size 512
 ```
 
+### VDR - 
+```bash
+python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model vdr --learning-rate 0.0003 --color-space lab --loss-fn msa --shuffle-data-set-size 512
+```
+
+### AE - 
+```bash
+python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model vdr --learning-rate 0.0003 --color-space lab --loss-fn msa --shuffle-data-set-size 512
+```
+
+
+### DCNN -
+
+
+### Resnet -
 
 ## Upscale Image
 

@@ -10,7 +10,7 @@ from SuperResolution import dcsuperresolution_program
 parser = argparse.ArgumentParser(add_help=True, prog="", description="")
 
 #
-parser.add_argument('--epochs', type=int, default=48, dest='epochs',
+parser.add_argument('--epochs', type=int, default=12, dest='epochs',
 					help='Set the number of passes that the training set will be trained against.')
 #
 parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
@@ -60,7 +60,7 @@ hyperparameters = {
 	"--decay-rate": [0.85, 0.90, 0.96],
 	"--use-float16": [False, True],
 	"--seed": [seed],
-	"--model": ['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
+	"--model": ['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
 	"--cache-file": [
 		"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
 	"--epochs": [epochs],
@@ -68,6 +68,7 @@ hyperparameters = {
 	"--checkpoint-every-epoch": [0],
 	"--data-set-directory": [dataset_paths],
 	"--batch-size": [batch_size],
+	"--use-valdiation": [' '],
 }
 
 #

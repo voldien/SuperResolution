@@ -64,6 +64,7 @@ def create_cnn_model(input_shape: tuple, output_shape: tuple, input_filter_size:
 	for i in range(0, int(upscale_mode / 2)):
 		x = layers.UpSampling2D(size=(2, 2), interpolation='bilinear')(x)
 
+	# Convolutional block
 	for i in range(0, int(upscale_mode / 2)):
 		for _ in range(0, num_conv_block):
 			filter_size = input_filter_size << i

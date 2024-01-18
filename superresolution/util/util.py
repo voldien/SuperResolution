@@ -29,11 +29,6 @@ def convert_nontensor_color_space(image_data, color_space: str):
 	else:
 		assert 0
 
-
-def compute_PSNR(orignal, data):
-	pass
-
-
 def generate_latentspace(generator_model, disc_model_features, latent_spaces, dataset):
 	generated_result = generator_model.predict(latent_spaces, batch_size=16, verbose=1)
 

@@ -4,7 +4,6 @@ from keras.metrics import base_metric
 from keras.utils import metrics_utils
 from util.trainingcallback import compute_normalized_PSNR
 
-
 class PSNRMetric(base_metric.MeanMetricWrapper):
 	@dtensor_utils.inject_mesh
 	def __init__(self, name="PSNR", dtype=None):
@@ -19,6 +18,6 @@ class PSNRMetric(base_metric.MeanMetricWrapper):
 			if y_true.dtype != y_pred.dtype:
 				y_pred = tf.cast(y_pred, y_true.dtype)
 
-			return tf.cast(compute_normalized_PSNR(y_true, y_pred), tf.float32)  # TODO determine cast type.
+			return tf.cast(compute_normalized_PSNR(y_true, y_pred), tf.float32) * 0.01  # TODO determine cast type.
 
 		super().__init__(psnr, name, dtype=dtype)

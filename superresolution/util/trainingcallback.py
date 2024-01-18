@@ -4,22 +4,9 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 from util.image import showResult
 from util.util import plotTrainingHistory
-import math
-
 
 def compute_normalized_PSNR(orignal, data):
-	return tf.psnr((orignal + 1), (data + 1), max_val=2.0)
-
-
-def compute_rgb_PSNR(orignal, data):
-	mse = tf.reduce_mean((orignal - data) ** 2)
-	if (mse == 0.0):  # MSE is zero means no noise is present in the signal .
-		# Therefore PSNR have no importance.
-		return 100.0
-
-	max_pixel = 255.0
-	return 10 * math.log10(max_pixel) - 10 * tf.math.log(mse)
-
+	return tf.image.psnr((orignal + 1), (data + 1), max_val=2.0)
 
 class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 

@@ -27,16 +27,16 @@ import models.SuperResolutionCNN
 from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset, split_dataset
-from util.math import psnr
 from util.metrics import PSNRMetric
-from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack
+from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, compute_normalized_PSNR
 from util.util import plotTrainingHistory
+
 
 def setup_dataset(dataset, args: dict):
 	pass
 
-def create_setup_optimizer(args: dict):
 
+def create_setup_optimizer(args: dict):
 	learning_rate: float = args.learning_rate
 	learning_decay_step: int = args.learning_rate_decay_step
 	learning_decay_rate: float = args.learning_rate_decay
@@ -55,6 +55,7 @@ def create_setup_optimizer(args: dict):
 
 	return model_optimizer
 
+
 def setup_tensorflow_strategy(args: dict):
 	# Configure
 	if args.use_explicit_cpu:
@@ -72,6 +73,7 @@ def setup_tensorflow_strategy(args: dict):
 	logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
 	return strategy
 
+
 def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
 	builtin_models: Dict[str, ModelBase] = {}
 
@@ -84,6 +86,7 @@ def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
 	builtin_models['cnnsr'] = models.SuperResolutionCNN.get_model_interface()
 
 	return builtin_models
+
 
 def load_model_interface(model_name: str) -> ModelBase:
 	# Load ML model from either runtime from script or from builtin.
@@ -102,7 +105,6 @@ def load_model_interface(model_name: str) -> ModelBase:
 
 def setup_model(args: dict, builtin_models: Dict[str, ModelBase], image_input_size: tuple,
 				image_output_size: tuple) -> keras.Model:
-	
 	args.model_override_filepath = None  # TODO remove
 	if args.model_override_filepath is not None:
 		return tf.keras.models.load_model(
@@ -119,6 +121,7 @@ def setup_model(args: dict, builtin_models: Dict[str, ModelBase], image_input_si
 
 		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size, kwargs=args)
 
+
 def setup_loss_builtin_function(args: dict):
 	def ssim_loss(y_true, y_pred):
 		# TODO convert color space.
@@ -126,11 +129,11 @@ def setup_loss_builtin_function(args: dict):
 		y_pred_color = None
 
 		if args.color_space == 'rgb':
-			# Remape [-1,1] to [0,1]
+			# Remap [-1,1] to [0,1]
 			y_true_color = ((y_true + 1.0) * 0.5)
 			y_pred_color = ((y_pred + 1.0) * 0.5)
 		elif args.color_space == 'lab':
-			# Remape [-1,1] -> [-128, 128] -> [0,1]
+			# Remap [-1,1] -> [-128, 128] -> [0,1]
 			y_true_color = tfio.experimental.color.lab_to_rgb(y_true * 128)
 			y_pred_color = tfio.experimental.color.lab_to_rgb(y_pred * 128)
 		else:
@@ -139,12 +142,12 @@ def setup_loss_builtin_function(args: dict):
 		return (1 - tf.reduce_mean(tf.image.ssim(y_true_color, y_pred_color, max_val=1.0, filter_size=11,
 												 filter_sigma=1.5, k1=0.01, k2=0.03)))
 
-	def pnbr_loss(y_true, y_pred):
-		return 1 - psnr(y_true, y_pred)
+	def psnr_loss(y_true, y_pred):
+		return 100.0 - compute_normalized_PSNR(y_true, y_pred)
 
 	#
 	builtin_loss_functions = {'mse': tf.keras.losses.MeanSquaredError(), 'ssim': ssim_loss,
-							  'msa': tf.keras.losses.MeanAbsoluteError(), 'pnbr': pnbr_loss}
+							  'msa': tf.keras.losses.MeanAbsoluteError(), 'psnr': psnr_loss}
 
 	return builtin_loss_functions[args.loss_fn]
 
@@ -172,10 +175,13 @@ def run_train_model(args: dict, dataset):
 	non_augmented_dataset_train = dataset_super_resolution(dataset=dataset,
 														   input_size=image_input_size,
 														   output_size=image_output_size)
+	non_augmented_dataset_train = configure_dataset_performance(ds=non_augmented_dataset_train, use_cache=False,
+																cache_path=None, shuffle_size=0)
+	non_augmented_dataset_train = non_augmented_dataset_train.batch(batch_size)
 
-	non_augmented_dataset_train = tf.data.Dataset.zip((non_augmented_dataset_train, non_augmented_dataset_train))
-	non_augmented_dataset_train = dataset.batch(batch_size)
-	non_augmented_dataset_train, non_augmented_dataset_validation = split_dataset(dataset=dataset, train_size=0.95)
+	options = tf.data.Options()
+	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+	non_augmented_dataset_train = non_augmented_dataset_train.with_options(options)
 
 	# Configure cache, shuffle and performance of the dataset.
 	dataset = configure_dataset_performance(ds=dataset, use_cache=args.cache_ram, cache_path=args.cache_path,
@@ -193,16 +199,18 @@ def run_train_model(args: dict, dataset):
 	dataset = dataset.batch(batch_size)
 
 	# Split training and validation.
-	dataset, validation_data_ds = split_dataset(dataset=dataset, train_size=0.95)
+	validation_data_ds = None
+	if args.use_validation:
+		dataset, validation_data_ds = split_dataset(dataset=dataset, train_size=0.95)
+
+		options = tf.data.Options()
+		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+		validation_data_ds = validation_data_ds.with_options(options)
 
 	# Setup for strategy support, to allow multiple GPU setup.
 	options = tf.data.Options()
 	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 	dataset = dataset.with_options(options)
-
-	options = tf.data.Options()
-	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-	validation_data_ds = validation_data_ds.with_options(options)
 
 	# Setup builtin models
 	builtin_models = load_builtin_model_interfaces()
@@ -255,19 +263,13 @@ def run_train_model(args: dict, dataset):
 		if os.path.exists(checkpoint_path):
 			training_model.load_weights(checkpoint_path)
 
-		# TODO add none-augmented dataset. to see progress better.
-		#
-		args.example_batch_grid_size
-
 		ExampleResultCallBack = SaveExampleResultImageCallBack(
 			args.output_dir,
-			dataset.take(
-				32), args.color_space)
+			non_augmented_dataset_train, args.color_space)
 		graph_output_filepath: str = os.path.join(args.output_dir, "history_graph.png")
 		graphHistory = GraphHistory(filepath=graph_output_filepath)
 
-		# TODO
-		validation_data_ds = None
+
 		historyResult = training_model.fit(x=dataset, validation_data=validation_data_ds, verbose='auto',
 										   epochs=args.epochs,
 										   callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
@@ -316,14 +318,13 @@ def dcsuperresolution_program(vargs=None):
 							nargs=2, default=(8, 8), help='Set the grid size of number of example images.')
 
 		#
-		parser.add_argument('--show-psnr', dest='show_psnr',
-							type=bool,
-							nargs=1, default=False, help='Set the grid size of number of example images.')
+		parser.add_argument('--show-psnr', dest='show_psnr', action='store_true',
+							default=False, help='Set the grid size of number of example images.')
 
 		# TODO add support
 		parser.add_argument('--metrics', dest='metrics',
 							type=str, action='append',
-							nargs=1, default=False, help='Set what metric to capture.')
+							nargs=1, default="", help='Set what metric to capture.')
 
 		#
 		parser.add_argument('--decay-rate', dest='learning_rate_decay',
@@ -336,12 +337,13 @@ def dcsuperresolution_program(vargs=None):
 		#
 		parser.add_argument('--model', dest='model',
 							default='dcsr',
-							choices=['cnnsr', 'dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae','dcsr-resnet','vdsr'],
+							choices=['cnnsr', 'dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae', 'dcsr-resnet',
+									 'vdsr'],
 							help='Set which model type to use.', type=str)
 		#
 		parser.add_argument('--loss-fn', dest='loss_fn',
 							default='mse',
-							choices=['mse', 'ssim', 'msa', 'pnbr', 'vgg16', 'none'],
+							choices=['mse', 'ssim', 'msa', 'psnr', 'vgg16', 'none'],
 							help='Set Loss Function', type=str)
 
 		# Load model and iterate existing models.
@@ -369,7 +371,7 @@ def dcsuperresolution_program(vargs=None):
 
 		#
 		console_handler = logging.StreamHandler()
-		
+
 		#
 		log_format = '%(asctime)s | %(levelname)s: %(message)s'
 		console_handler.setFormatter(logging.Formatter(log_format))
@@ -449,7 +451,5 @@ def dcsuperresolution_program(vargs=None):
 
 
 # If running the script as main executable
-
-
 if __name__ == '__main__':
 	dcsuperresolution_program(vargs=sys.argv[1:])

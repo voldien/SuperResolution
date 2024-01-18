@@ -34,3 +34,6 @@ class ModelBase(object):
 			str: _description_
 		"""
 		return ""
+
+#def validate_shape():
+#	return x.shape[1:] == output_shape

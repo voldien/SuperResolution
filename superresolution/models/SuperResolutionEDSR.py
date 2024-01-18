@@ -13,7 +13,7 @@ class EDSRSuperResolutionModel(ModelBase):
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
-								 default=0.001,
+								 default=0.00001,
 								 required=False,
 								 help='Set the L1 Regularization applied.')
 
@@ -29,7 +29,7 @@ class EDSRSuperResolutionModel(ModelBase):
 								 help='Set the number of passes that the training set will be trained against.')
 
 		#
-		self.parser.add_argument('--edsr_filters', type=int, default=256, dest='edsr_filters',
+		self.parser.add_argument('--edsr-filters', type=int, default=256, dest='edsr_filters',
 								 help='')
 
 	def load_argument(self) -> argparse.ArgumentParser:
@@ -66,19 +66,19 @@ def create_edsr_model(input_shape: tuple, output_shape: tuple, scale: int, num_f
 	x_in = layers.Input(shape=input_shape)
 
 	#
-	x = res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same')(x_in)
+	x = _res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same',kernel_initializer=init)(x_in)
 	for _ in range(num_res_blocks):
-		res_block = res_block(res_block, num_filters, res_block_scaling)
+		_res_block = res_block(_res_block, num_filters, res_block_scaling)
 
 	#
-	res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same')(res_block)
-	x = layers.Add()([x, res_block])
+	_res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same',kernel_initializer=init)(_res_block)
+	x = layers.Add()([x, _res_block])
 
 	#
 	x = upsample(x, scale, num_filters)
 
 	# Output layer.
-	x = layers.Conv2D(filters=output_channels, kernel_size=(3, 3), padding='same')(x)
+	x = layers.Conv2D(filters=output_channels, kernel_size=(3, 3), padding='same',kernel_initializer=init)(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 

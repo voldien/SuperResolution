@@ -34,12 +34,14 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	parser.add_argument('--device', type=list, action='append', default=None,
 						dest='devices', help='Select the device explicity that will be used.',
 						choices=device_lib.list_local_devices())
-	
-	parser.add_argument('--cpu', type=bool, action='store_true', default=None,
+
+	parser.add_argument('--cpu', action='store_true',
+					 default=False,required=False,
 						dest='use_explicit_cpu', help='Explicit use of CPU')
-	
-	parser.add_argument('--gpu', type=bool, action='store_true', default=None,
-						dest='use_explicit_cpu', help='Explicit use of CPU')
+
+	parser.add_argument('--gpu', action='store_true',
+					  default=None, required=False,
+						dest='use_explicit_gpu', help='Explicit use of GPU')
 
 	#
 	parser.add_argument('--distribute-strategy', type=str, action='store', default=None,
@@ -97,7 +99,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						choices=['adam', 'ada', 'rmsprop', 'sgd', 'adadelta'],
 						help='Select optimizer to be used')
 
-	parser.add_argument('--use-valdiation', type=bool, default=True, dest='use_validation',
+	parser.add_argument('--use-validation', default=False, dest='use_validation', action='store_true',
 						help='Select if use data validation step.')
 	return parser
 
