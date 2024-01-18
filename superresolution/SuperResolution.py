@@ -28,7 +28,8 @@ from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset, split_dataset
 from util.metrics import PSNRMetric
-from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, compute_normalized_PSNR
+from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, compute_normalized_PSNR, \
+	CompositeImageResultCallBack
 from util.util import plotTrainingHistory
 
 
@@ -142,8 +143,8 @@ def setup_loss_builtin_function(args: dict):
 		return (1 - tf.reduce_mean(tf.image.ssim(y_true_color, y_pred_color, max_val=1.0, filter_size=11,
 												 filter_sigma=1.5, k1=0.01, k2=0.03)))
 
-	def psnr_loss(y_true, y_pred):
-		return 100.0 - compute_normalized_PSNR(y_true, y_pred)
+	def psnr_loss(y_true, y_pred):  # TODO: fix equation.
+		return 20.0 - compute_normalized_PSNR(y_true, y_pred)
 
 	#
 	builtin_loss_functions = {'mse': tf.keras.losses.MeanSquaredError(), 'ssim': ssim_loss,
@@ -266,14 +267,16 @@ def run_train_model(args: dict, dataset):
 		ExampleResultCallBack = SaveExampleResultImageCallBack(
 			args.output_dir,
 			non_augmented_dataset_train, args.color_space)
+		compositeCallback = CompositeImageResultCallBack(
+			args.output_dir,
+			non_augmented_dataset_train, args.color_space)
 		graph_output_filepath: str = os.path.join(args.output_dir, "history_graph.png")
 		graphHistory = GraphHistory(filepath=graph_output_filepath)
-
 
 		historyResult = training_model.fit(x=dataset, validation_data=validation_data_ds, verbose='auto',
 										   epochs=args.epochs,
 										   callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
-													  ExampleResultCallBack,
+													  ExampleResultCallBack, compositeCallback,
 													  graphHistory])
 
 		# Save final model.

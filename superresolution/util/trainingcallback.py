@@ -1,12 +1,17 @@
 import os
 
 import tensorflow as tf
-from matplotlib import pyplot as plt
+from PIL import Image as Img
+from numpy import asarray
 from util.image import showResult
 from util.util import plotTrainingHistory
 
+from util.util import upscale_composite_image, convert_nontensor_color_space
+
+
 def compute_normalized_PSNR(orignal, data):
-	return tf.image.psnr((orignal + 1), (data + 1), max_val=2.0)
+	return tf.image.psnr((orignal + 1) * 5, (data + 1) * 5, max_val=10.0)
+
 
 class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 
@@ -36,6 +41,43 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 		if batch % self.nth_batch_sample == 0:
 			fig = showResult(model=self.model, image_batch_dataset=self.trainSet, color_space=self.color_space)
 			fig.savefig(os.path.join(self.dir_path, "SuperResolution_{0}_{1}.png".format(self.current_epoch, batch)))
+
+
+class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
+
+	def __init__(self, dir_path, train_data_subset, color_space, **kwargs):
+		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
+
+		options = tf.data.Options()
+		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+		self.trainSet = train_data_subset.with_options(options)
+
+		self.dir_path = dir_path
+		self.current_epoch = 0
+		self.color_space = color_space
+		if not os.path.exists(self.dir_path):
+			os.mkdir(self.dir_path)
+
+	def on_epoch_begin(self, epoch, logs=None):
+		self.current_epoch = epoch
+		#TODO: relocate to its own function
+		batch_iter = iter(self.trainSet)
+		data_image_batch, expected_image_batch = batch_iter.next()
+
+		data_image = convert_nontensor_color_space(expected_image_batch[0], color_space=self.color_space)
+
+		image = Img.fromarray(asarray(data_image).astype(dtype='float32') / 255, mode='RGB')
+		final_cropped_size, upscale_image = upscale_composite_image(upscale_model=self.model, input_im=image, batch_size=16, color_space=self.color_space)
+
+		full_output_path = os.path.join(self.dir_path, "SuperResolution_Composite_{0}.png".format(self.current_epoch))
+		# Crop image final size image.
+		upscale_image = upscale_image.crop(final_cropped_size)
+		# Save image
+		upscale_image.save(full_output_path)
+
+
+	def on_epoch_end(self, epoch, logs=None):
+		pass
 
 
 class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
@@ -90,5 +132,5 @@ class GraphHistory(tf.keras.callbacks.History):
 		super().on_epoch_end(epoch=epoch, logs=logs)
 
 		# Plot detailed
-		fig = plotTrainingHistory(self.batch_history, x_label="Epoch", y_label="value")
+		fig = plotTrainingHistory(self.batch_history, x_label="Batches", y_label="value")
 		fig.savefig(self.fig_savepath)

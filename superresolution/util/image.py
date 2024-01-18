@@ -62,3 +62,4 @@ def showResult(model: tf.keras.Model, image_batch_dataset, color_space: str, nrC
 	fig.subplots_adjust(wspace=0.05, hspace=0.05)
 	plt.close()
 	return fig
+
