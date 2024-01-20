@@ -1,11 +1,9 @@
 import tensorflow as tf
-from keras.dtensor import utils as dtensor_utils
-from keras.metrics import base_metric
-from keras.utils import metrics_utils
+from tensorflow.python.keras.utils import metrics_utils
 from util.trainingcallback import compute_normalized_PSNR
 
-class PSNRMetric(base_metric.MeanMetricWrapper):
-	@dtensor_utils.inject_mesh
+class PSNRMetric(tf.keras.metrics.MeanMetricWrapper):
+	#@dtensor_utils.inject_mesh
 	def __init__(self, name="PSNR", dtype=None):
 		def psnr(y_true, y_pred):
 			[

@@ -69,6 +69,7 @@ hyperparameters = {
 	"--data-set-directory": [dataset_paths],
 	"--batch-size": [batch_size],
 	"--use-valdiation": [' '],
+	" --show-psnr": [''],
 }
 
 #

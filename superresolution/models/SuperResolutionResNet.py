@@ -58,14 +58,12 @@ def get_model_interface() -> ModelBase:
 def residual_block(input, filters=64, use_batch_norm=False):
 	start_ref = input
 
-	init = tf.keras.initializers.HeNormal()
-
-	x = layers.Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=init)(input)
+	x = layers.Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(input)
 	if use_batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 	x = layers.ReLU(dtype='float32')(x)
 
-	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=init)(x)
+	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
 	if use_batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 
@@ -81,7 +79,6 @@ def create_resnet_model(input_shape: tuple, output_shape: tuple, upscale_mode: i
 	batch_norm: bool = True
 	use_bias: bool = True
 
-	init = tf.keras.initializers.HeNormal()
 	output_width, output_height, output_channels = output_shape
 	number_layers = 2
 
@@ -98,19 +95,19 @@ def create_resnet_model(input_shape: tuple, output_shape: tuple, upscale_mode: i
 			filter_size = min(filter_size, 1024)
 
 			x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias,
-							  kernel_initializer=init)(x)
+							  kernel_initializer=tf.keras.initializers.HeNormal())(x)
 			if batch_norm:
 				x = layers.BatchNormalization(dtype='float32')(x)
 			x = layers.ReLU(dtype='float32')(x)
 
 			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, use_bias=use_bias,
-							  kernel_initializer=init)(x)
+							  kernel_initializer=tf.keras.initializers.HeNormal())(x)
 			if batch_norm:
 				x = layers.BatchNormalization(dtype='float32')(x)
 			x = layers.ReLU(dtype='float32')(x)
 
 			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, use_bias=use_bias,
-							  kernel_initializer=init)(x)
+							  kernel_initializer=tf.keras.initializers.HeNormal())(x)
 			if batch_norm:
 				x = layers.BatchNormalization(dtype='float32')(x)
 			x = layers.ReLU(dtype='float32')(x)

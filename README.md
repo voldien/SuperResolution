@@ -1,23 +1,23 @@
 # Super Resolution 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-A SuperResolution training program for creating upscaling machine model.
+A SuperResolution training program for creating/training upscaling model, developed for educational purposes.
 
 ## Basic Program Command Line
 
 ### EDSR - 
 ```bash
-python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model edsr --learning-rate 0.0003 --color-space lab --loss-fn msa --shuffle-data-set-size 512
+python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model edsr --learning-rate 0.0003 --color-space lab --loss-fn msa --shuffle-data-set-size 512  --show-psnr
 ```
 
 ### VDR - 
 ```bash
-python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model vdr --learning-rate 0.0003 --color-space lab --loss-fn msa --shuffle-data-set-size 512
+python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model vdr --learning-rate 0.0003 --color-space lab --loss-fn msa --shuffle-data-set-size 512  --show-psnr
 ```
 
 ### AE - 
 ```bash
-python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model vdr --learning-rate 0.0003 --color-space lab --loss-fn msa --shuffle-data-set-size 512
+python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model vdr --learning-rate 0.0003 --color-space lab --loss-fn msa --shuffle-data-set-size 512  --show-psnr
 ```
 
 

@@ -3,6 +3,7 @@ import os
 import tensorflow as tf
 from PIL import Image as Img
 from numpy import asarray
+import numpy as np
 from util.image import showResult
 from util.util import plotTrainingHistory
 
@@ -60,25 +61,28 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 
 	def on_epoch_begin(self, epoch, logs=None):
 		self.current_epoch = epoch
+
 		#TODO: relocate to its own function
 		batch_iter = iter(self.trainSet)
-		data_image_batch, expected_image_batch = batch_iter.next()
+		_, expected_image_batch = batch_iter.next()
 
-		data_image = convert_nontensor_color_space(expected_image_batch[0], color_space=self.color_space)
+		# Convert image to normalized [0,1]
+		data_image = np.asarray(convert_nontensor_color_space( expected_image_batch[0], color_space=self.color_space)).astype(
+		dtype='float32')
 
-		image = Img.fromarray(asarray(data_image).astype(dtype='float32') / 255, mode='RGB')
-		final_cropped_size, upscale_image = upscale_composite_image(upscale_model=self.model, input_im=image, batch_size=16, color_space=self.color_space)
+		# Clip and convert it to [0,255], for RGB.
+		data_image = data_image.clip(0.0, 1.0)
+		decoder_image_u8 = np.uint8((data_image * 255).round())
+
+		input_rgb_image = Img.fromarray(decoder_image_u8, mode='RGB')
+
+		final_cropped_size, upscale_image = upscale_composite_image(upscale_model=self.model, input_im=input_rgb_image, batch_size=16, color_space=self.color_space)
 
 		full_output_path = os.path.join(self.dir_path, "SuperResolution_Composite_{0}.png".format(self.current_epoch))
 		# Crop image final size image.
 		upscale_image = upscale_image.crop(final_cropped_size)
 		# Save image
 		upscale_image.save(full_output_path)
-
-
-	def on_epoch_end(self, epoch, logs=None):
-		pass
-
 
 class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 

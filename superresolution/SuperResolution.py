@@ -254,7 +254,7 @@ def run_train_model(args: dict, dataset):
 		checkpoint_path: str = args.checkpoint_dir
 
 		# Create a callback that saves the model's.py weights
-		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:02d}.hdf5"),
+		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:02d}.keras"),
 														 monitor='val_loss',
 														 save_weights_only=True,
 														 save_freq='epoch',
@@ -303,7 +303,7 @@ def dcsuperresolution_program(vargs=None):
 		default_generator_id = randrange(10000000)
 		parser.add_argument('--model-filename', type=str, dest='model_filepath',
 							default=str.format(
-								"super-resolution-model-{0}.h5", default_generator_id),
+								"super-resolution-model-{0}.keras", default_generator_id),
 							help='Define file path that the generator model will be saved at.')
 		#
 		parser.add_argument('--output-dir', type=str, dest='output_dir',

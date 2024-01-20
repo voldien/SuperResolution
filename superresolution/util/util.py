@@ -22,7 +22,7 @@ def convert_nontensor_color_space(image_data, color_space: str):
 		color_space (str): _description_
 
 	Returns:
-		_type_: _description_
+		_type_: [0,1]
 	"""
 	if color_space == 'lab':
 		if isinstance(image_data, list):
@@ -30,6 +30,7 @@ def convert_nontensor_color_space(image_data, color_space: str):
 			return np.asarray([lab2rgb(image * 128.0) for image in image_data]).astype(dtype='float32')
 		else:
 			return lab2rgb(image_data * 128.0)
+	# Convert [-1,1] -> [0,1]
 	elif color_space == 'rgb':
 		return (image_data + 1.0) * 0.5
 	else:
@@ -55,7 +56,8 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 	# Convert from Raw to specified ColorSpace.
 	decoder_images = np.asarray(convert_nontensor_color_space(result_upscale_raw, color_space=color_space)).astype(
 		dtype='float32')
-	#
+	
+	# iterate through each image tile.
 	for decoder_image in decoder_images:
 
 		# Clip to valid color value and convert to uint8.
@@ -85,7 +87,7 @@ def upscale_composite_image(upscale_model, input_im: Image, batch_size:int, colo
 
 
 	# Open File and Convert to RGB Color Space.
-	input_im: Image = input_im.convert('RGB')
+	#input_im: Image = input_im.convert('RGB')
 
 	#
 	upscale_new_size: tuple = (int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
@@ -124,11 +126,11 @@ def upscale_composite_image(upscale_model, input_im: Image, batch_size:int, colo
 			dtype='float32')
 
 		# TODO fix color space converation.
+		# COnmvert RGB to the color space used by the model.
 		if color_space == 'lab':
 			cropped_sub_input_image = rgb2lab(normalized_subimage_color) * (1.0 / 128.0)
 		elif color_space == 'rgb':
 			cropped_sub_input_image = (normalized_subimage_color + 1) * 0.5
-		# cropped_sub_input_image = np.expand_dims(cropped_sub_input_image, axis=0)
 
 		# Upscale.
 		upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,

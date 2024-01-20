@@ -42,7 +42,6 @@ def create_post_super_resolution(input_shape: tuple, output_shape: tuple):
 	batch_norm: bool = True
 	use_bias: bool = True
 
-	init = tf.keras.initializers.HeNormal()
 	output_width, output_height, output_channels = output_shape
 
 	input = layers.Input(shape=input_shape)
@@ -57,17 +56,17 @@ def create_post_super_resolution(input_shape: tuple, output_shape: tuple):
 		filter_size = 2 ** (i + 6)
 		filter_size = min(filter_size, 1024)
 
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=init)(x)
+		x = layers.Conv2D(filter_size, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
 		if batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
 
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=init)(x)
+		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=tf.keras.initializers.HeNormal())(x)
 		if batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
 
-		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=init)(x)
+		x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=tf.keras.initializers.HeNormal())(x)
 		if batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = layers.ReLU(dtype='float32')(x)
@@ -75,7 +74,7 @@ def create_post_super_resolution(input_shape: tuple, output_shape: tuple):
 	# x = tf.nn.depth_to_space(x, 2)
 
 	x = layers.Conv2D(filters=3, kernel_size=(4, 4), strides=(
-		1, 1), padding='same', kernel_initializer=init)(x)
+		1, 1), padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
 	x = layers.Activation('tanh')(x)
 
 	x = layers.add([x, upscale])

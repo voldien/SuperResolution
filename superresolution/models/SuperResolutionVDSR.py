@@ -58,7 +58,6 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters: int, ker
 	number_layers: int = 2
 	num_conv_block: int = 2
 
-	init = tf.keras.initializers.HeNormal()
 	output_width, output_height, output_channels = output_shape
 
 	input = layers.Input(shape=input_shape)
@@ -69,7 +68,7 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters: int, ker
 	for _ in range(0, int(upscale_mode / 2)):
 		# TODO add upscale modes.
 		upscale = layers.Conv2DTranspose(filters=(filters << (number_layers - 1)), kernel_size=(4, 4), strides=(
-			2, 2), padding='same', kernel_initializer=init)(upscale)
+			2, 2), padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(upscale)
 
 	for i in range(0, number_layers):
 		filter_size = filters << i
@@ -77,7 +76,7 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters: int, ker
 
 		for _ in range(0, num_conv_block):
 			x = layers.Conv2D(filters=filter_size, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias,
-							  kernel_initializer=init)(x)
+							  kernel_initializer=tf.keras.initializers.HeNormal())(x)
 			if use_batch_norm:
 				x = layers.BatchNormalization(dtype='float32')(x)
 			x = create_activation(kernel_activation)(x)
@@ -85,14 +84,14 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters: int, ker
 	# Upscale
 	for _ in range(0, int(upscale_mode / 2)):
 		x = layers.Conv2DTranspose(filters=filter_size, kernel_size=(4, 4), strides=(
-			2, 2), padding='same', kernel_initializer=init)(x)
+			2, 2), padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
 
 	# Combine orignal with end.
 	x = layers.add([x, upscale])
 
 	# Output
 	x = layers.Conv2D(filters=output_channels, kernel_size=(4, 4), strides=(1, 1),
-					  padding='same', kernel_initializer=init)(x)
+					  padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
