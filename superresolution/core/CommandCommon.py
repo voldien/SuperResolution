@@ -31,20 +31,20 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						dest='learning_rate', default=0.0002, help='Set the initial Learning Rate')
 
 	# Default, all devices will be used.
-	parser.add_argument('--device', type=list, action='append', default=None,
-						dest='devices', help='Select the device explicity that will be used.',
+	parser.add_argument('--device', action='append', default=None,
+						dest='devices', help='Select the device explicitly that will be used.',
 						choices=device_lib.list_local_devices())
 
 	parser.add_argument('--cpu', action='store_true',
-					 default=False,required=False,
+						default=False, required=False,
 						dest='use_explicit_cpu', help='Explicit use of CPU')
 
 	parser.add_argument('--gpu', action='store_true',
-					  default=None, required=False,
+						default=None, required=False,
 						dest='use_explicit_gpu', help='Explicit use of GPU')
 
 	#
-	parser.add_argument('--distribute-strategy', type=str, action='store', default=None,
+	parser.add_argument('--distribute-strategy', action='store', default=None,
 						dest='distribute_strategy', help='Select Distribute Strategy.',
 						choices=['mirror'])
 

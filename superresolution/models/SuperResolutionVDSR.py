@@ -60,8 +60,7 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters: int, ker
 
 	output_width, output_height, output_channels = output_shape
 
-	input = layers.Input(shape=input_shape)
-	x = input
+	x = input_layer = layers.Input(shape=input_shape)
 
 	# Upscale to fit the end upscaled version.
 	upscale = x
@@ -98,4 +97,4 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters: int, ker
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	return keras.Model(inputs=input, outputs=x, name="vdsr")
+	return keras.Model(inputs=input_layer, outputs=x, name="vdsr")

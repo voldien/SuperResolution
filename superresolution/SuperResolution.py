@@ -146,6 +146,9 @@ def setup_loss_builtin_function(args: dict):
 	def psnr_loss(y_true, y_pred):  # TODO: fix equation.
 		return 20.0 - compute_normalized_PSNR(y_true, y_pred)
 
+	def total_variation_loss(y_true, y_pred):  # TODO: fix equation.
+		return 1.0 - tf.reduce_sum(tf.image.total_variation(y_true, y_pred))
+
 	#
 	builtin_loss_functions = {'mse': tf.keras.losses.MeanSquaredError(), 'ssim': ssim_loss,
 							  'msa': tf.keras.losses.MeanAbsoluteError(), 'psnr': psnr_loss}
@@ -291,6 +294,13 @@ def dcsuperresolution_program(vargs=None):
 		# Create logger and output information
 		global logger
 		logger = logging.getLogger("Super Resolution Logger")
+		logger.setLevel(level=logging.INFO)
+		#
+		console_handler = logging.StreamHandler()
+		log_format = '%(asctime)s | %(levelname)s: %(message)s'
+		console_handler.setFormatter(logging.Formatter(log_format))
+
+		logger.addHandler(console_handler)
 
 		parser = argparse.ArgumentParser(
 			prog='SuperResolution',
@@ -358,9 +368,10 @@ def dcsuperresolution_program(vargs=None):
 
 		# If invalid number of arguments, print help.
 		if len(sys.argv) < 2:
-			parser.print_usage()
+			parser.print_help()
 			sys.exit(1)
 
+		# Parse argument.
 		args = parser.parse_args(args=vargs)
 
 		# Parse for common arguments.
@@ -369,18 +380,9 @@ def dcsuperresolution_program(vargs=None):
 		# Set init seed.
 		tf.random.set_seed(args.seed)
 
-		# Setup logging
+		# Override the default logging level
 		logger.setLevel(args.verbosity)
-
-		#
-		console_handler = logging.StreamHandler()
-
-		#
-		log_format = '%(asctime)s | %(levelname)s: %(message)s'
-		console_handler.setFormatter(logging.Formatter(log_format))
-
-		#
-		logger.addHandler(console_handler)
+		# Add logging output path.
 		logger.addHandler(logging.FileHandler(filename=os.path.join(args.output_dir, "log.txt")))
 
 		# Logging about all the options etc.
@@ -408,7 +410,7 @@ def dcsuperresolution_program(vargs=None):
 			args.model_filepath = os.path.join(args.output_dir, args.model_filepath)
 
 		# Allow override to enable cropping for increase details in the dataset.
-		override_size: tuple = (512, 512)
+		override_size: tuple = (512, 512) #TODO fix.
 		data_set_filepaths = args.data_sets_directory_paths
 
 		# Setup Dataset

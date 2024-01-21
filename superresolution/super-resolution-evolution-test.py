@@ -38,8 +38,13 @@ parser.add_argument('--seed', type=int, dest='seed',
 					nargs=1,
 					default=42,
 					help='Seed')
+# If invalid number of arguments, print help.
+if len(sys.argv) < 2:
+	parser.print_help()
+	sys.exit(1)
 
 args = parser.parse_args(args=sys.argv[1:])
+
 
 # Extract parameters
 epochs: int = args.epochs

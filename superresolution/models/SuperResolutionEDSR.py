@@ -66,19 +66,21 @@ def create_edsr_model(input_shape: tuple, output_shape: tuple, scale: int, num_f
 	x_in = layers.Input(shape=input_shape)
 
 	#
-	x = _res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same',kernel_initializer=init)(x_in)
+	x = _res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same', kernel_initializer=init)(
+		x_in)
 	for _ in range(num_res_blocks):
 		_res_block = res_block(_res_block, num_filters, res_block_scaling)
 
 	#
-	_res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same',kernel_initializer=init)(_res_block)
+	_res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same', kernel_initializer=init)(
+		_res_block)
 	x = layers.Add()([x, _res_block])
 
 	#
 	x = upsample(x, scale, num_filters)
 
 	# Output layer.
-	x = layers.Conv2D(filters=output_channels, kernel_size=(3, 3), padding='same',kernel_initializer=init)(x)
+	x = layers.Conv2D(filters=output_channels, kernel_size=(3, 3), padding='same', kernel_initializer=init)(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
@@ -89,10 +91,12 @@ def create_edsr_model(input_shape: tuple, output_shape: tuple, scale: int, num_f
 
 
 def res_block(x_in, filters: int, scaling):
+	init = tf.keras.initializers.GlorotUniform()
+
 	"""Creates an EDSR residual block."""
-	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same', activation='relu')(x_in)
+	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same', kernel_initializer=init)(x_in)
 	x = layers.ReLU(dtype='float32')(x)
-	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same')(x)
+	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same', kernel_initializer=init)(x)
 
 	if scaling:
 		x = layers.Lambda(lambda t: t * scaling)(x)
@@ -101,9 +105,9 @@ def res_block(x_in, filters: int, scaling):
 
 
 def upsample(x, scale: int, num_filters: int):
-	def upsample_1(x, factor, **kwargs):
+	def upsample_1(input_layer, factor, **kwargs):
 		"""Sub-pixel convolution."""
-		x = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=(3, 3), padding='same', **kwargs)(x)
+		x = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=(3, 3), padding='same', **kwargs)(input_layer)
 		return tf.nn.depth_to_space(x, 2)
 
 	if scale == 2:

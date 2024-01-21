@@ -1,5 +1,5 @@
 import argparse
-
+from abc import abstractmethod
 import tensorflow.keras as keras
 
 
@@ -7,6 +7,7 @@ class ModelBase(object):
 	"""_summary_
 	"""
 
+	@abstractmethod
 	def load_argument(self) -> argparse.ArgumentParser:
 		"""_summary_
 
@@ -15,6 +16,7 @@ class ModelBase(object):
 		"""
 		return None
 
+	@abstractmethod
 	def create_model(self, input_shape: tuple, output_shape: tuple, **kwargs) -> keras.Model:
 		"""_summary_
 
@@ -27,6 +29,7 @@ class ModelBase(object):
 		"""
 		return None
 
+	@abstractmethod
 	def get_name(self) -> str:
 		"""Get Model Name.
 
@@ -35,5 +38,5 @@ class ModelBase(object):
 		"""
 		return ""
 
-#def validate_shape():
+# def validate_shape():
 #	return x.shape[1:] == output_shape

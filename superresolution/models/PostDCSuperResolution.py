@@ -44,12 +44,12 @@ def create_post_super_resolution(input_shape: tuple, output_shape: tuple):
 
 	output_width, output_height, output_channels = output_shape
 
-	input = layers.Input(shape=input_shape)
+	x = input_layer = layers.Input(shape=input_shape)
 
 	number_layers = 3
 
 	x = layers.Conv2DTranspose(filters=64, kernel_size=(4, 4), strides=(
-		1, 1), padding='same', kernel_initializer=init)(input)
+		1, 1), padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
 	upscale = x
 
 	for i in range(0, number_layers):
@@ -75,11 +75,11 @@ def create_post_super_resolution(input_shape: tuple, output_shape: tuple):
 
 	x = layers.Conv2D(filters=3, kernel_size=(4, 4), strides=(
 		1, 1), padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
-	x = layers.Activation('tanh')(x)
+	x = layers.Activation('tanh')(x)#TODO: determine
 
 	x = layers.add([x, upscale])
 	x = layers.Activation('tanh')(x)
 	# x = layers.ActivityRegularization(l1=0.0001)(x)
 
-	conv_autoencoder = keras.Model(inputs=input, outputs=x)
+	conv_autoencoder = keras.Model(inputs=input_layer, outputs=x)
 	return conv_autoencoder

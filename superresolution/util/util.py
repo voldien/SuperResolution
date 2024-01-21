@@ -1,8 +1,6 @@
 import math
 from ast import Dict
 
-import numpy as np
-import tensorflow as tf
 from matplotlib import pyplot as plt
 from skimage.color import lab2rgb, rgb2lab
 from sklearn.manifold import TSNE
@@ -11,7 +9,6 @@ from tensorflow.keras import layers
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-from skimage.color import rgb2lab
 
 
 def convert_nontensor_color_space(image_data, color_space: str):
@@ -37,6 +34,26 @@ def convert_nontensor_color_space(image_data, color_space: str):
 		assert 0
 
 
+# TODO: add
+# @tf.function
+# def setup_color_encoding(img, color_space: str):
+# 	#TODO relocate to its own method.
+# 	@tf.function
+# 	def preprocess_rgb2lab(tensorData):
+
+# 		image = tf.cast(tensorData, float_precision)
+
+# 		return tf.cast(tfio.experimental.color.rgb_to_lab(image), float_precision)
+
+# 	# Convert color space encoding and normalize values.
+# 	if color_space == 'lab':
+# 		# Convert to LAB color and Transform [0, 255] -> [-128,128] -> [-1, 1]
+# 		return preprocess_rgb2lab(normalization_layer(img)) * (1.0 / 128.0)
+# 	elif color_space == 'rgb':
+# 		# Normalize and Transform [0, 255] -> [0,1] -> [-1, 1]
+# 		return (normalization_layer(img) * 2.0) - 1.0
+# 	assert 0
+
 def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 	"""_summary_
 
@@ -56,10 +73,9 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 	# Convert from Raw to specified ColorSpace.
 	decoder_images = np.asarray(convert_nontensor_color_space(result_upscale_raw, color_space=color_space)).astype(
 		dtype='float32')
-	
+
 	# iterate through each image tile.
 	for decoder_image in decoder_images:
-
 		# Clip to valid color value and convert to uint8.
 		decoder_image = decoder_image.clip(0.0, 1.0)
 		decoder_image_u8 = np.uint8((decoder_image * 255).round())
@@ -72,10 +88,9 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 	return packed_cropped_result
 
 
-def upscale_composite_image(upscale_model, input_im: Image, batch_size:int, color_space:str):
+def upscale_composite_image(upscale_model, input_im: Image, batch_size: int, color_space: str):
 	image_input_shape: tuple = upscale_model.input_shape[1:]
 	image_output_shape: tuple = upscale_model.output_shape[1:]
-
 
 	#
 	input_width, input_height, input_channels = image_input_shape
@@ -85,9 +100,8 @@ def upscale_composite_image(upscale_model, input_im: Image, batch_size:int, colo
 	width_scale: float = float(output_width) / float(input_width)
 	height_scale: float = float(output_height) / float(input_height)
 
-
-	# Open File and Convert to RGB Color Space.
-	#input_im: Image = input_im.convert('RGB')
+	# Convert to RGB Color Space.
+	input_im: Image = input_im.convert('RGB')
 
 	#
 	upscale_new_size: tuple = (int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
@@ -117,20 +131,23 @@ def upscale_composite_image(upscale_model, input_im: Image, batch_size:int, colo
 	for nth_batch in range(0, nr_cropped_batchs):
 		cropped_batch = image_crop_list[nth_batch * batch_size:(nth_batch + 1) * batch_size]
 
-		crop_batch = []
+		#
+		crop_batch: list = []
 		for crop in cropped_batch:
 			cropped_sub_input_image = input_im.crop(crop)
 			crop_batch.append(np.array(cropped_sub_input_image))
 
+		#
 		normalized_subimage_color = (np.array(crop_batch) * (1.0 / 255.0)).astype(
 			dtype='float32')
 
-		# TODO fix color space converation.
 		# COnmvert RGB to the color space used by the model.
 		if color_space == 'lab':
+			# [0,1] -> [-128,128] ->  [-1,1]
 			cropped_sub_input_image = rgb2lab(normalized_subimage_color) * (1.0 / 128.0)
 		elif color_space == 'rgb':
-			cropped_sub_input_image = (normalized_subimage_color + 1) * 0.5
+			# [0,1] -> [-1,1]
+			cropped_sub_input_image = (normalized_subimage_color * 2) - 1
 
 		# Upscale.
 		upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,
@@ -149,6 +166,7 @@ def upscale_composite_image(upscale_model, input_im: Image, batch_size:int, colo
 	# Offload final crop and save to seperate thread.
 	final_cropped_size = (0, 0, upscale_new_size[0], upscale_new_size[1])
 	return final_cropped_size, upscale_image
+
 
 def generate_latentspace(generator_model, disc_model_features, latent_spaces, dataset):
 	generated_result = generator_model.predict(latent_spaces, batch_size=16, verbose=1)

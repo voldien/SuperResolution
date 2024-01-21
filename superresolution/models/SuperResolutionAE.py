@@ -59,20 +59,20 @@ def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_r
 	init = tf.keras.initializers.GlorotUniform()
 	output_width, output_height, output_channels = output_shape
 
-	input = layers.Input(shape=input_shape)
+	x = input_layer = layers.Input(shape=input_shape)
 	number_layers: int = 2
 	num_conv_block: int = 2
 	offset_degre: int = 6
 
 	x = layers.Conv2D(filters=input_filters, kernel_size=(3, 3), strides=1, padding='same',
-					  kernel_initializer=init)(input)
+					  kernel_initializer=init)(x)
 	if use_batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 
 	lastSumLayer = x
 
 	for i in range(0, number_layers):
-		filter_size = input_filters << (i)
+		filter_size = input_filters << i
 		filter_size = min(filter_size, 1024)
 
 		for j in range(0, num_conv_block):
@@ -144,4 +144,4 @@ def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_r
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	return keras.Model(inputs=input, outputs=x, name="aesr")
+	return keras.Model(inputs=input_layer, outputs=x, name="aesr")

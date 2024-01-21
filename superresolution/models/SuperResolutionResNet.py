@@ -55,10 +55,10 @@ def get_model_interface() -> ModelBase:
 	return ResNetSuperResolutionModel()
 
 
-def residual_block(input, filters=64, use_batch_norm=False):
-	start_ref = input
+def residual_block(input_layer, filters=64, use_batch_norm=False):
+	start_ref = input_layer
 
-	x = layers.Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(input)
+	x = layers.Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(input_layer)
 	if use_batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 	x = layers.ReLU(dtype='float32')(x)
@@ -82,12 +82,12 @@ def create_resnet_model(input_shape: tuple, output_shape: tuple, upscale_mode: i
 	output_width, output_height, output_channels = output_shape
 	number_layers = 2
 
-	input = layers.Input(shape=input_shape)
-	x = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias, kernel_initializer=init)(
-		input)
+	input_layer = layers.Input(shape=input_shape)
+	x = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias, kernel_initializer=tf.keras.initializers.HeNormal())(
+		input_layer)
 
 	for i in range(0, num_res_blocks):
-		x = residual_block(input=x, filters=64, use_batch_norm=False)
+		x = residual_block(input_layer=x, filters=64, use_batch_norm=False)
 
 	for _ in range(0, int(upscale_mode / 2)):
 		for i in range(0, number_layers):
@@ -117,11 +117,11 @@ def create_resnet_model(input_shape: tuple, output_shape: tuple, upscale_mode: i
 
 	# Upscale and output channel.
 	x = layers.Conv2DTranspose(filters=3, kernel_size=(9, 9), strides=(
-		1, 1), padding='same', kernel_initializer=init)(x)
+		1, 1), padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	return keras.Model(inputs=input, outputs=x)
+	return keras.Model(inputs=input_layer, outputs=x)

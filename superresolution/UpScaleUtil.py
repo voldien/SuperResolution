@@ -39,7 +39,6 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 		dtype='float32')
 	#
 	for decoder_image in decoder_images:
-
 		# Clip to valid color value and convert to uint8.
 		decoder_image = decoder_image.clip(0.0, 1.0)
 		decoder_image_u8 = np.uint8((decoder_image * 255).round())

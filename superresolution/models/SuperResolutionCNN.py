@@ -57,8 +57,7 @@ def create_cnn_model(input_shape: tuple, output_shape: tuple, input_filter_size:
 
 	output_width, output_height, output_channels = output_shape
 
-	input = layers.Input(shape=input_shape)
-	x = input
+	x = input_layer = layers.Input(shape=input_shape)
 
 	for i in range(0, int(upscale_mode / 2)):
 		x = layers.UpSampling2D(size=(2, 2), interpolation='bilinear')(x)
@@ -82,4 +81,4 @@ def create_cnn_model(input_shape: tuple, output_shape: tuple, input_filter_size:
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	return keras.Model(inputs=input, outputs=x, name="cnnsr")
+	return keras.Model(inputs=input_layer, outputs=x, name="cnnsr")

@@ -54,14 +54,14 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 
 	output_width, output_height, output_channels = output_shape
 
-	input = layers.Input(shape=input_shape)
+	x = input_layer = layers.Input(shape=input_shape)
 
 	for i in range(0, int(upscale_mode / 2)):
 		nrfilters = output_width
 		#
 		x = layers.Conv2D(filters=nrfilters, kernel_size=(9, 9), strides=1, padding='same',
 						  use_bias=use_bias,
-						  kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(input)
+						  kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
@@ -106,4 +106,4 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	return keras.Model(inputs=input, outputs=x)
+	return keras.Model(inputs=input_layer, outputs=x)

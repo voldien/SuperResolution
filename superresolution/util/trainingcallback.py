@@ -2,7 +2,6 @@ import os
 
 import tensorflow as tf
 from PIL import Image as Img
-from numpy import asarray
 import numpy as np
 from util.image import showResult
 from util.util import plotTrainingHistory

@@ -60,6 +60,7 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 
 		@tf.function
 		def setup_color_encoding(img, color_space: str):
+			# TODO relocate to its own method.
 			@tf.function
 			def preprocess_rgb2lab(tensorData):
 
@@ -177,15 +178,15 @@ def split_dataset(dataset: Dataset, train_size: float) -> Tuple[Dataset, Dataset
 	:param train_size:
 	:return:
 	"""
-	nrBatches = len(dataset)
+	nr_batches = len(dataset)
 
 	#
-	offset_skip = int(train_size * nrBatches)
-	validation_nr_batchs = int((1.0 - train_size) * nrBatches)
+	offset_skip = int(train_size * nr_batches)
+	validation_nr_batches = int((1.0 - train_size) * nr_batches)
 
 	#
 	train_ds = dataset.take(offset_skip)
-	validation_ds = dataset.skip(offset_skip).take(validation_nr_batchs)
+	validation_ds = dataset.skip(offset_skip).take(validation_nr_batches)
 
 	return train_ds, validation_ds
 
@@ -202,13 +203,13 @@ def processImageDataset(train_images):
 def loadImageDataSubSet(path, subset, resize=(128, 128), filter=(".jpg", ".JPG", ".png", ".png")):
 	images = []
 	_n = int(len(subset))
-	with zipfile.ZipFile(path, 'r') as zip:
+	with zipfile.ZipFile(path, 'r') as zip_io:
 		for i in range(_n):
 			file_in_zip = subset[i]
 
 			if pathlib.Path(file_in_zip).suffix in filter:
 				try:
-					data = zip.read(file_in_zip)
+					data = zip_io.read(file_in_zip)
 					stream = BytesIO(data)
 					if imghdr.what(stream) is not None:
 						image = PIL.Image.open(stream)
@@ -234,7 +235,7 @@ def load_image_data(pool, path, size):
 	return future_to_image
 
 
-def loadImagedataSet(path, filter=None, ProcessOverride=None, size=(128, 128)):
+def loadImagedataSet(path, filter_ext=None, ProcessOverride=None, size=(128, 128)):
 	future_to_image = []
 	total_data = []
 	with cf.ProcessPoolExecutor() as pool:
