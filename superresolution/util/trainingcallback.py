@@ -45,13 +45,12 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 
 class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 
-	def __init__(self, dir_path, train_data_subset, color_space, **kwargs):
+	def __init__(self, dir_path : str, name:str, train_data_subset, color_space : str, **kwargs):
 		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
 
-		options = tf.data.Options()
-		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-		self.trainSet = train_data_subset.with_options(options)
-
+		self.trainSet = train_data_subset
+		
+		self.composite_name = name
 		self.dir_path = dir_path
 		self.current_epoch = 0
 		self.color_space = color_space
@@ -77,7 +76,7 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 
 		final_cropped_size, upscale_image = upscale_composite_image(upscale_model=self.model, input_im=input_rgb_image, batch_size=16, color_space=self.color_space)
 
-		full_output_path = os.path.join(self.dir_path, "SuperResolution_Composite_{0}.png".format(self.current_epoch))
+		full_output_path = os.path.join(self.dir_path, "SuperResolution_Composite_{0}_{1}.png".format(self.composite_name, self.current_epoch))
 		# Crop image final size image.
 		upscale_image = upscale_image.crop(final_cropped_size)
 		# Save image
@@ -88,9 +87,7 @@ class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 	def __init__(self, dir_path, train_data_subset, color_space, **kwargs):
 		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
 
-		options = tf.data.Options()
-		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-		self.trainSet = train_data_subset.with_options(options)
+		self.trainSet = train_data_subset
 
 		self.dir_path = dir_path
 		self.current_epoch = 0

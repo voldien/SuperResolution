@@ -16,7 +16,7 @@ parser.add_argument('--epochs', type=int, default=12, dest='epochs',
 parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
 					help='number of training element per each batch, during training.')
 
-parser.add_argument('--data-set-directory', type=str, dest='data_sets_directory_paths',
+parser.add_argument('--data-set-directory', type=str, dest='train_directory_paths',
 					action='append', required=True,
 					help='Directory path where the images are located dataset images')
 #
@@ -50,7 +50,7 @@ args = parser.parse_args(args=sys.argv[1:])
 epochs: int = args.epochs
 output_dir: str = args.output_dir
 batch_size: int = args.batch_size
-dataset_paths = args.data_sets_directory_paths
+dataset_paths = args.train_directory_paths
 image_size: tuple = args.image_size
 image_output_size: tuple = args.output_image_size
 seed: int = args.seed

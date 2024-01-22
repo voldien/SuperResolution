@@ -13,6 +13,7 @@ from typing import Dict
 import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow_io as tfio
+from tensorflow.python.data import Dataset
 
 from core import ModelBase
 
@@ -156,14 +157,15 @@ def setup_loss_builtin_function(args: dict):
 	return builtin_loss_functions[args.loss_fn]
 
 
-def run_train_model(args: dict, dataset):
+def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: Dataset = None,
+					test_dataset: Dataset = None):
 	# Configure how models will be executed.
 	strategy = setup_tensorflow_strategy(args=args)
 
 	# Compute the total batch size.
 	batch_size: int = args.batch_size * strategy.num_replicas_in_sync
 	logger.info("Number of batches {0} of {1} elements".format(
-		len(dataset), batch_size))
+		len(training_dataset), batch_size))
 
 	# Create Input and Output Size
 	# TODO determine size.
@@ -176,51 +178,77 @@ def run_train_model(args: dict, dataset):
 	logging.info("Output Size {0}".format(image_output_size))
 
 	# Setup none-augmented version for presentation.
-	non_augmented_dataset_train = dataset_super_resolution(dataset=dataset,
+	non_augmented_dataset_train = dataset_super_resolution(dataset=training_dataset,
 														   input_size=image_input_size,
 														   output_size=image_output_size)
+
+	non_augmented_dataset_validation = dataset_super_resolution(dataset=validation_dataset,
+																input_size=image_input_size,
+																output_size=image_output_size)
+
 	non_augmented_dataset_train = configure_dataset_performance(ds=non_augmented_dataset_train, use_cache=False,
 																cache_path=None, shuffle_size=0)
+
 	non_augmented_dataset_train = non_augmented_dataset_train.batch(batch_size)
+	non_augmented_dataset_validation = non_augmented_dataset_validation.batch(batch_size)
 
 	options = tf.data.Options()
 	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 	non_augmented_dataset_train = non_augmented_dataset_train.with_options(options)
 
+	options = tf.data.Options()
+	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+	non_augmented_dataset_validation = non_augmented_dataset_validation.with_options(options)
+
 	# Configure cache, shuffle and performance of the dataset.
-	dataset = configure_dataset_performance(ds=dataset, use_cache=args.cache_ram, cache_path=args.cache_path,
-											shuffle_size=args.dataset_shuffle_size)
+	training_dataset = configure_dataset_performance(ds=training_dataset, use_cache=args.cache_ram,
+													 cache_path=args.cache_path,
+													 shuffle_size=args.dataset_shuffle_size)
 
 	# Apply data augmentation
-	dataset = augment_dataset(dataset=dataset, image_crop_shape=image_output_size)
+	training_dataset = augment_dataset(dataset=training_dataset, image_crop_shape=image_output_size)
 
 	# Transform data to fit upscale.
-	dataset = dataset_super_resolution(dataset=dataset,
-									   input_size=image_input_size,
-									   output_size=image_output_size)
+	training_dataset = dataset_super_resolution(dataset=training_dataset,
+												input_size=image_input_size,
+												output_size=image_output_size)
 
 	# Final Combined dataset. Set batch size
-	dataset = dataset.batch(batch_size)
+	training_dataset = training_dataset.batch(batch_size)
+
+	# Setup for strategy support, to allow multiple GPU setup.
+	options = tf.data.Options()
+	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+	training_dataset = training_dataset.with_options(options)
 
 	# Split training and validation.
 	validation_data_ds = None
-	if args.use_validation:
-		dataset, validation_data_ds = split_dataset(dataset=dataset, train_size=0.95)
+	if args.use_validation and validation_dataset:
+		# Configure cache, shuffle and performance of the dataset.
+		validation_data_ds = configure_dataset_performance(ds=validation_dataset, use_cache=False,
+														   cache_path=None,
+														   shuffle_size=0)
+
+		# Apply data augmentation
+		validation_data_ds = augment_dataset(dataset=validation_data_ds, image_crop_shape=image_output_size)
+
+		# Transform data to fit upscale.
+		validation_data_ds = dataset_super_resolution(dataset=validation_data_ds,
+													  input_size=image_input_size,
+													  output_size=image_output_size)
+		validation_data_ds = validation_data_ds.batch(batch_size)
 
 		options = tf.data.Options()
 		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 		validation_data_ds = validation_data_ds.with_options(options)
 
-	# Setup for strategy support, to allow multiple GPU setup.
-	options = tf.data.Options()
-	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-	dataset = dataset.with_options(options)
+
 
 	# Setup builtin models
 	builtin_models = load_builtin_model_interfaces()
 
 	#
-	logging.info(len(dataset))
+	logging.info(len(training_dataset))
 
 	#
 	with strategy.scope():
@@ -270,23 +298,54 @@ def run_train_model(args: dict, dataset):
 		ExampleResultCallBack = SaveExampleResultImageCallBack(
 			args.output_dir,
 			non_augmented_dataset_train, args.color_space)
-		compositeCallback = CompositeImageResultCallBack(
-			args.output_dir,
-			non_augmented_dataset_train, args.color_space)
+		compositeTrainCallback = CompositeImageResultCallBack(
+			dir_path=args.output_dir,
+			name="train",
+			train_data_subset=non_augmented_dataset_train, color_space=args.color_space)
+
+		compositeValidationCallback = CompositeImageResultCallBack(
+			dir_path=args.output_dir,
+			name="validation",
+			train_data_subset=non_augmented_dataset_validation, color_space=args.color_space)
+
 		graph_output_filepath: str = os.path.join(args.output_dir, "history_graph.png")
-		graphHistory = GraphHistory(filepath=graph_output_filepath)
+		graph_history = GraphHistory(filepath=graph_output_filepath)
 
-		historyResult = training_model.fit(x=dataset, validation_data=validation_data_ds, verbose='auto',
-										   epochs=args.epochs,
-										   callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
-													  ExampleResultCallBack, compositeCallback,
-													  graphHistory])
-
+		history_result = training_model.fit(x=training_dataset, validation_data=validation_data_ds, verbose='auto',
+											epochs=args.epochs,
+											callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
+													   ExampleResultCallBack, compositeTrainCallback,
+													   compositeValidationCallback,
+													   graph_history])
 		# Save final model.
 		training_model.save(args.model_filepath)
 
+		if training_dataset:
+			pass
+
 		# Plot history result.
-		plotTrainingHistory(historyResult.history)
+		plotTrainingHistory(history_result.history)
+
+
+def load_dataset_collection(filepaths: list, args: dict, override_size: tuple):
+	# Setup Dataset
+	# TODO: move to its owm function.
+	training_dataset = None
+	for directory_path in filepaths:
+		# Check if directory.
+		if os.path.isdir(directory_path):
+			pass
+
+		data_dir = pathlib.Path(directory_path)
+		logging.info("Loading dataset directory {0}".format(data_dir))
+
+		local_dataset = load_dataset_from_directory(data_path=data_dir, args=args, override_size=override_size)
+		if not training_dataset:
+			training_dataset = local_dataset
+		else:
+			training_dataset.concatenate(local_dataset)
+
+	return training_dataset
 
 
 def dcsuperresolution_program(vargs=None):
@@ -345,7 +404,7 @@ def dcsuperresolution_program(vargs=None):
 							help='Set Learning rate Decay.', type=float)
 		#
 		parser.add_argument('--decay-step', dest='learning_rate_decay_step',
-							default=40000,
+							default=10000,
 							help='Set Learning rate Decay Step.', type=int)
 		#
 		parser.add_argument('--model', dest='model',
@@ -410,27 +469,27 @@ def dcsuperresolution_program(vargs=None):
 			args.model_filepath = os.path.join(args.output_dir, args.model_filepath)
 
 		# Allow override to enable cropping for increase details in the dataset.
-		override_size: tuple = (512, 512) #TODO fix.
-		data_set_filepaths = args.data_sets_directory_paths
+		override_size: tuple = (512, 512)  # TODO fix.
 
 		# Setup Dataset
-		dataset = None
+		training_dataset = None
+		data_set_filepaths = args.train_directory_paths
 		if data_set_filepaths:
-			for directory_path in data_set_filepaths:
-				# Check if directory.
-				if os.path.isdir(directory_path):
-					pass
+			training_dataset = load_dataset_collection(filepaths=data_set_filepaths, args=args,
+													   override_size=override_size)
 
-				data_dir = pathlib.Path(directory_path)
-				logging.info("Loading dataset directory {0}".format(data_dir))
+		validation_dataset = None
+		validation_set_filepaths = args.validation_directory_paths
+		if validation_set_filepaths:
+			validation_dataset = load_dataset_collection(filepaths=validation_set_filepaths, args=args,
+														 override_size=override_size)
 
-				local_dataset = load_dataset_from_directory(data_path=data_dir, args=args, override_size=override_size)
-				if not dataset:
-					dataset = local_dataset
-				else:
-					dataset.concatenate(local_dataset)
+		test_dataset = None
+		test_set_filepaths = args.test_directory_paths
+		if test_set_filepaths:
+			test_dataset = load_dataset_collection(filepaths=test_set_filepaths, args=args, override_size=override_size)
 
-		if not dataset:
+		if not training_dataset:
 			logger.error("Failed to construct dataset")
 			raise RuntimeError("Could not create dataset from {0}".format(data_set_filepaths))
 
@@ -446,7 +505,7 @@ def dcsuperresolution_program(vargs=None):
 			json.dump(args.__dict__, writefile, indent=2)
 
 		# Main Train Model
-		run_train_model(args, dataset)
+		run_train_model(args, training_dataset, validation_dataset, test_dataset)
 
 	except Exception as ex:
 		print(ex)

@@ -29,7 +29,7 @@ def configure_dataset_performance(ds: Dataset, use_cache: bool, cache_path: str,
 	return ds
 
 
-def load_dataset_from_directory(data_path: str, args, override_size=None, use_float16: bool = False,
+def load_dataset_from_directory(data_path: str, args : dict, override_size=None, use_float16: bool = False,
 								**kwargs) -> Dataset:
 	# Determine if path or file.
 	if os.path.isdir(data_path):
@@ -43,6 +43,7 @@ def load_dataset_from_directory(data_path: str, args, override_size=None, use_fl
 		if override_size:
 			image_size = override_size
 
+		split : float = 0
 		#
 		color_mode = 'rgb' if args.color_channels == 3 else 'gray'
 		train_ds = tf.keras.utils.image_dataset_from_directory(

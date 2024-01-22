@@ -155,7 +155,6 @@ def upscale_composite_image(upscale_model, input_im: Image, batch_size: int, col
 
 		#
 		for index, (crop, upscale) in enumerate(zip(cropped_batch, upscale_raw_result)):
-			# TODO fix
 			output_left = int(crop[0] * width_scale)
 			output_top = int(crop[1] * width_scale)
 			output_right = int(crop[2] * width_scale)
@@ -166,39 +165,6 @@ def upscale_composite_image(upscale_model, input_im: Image, batch_size: int, col
 	# Offload final crop and save to seperate thread.
 	final_cropped_size = (0, 0, upscale_new_size[0], upscale_new_size[1])
 	return final_cropped_size, upscale_image
-
-
-def generate_latentspace(generator_model, disc_model_features, latent_spaces, dataset):
-	generated_result = generator_model.predict(latent_spaces, batch_size=16, verbose=1)
-
-	disc_model_features = get_last_multidim_model(disc_model_features)
-
-	generated_predicted_features = disc_model_features.predict(generated_result, batch_size=16, verbose=1)
-	generated_features = np.asarray(generated_predicted_features).astype('float32')  # .reshape(-1, 1)
-
-	real_predicted_features = disc_model_features.predict(dataset, batch_size=16,
-														  verbose=1)
-	real_predicted_features = np.asarray(real_predicted_features).astype('float32')  # .reshape(-1, 1)
-
-	fig = plt.figure(figsize=(10, 10), dpi=300)
-	# generated_result = generator_model.predict(latent_spaces, batch_size=16, verbose=0)
-	if len(generated_features[0]) > 1:
-		tsne = TSNE(n_components=2, init='pca', random_state=0, learning_rate='auto')
-		#
-		generated_tsne = tsne.fit_transform(generated_features)
-		real_tsne = tsne.fit_transform(real_predicted_features)
-
-		# Plot Result
-
-		ax = plt.subplot(1, 1, 0 + 1)
-		ax.title.set_text(str.format('Latent Space {0}', len(latent_spaces)))
-		plt.scatter(generated_tsne[:, 0], generated_tsne[:, 1], color='blue')
-		plt.scatter(real_tsne[:, 0], real_tsne[:, 1], color='red')
-		plt.legend()
-		plt.colorbar()
-		return fig
-	return fig
-
 
 def get_last_multidim_model(model):
 	last_multi_layer = None

@@ -40,7 +40,7 @@ class EDSRSuperResolutionModel(ModelBase):
 		# Model constructor parameters.
 		regularization: float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
-		num_input_filters: int = kwargs.get("edsr_filters", 256)  #
+		num_input_filters: int = kwargs.get("edsr_filters", 192)  #
 
 		#
 		return create_edsr_model(input_shape=input_shape,

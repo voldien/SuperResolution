@@ -68,7 +68,15 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						dest='dataset_shuffle_size', default=1024,
 						help='Set the size of the shuffle buffer size, zero disables shuffling.')
 
-	parser.add_argument('--data-set-directory', dest='data_sets_directory_paths', type=str,
+	parser.add_argument('--data-set-directory', dest='train_directory_paths', type=str,
+						action='append',
+						help='Directory path where the images are located dataset images')
+
+	parser.add_argument('--validation-data-directory', dest='validation_directory_paths', type=str,
+						action='append',
+						help='Directory path where the images are located dataset images')
+
+	parser.add_argument('--test-data-directory', dest='test_directory_paths', type=str,
 						action='append',
 						help='Directory path where the images are located dataset images')
 
@@ -99,7 +107,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						choices=['adam', 'ada', 'rmsprop', 'sgd', 'adadelta'],
 						help='Select optimizer to be used')
 
-	parser.add_argument('--use-validation', default=False, dest='use_validation', action='store_true',
+	parser.add_argument('--disable-validation', default=True, dest='use_validation', action='store_false',
 						help='Select if use data validation step.')
 	return parser
 
