@@ -9,17 +9,18 @@ from tensorflow.keras import layers
 
 class DCSuperResolutionModel(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=True, prog="Basic SuperResolution",
+		self.parser = argparse.ArgumentParser(add_help=False, prog="Basic SuperResolution",
 											  description="Basic Deep Convolutional Super Resolution")
+		group = self.parser.add_argument_group(self.get_name())
 		#
-		self.parser.add_argument('--regularization', dest='regularization',
+		group.add_argument('--regularization', dest='regularization',
 								 type=float,
 								 default=0.000001,
 								 required=False,
 								 help='Set the L1 Regularization applied.')
 
 		#
-		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
+		group.add_argument('--upscale-mode', dest='upscale_mode',
 								 type=int,
 								 choices=[2, 4],
 								 default=2,

@@ -9,7 +9,7 @@ from models import create_activation
 
 class ResNetSuperResolutionModel(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=True, prog="", description="")
+		self.parser = argparse.ArgumentParser(add_help=False)
 
 		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
 								 help='Set the number of passes that the training set will be trained against.')

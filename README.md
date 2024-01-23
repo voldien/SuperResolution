@@ -50,7 +50,77 @@ python superresolution/SuperResolution.py  --data-set-directory /path_to_trainin
 ### SuperResolution Training Program Argument
 
 ```bash
-usage: [-h] [--epochs EPOCHS] [--batch-size BATCH_SIZE] --data-set-directory DATA_SETS_DIRECTORY_PATHS [--output-dir OUTPUT_DIR] [--image-size IMAGE_SIZE IMAGE_SIZE] [--output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE] [--seed SEED]
+usage: SuperResolution [-h] [--epochs EPOCHS] [--batch-size BATCH_SIZE] [--checkpoint-filepath CHECKPOINT_DIR] [--checkpoint-every-epoch CHECKPOINT_EVERY_NTH_EPOCH] [--learning-rate LEARNING_RATE] [--device DEVICES] [--cpu] [--gpu] [--distribute-strategy {mirror}] [--verbosity VERBOSITY] [--use-float16]
+                       [--cache-ram] [--cache-file CACHE_PATH] [--shuffle-data-set-size DATASET_SHUFFLE_SIZE] [--data-set-directory TRAIN_DIRECTORY_PATHS] [--validation-data-directory VALIDATION_DIRECTORY_PATHS] [--test-data-directory TEST_DIRECTORY_PATHS] [--image-size IMAGE_SIZE IMAGE_SIZE]
+                       [--output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE] [--seed SEED] [--nr_image_example_generate NUM_EXAMPLES_TO_GENERATE] [--color-space {rgb,lab}] [--color-channels {1,3,4}] [--optimizer {adam,ada,rmsprop,sgd,adadelta}] [--disable-validation] [--model-filename MODEL_FILEPATH]
+                       [--output-dir OUTPUT_DIR] [--example-batch EXAMPLE_BATCH] [--example-batch-grid-size width height] [--show-psnr] [--metrics METRICS] [--decay-rate LEARNING_RATE_DECAY] [--decay-step LEARNING_RATE_DECAY_STEP] [--model {cnnsr,dcsr,dscr-post,dscr-pre,edsr,dcsr-ae,dcsr-resnet,vdsr}]
+                       [--loss-fn {mse,ssim,msa,psnr,vgg16,none}]
+
+Super Resolution Training Model Program
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --epochs EPOCHS       Set the number of passes that the training set will be trained against.
+  --batch-size BATCH_SIZE
+                        number of training element per each batch, during training.
+  --checkpoint-filepath CHECKPOINT_DIR
+                        Set the path the checkpoint will be saved/loaded.
+  --checkpoint-every-epoch CHECKPOINT_EVERY_NTH_EPOCH
+                        Set how often the checkpoint will be update, per epoch.
+  --learning-rate LEARNING_RATE
+                        Set the initial Learning Rate
+  --device DEVICES      Select the device explicitly that will be used.
+  --cpu                 Explicit use the CPU as the compute device.
+  --gpu                 Explicit use of GPU
+  --distribute-strategy {mirror}
+                        Select Distribute Strategy.
+  --verbosity VERBOSITY
+                        Set the verbosity level of the program
+  --use-float16         Hint the usage of Float 16 (FP16) in the model.
+  --cache-ram           Use System Memory (RAM) as Cache storage.
+  --cache-file CACHE_PATH
+                        Set the cache file path that will be used to store dataset cached data.
+  --shuffle-data-set-size DATASET_SHUFFLE_SIZE
+                        Set the size of the shuffle buffer size, zero disables shuffling.
+  --data-set-directory TRAIN_DIRECTORY_PATHS
+                        Directory path where the images are located dataset images
+  --validation-data-directory VALIDATION_DIRECTORY_PATHS
+                        Directory path where the images are located dataset images
+  --test-data-directory TEST_DIRECTORY_PATHS
+                        Directory path where the images are located dataset images
+  --image-size IMAGE_SIZE IMAGE_SIZE
+                        Set the size of the images in width and height for the model.
+  --output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE
+                        Set the size of the images in width and height for the model.
+  --seed SEED           Set the random seed
+  --nr_image_example_generate NUM_EXAMPLES_TO_GENERATE
+                        Number
+  --color-space {rgb,lab}
+                        Select Color Space used in the model.
+  --color-channels {1,3,4}
+                        Select Number of channels in the color space. GrayScale, RGB and RGBA.
+  --optimizer {adam,ada,rmsprop,sgd,adadelta}
+                        Select optimizer to be used
+  --disable-validation  Select if use data validation step.
+  --model-filename MODEL_FILEPATH
+                        Define file path that the generator model will be saved at.
+  --output-dir OUTPUT_DIR
+                        Set the output directory that all the models and results will be stored at
+  --example-batch EXAMPLE_BATCH
+                        Set the number of train batches between saving work in progress result.
+  --example-batch-grid-size width height
+                        Set the grid size of number of example images.
+  --show-psnr           Set the grid size of number of example images.
+  --metrics METRICS     Set what metric to capture.
+  --decay-rate LEARNING_RATE_DECAY
+                        Set Learning rate Decay.
+  --decay-step LEARNING_RATE_DECAY_STEP
+                        Set Learning rate Decay Step.
+  --model {cnnsr,dcsr,dscr-post,dscr-pre,edsr,dcsr-ae,dcsr-resnet,vdsr}
+                        Set which model type to use.
+  --loss-fn {mse,ssim,msa,psnr,vgg16,none}
+                        Set Loss Function
+
 ```
 
 ## Upscale Image

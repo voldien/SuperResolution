@@ -9,7 +9,7 @@ from tensorflow.keras import layers
 
 class AESuperResolutionModel(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=True, prog="", description="")
+		self.parser = argparse.ArgumentParser(add_help=False)
 
 		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
 								 help='Set the number of passes that the training set will be trained against.')
@@ -37,10 +37,10 @@ class AESuperResolutionModel(ModelBase):
 
 		#
 		return create_dscr_autoencoder_model(input_shape=input_shape,
-											  output_shape=output_shape, use_resnet=use_resnet,
-											  input_filters=num_input_filters,
-											  regularization=regularization, use_upresize=False,
-											  kernel_activation='relu')
+											 output_shape=output_shape, use_resnet=use_resnet,
+											 input_filters=num_input_filters,
+											 regularization=regularization, use_upresize=False,
+											 kernel_activation='relu')
 
 	def get_name(self):
 		return "Auto Encoder Super Resolution"
@@ -51,8 +51,8 @@ def get_model_interface() -> ModelBase:
 
 
 def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_resnet: bool, regularization: float,
-								   use_upresize: bool,
-								   kernel_activation: str, input_filters: int):
+								  use_upresize: bool,
+								  kernel_activation: str, input_filters: int):
 	use_batch_norm: bool = True
 	use_bias: bool = True
 
@@ -68,7 +68,7 @@ def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_r
 	if use_batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 
-	lastSumLayer = x
+	last_sum_layer = x
 
 	for i in range(0, number_layers):
 		filter_size = input_filters << i
@@ -82,20 +82,22 @@ def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_r
 			x = create_activation(kernel_activation)(x)
 
 		# Downscale layer
-		x = layers.Conv2D(filters=filter_size, kernel_size=(3, 3), strides=2, padding='same', kernel_initializer=tf.keras.initializers.GlorotUniform())(
+		x = layers.Conv2D(filters=filter_size, kernel_size=(3, 3), strides=2, padding='same',
+						  kernel_initializer=tf.keras.initializers.GlorotUniform())(
 			x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
 
-		AttachLayer = x
+		attach_layer = x
 		if use_resnet:
-			if lastSumLayer is not None:
-				lastSumLayer = layers.Conv2D(filters=filter_size, kernel_size=(1, 1), kernel_initializer=tf.keras.initializers.GlorotUniform(),
-											 strides=(2, 2))(lastSumLayer)
-				x = layers.add([AttachLayer, lastSumLayer])
+			if last_sum_layer is not None:
+				last_sum_layer = layers.Conv2D(filters=filter_size, kernel_size=(1, 1),
+											 kernel_initializer=tf.keras.initializers.GlorotUniform(),
+											 strides=(2, 2))(last_sum_layer)
+				x = layers.add([attach_layer, last_sum_layer])
 
-			lastSumLayer = x
+			last_sum_layer = x
 			x = create_activation(kernel_activation)(x)
 
 	connect_conv_shape = x.shape
@@ -106,7 +108,7 @@ def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_r
 	x = layers.Reshape(target_shape=(
 		connect_conv_shape[1], connect_conv_shape[2], connect_conv_shape[3]))(x)
 
-	lastSumLayer = x
+	last_sum_layer = x
 	for i in range(0, number_layers + 1):
 		filter_size = input_filters << (number_layers - i + 1)
 		filter_size = min(filter_size, 1024)
@@ -122,18 +124,19 @@ def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_r
 		x = create_activation(kernel_activation)(x)
 
 		for _ in range(0, num_conv_block):
-			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1, kernel_initializer=tf.keras.initializers.GlorotUniform())(x)
+			x = layers.Conv2D(filter_size, kernel_size=(3, 3), padding='same', strides=1,
+							  kernel_initializer=tf.keras.initializers.GlorotUniform())(x)
 			if use_batch_norm:
 				x = layers.BatchNormalization(dtype='float32')(x)
 			x = create_activation(kernel_activation)(x)
 
-		AttachLayer = x
+		attach_layer = x
 		if use_resnet:
-			if lastSumLayer is not None:
-				lastSumLayer = layers.Conv2DTranspose(filters=filter_size, kernel_size=(
-					1, 1), kernel_initializer=tf.keras.initializers.GlorotUniform(), strides=(2, 2))(lastSumLayer)
-				x = layers.add([AttachLayer, lastSumLayer])
-			lastSumLayer = x
+			if last_sum_layer is not None:
+				last_sum_layer = layers.Conv2DTranspose(filters=filter_size, kernel_size=(
+					1, 1), kernel_initializer=tf.keras.initializers.GlorotUniform(), strides=(2, 2))(last_sum_layer)
+				x = layers.add([attach_layer, last_sum_layer])
+			last_sum_layer = x
 			x = create_activation(kernel_activation)(x)
 
 	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(

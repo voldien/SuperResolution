@@ -16,7 +16,7 @@ from tensorflow.python.data import Dataset
 
 
 def configure_dataset_performance(ds: Dataset, use_cache: bool, cache_path: str, shuffle_size: int = 0,
-								  AUTOTUNE: object = tf.data.AUTOTUNE) -> Dataset:
+								  prefetch_buffer_size: object = tf.data.AUTOTUNE) -> Dataset:
 	if cache_path is not None:
 		ds = ds.cache(filename=cache_path, name='SuperResolutionCache')
 	elif use_cache:
@@ -24,12 +24,12 @@ def configure_dataset_performance(ds: Dataset, use_cache: bool, cache_path: str,
 	if shuffle_size > 0:
 		ds = ds.shuffle(buffer_size=shuffle_size, reshuffle_each_iteration=True)
 
-	ds = ds.prefetch(buffer_size=AUTOTUNE)
+	ds = ds.prefetch(buffer_size=prefetch_buffer_size)
 
 	return ds
 
 
-def load_dataset_from_directory(data_path: str, args : dict, override_size=None, use_float16: bool = False,
+def load_dataset_from_directory(data_path: str, args: dict, override_size=None, use_float16: bool = False,
 								**kwargs) -> Dataset:
 	# Determine if path or file.
 	if os.path.isdir(data_path):
@@ -43,7 +43,7 @@ def load_dataset_from_directory(data_path: str, args : dict, override_size=None,
 		if override_size:
 			image_size = override_size
 
-		split : float = 0
+		split: float = 0
 		#
 		color_mode = 'rgb' if args.color_channels == 3 else 'gray'
 		train_ds = tf.keras.utils.image_dataset_from_directory(
@@ -63,9 +63,9 @@ def load_dataset_from_directory(data_path: str, args : dict, override_size=None,
 		def setup_color_encoding(img, color_space: str):
 			# TODO relocate to its own method.
 			@tf.function
-			def preprocess_rgb2lab(tensorData):
+			def preprocess_rgb2lab(tensor_data):
 
-				image = tf.cast(tensorData, float_precision)
+				image = tf.cast(tensor_data, float_precision)
 
 				return tf.cast(tfio.experimental.color.rgb_to_lab(image), float_precision)
 
@@ -201,14 +201,14 @@ def processImageDataset(train_images):
 
 
 # TODO make the filter a lamba method
-def loadImageDataSubSet(path, subset, resize=(128, 128), filter=(".jpg", ".JPG", ".png", ".png")):
+def loadImageDataSubSet(path, subset, resize=(128, 128), filters=(".jpg", ".JPG", ".png", ".png")):
 	images = []
 	_n = int(len(subset))
 	with zipfile.ZipFile(path, 'r') as zip_io:
 		for i in range(_n):
 			file_in_zip = subset[i]
 
-			if pathlib.Path(file_in_zip).suffix in filter:
+			if pathlib.Path(file_in_zip).suffix in filters:
 				try:
 					data = zip_io.read(file_in_zip)
 					stream = BytesIO(data)
@@ -225,8 +225,8 @@ def loadImageDataSubSet(path, subset, resize=(128, 128), filter=(".jpg", ".JPG",
 
 def load_image_data(pool, path, size):
 	future_to_image = []
-	with zipfile.ZipFile(path, 'r') as zip:
-		zlist = zip.namelist()
+	with zipfile.ZipFile(path, 'r') as zip_io:
+		zlist = zip_io.namelist()
 		nr_chunks = 32
 		chunk_size = int(len(zlist) / nr_chunks)
 		for i in range(nr_chunks):
@@ -253,10 +253,10 @@ def loadImagedataSet(path, filter_ext=None, ProcessOverride=None, size=(128, 128
 	return (np.asarray(total_data), None), (None, None)
 
 
-def loadImageDataSet(paths, filter=None, ProcessOverride=None, size=(128, 128)):
+def loadImageDataSet(paths, filters=None, ProcessOverride=None, size=(128, 128)):
 	image_sets = []
 	for path in paths:
 		(image, _0), (_1, _2) = loadImagedataSet(
-			path, filter, ProcessOverride, size)
+			path, filters, ProcessOverride, size)
 		image_sets.append(image)
 	return (np.concatenate((x for x in image_sets)), None), (None, None)

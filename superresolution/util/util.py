@@ -148,6 +148,8 @@ def upscale_composite_image(upscale_model, input_im: Image, batch_size: int, col
 		elif color_space == 'rgb':
 			# [0,1] -> [-1,1]
 			cropped_sub_input_image = (normalized_subimage_color * 2) - 1
+		else:
+			assert 0
 
 		# Upscale.
 		upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,

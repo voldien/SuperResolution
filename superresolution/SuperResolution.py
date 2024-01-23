@@ -1,5 +1,6 @@
 # !/usr/bin/env python3
 import argparse
+from datetime import date
 import json
 import logging
 import os
@@ -42,7 +43,7 @@ def create_setup_optimizer(args: dict):
 	learning_rate: float = args.learning_rate
 	learning_decay_step: int = args.learning_rate_decay_step
 	learning_decay_rate: float = args.learning_rate_decay
-	optimizer : str =  args.optimizer
+	optimizer: str = args.optimizer
 
 	# Setup Learning Rate with Decay.
 	lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -63,7 +64,7 @@ def create_setup_optimizer(args: dict):
 	elif optimizer == 'adadelta':
 		return None
 	else:
-		raise ValueError( optimizer + " Is not a valid option")
+		raise ValueError(optimizer + " Is not a valid option")
 
 
 def load_dataset_collection(filepaths: list, args: dict, override_size: tuple) -> Dataset:
@@ -270,8 +271,6 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 		validation_data_ds = validation_data_ds.with_options(options)
 
-
-
 	# Setup builtin models
 	builtin_models = load_builtin_model_interfaces()
 
@@ -314,51 +313,48 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 
 		# Create a callback that saves the model weights
 		if validation_data_ds:
-			checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:03d}-{val_loss:.4f}.keras"),
-															monitor='val_loss',
-															mode='min',
-															save_best_only=True,
-															save_weights_only=True,
-															save_freq='epoch',
-															verbose=0)
+			checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+				filepath=(checkpoint_path + "-{epoch:03d}-{val_loss:.4f}.keras"),
+				monitor='val_loss',
+				mode='min',
+				save_best_only=True,
+				save_weights_only=True,
+				save_freq='epoch',
+				verbose=0)
 		else:
-			checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:03d}-{loss:.4f}.keras"),
-															monitor='loss',
-															mode='min',
-															save_best_only=True,
-															save_weights_only=True,
-															save_freq='epoch',
-															verbose=0)
-
-
+			checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+				filepath=(checkpoint_path + "-{epoch:03d}-{loss:.4f}.keras"),
+				monitor='loss',
+				mode='min',
+				save_best_only=True,
+				save_weights_only=True,
+				save_freq='epoch',
+				verbose=0)
 
 		# If exists, load weights.
 		if os.path.exists(checkpoint_path):
 			training_model.load_weights(checkpoint_path)
-		
-		training_callbacks : list = []
-		training_callbacks.append(checkpoint_callback)
-		training_callbacks.append( tf.keras.callbacks.TerminateOnNaN())
 
-		ExampleResultCallBack = SaveExampleResultImageCallBack(
+		training_callbacks: list = [checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()]
+
+		example_result_call_back = SaveExampleResultImageCallBack(
 			args.output_dir,
 			non_augmented_dataset_train, args.color_space)
-		training_callbacks.append(ExampleResultCallBack)
+		training_callbacks.append(example_result_call_back)
 
-		compositeTrainCallback = CompositeImageResultCallBack(
+		composite_train_callback = CompositeImageResultCallBack(
 			dir_path=args.output_dir,
 			name="train",
 			train_data_subset=non_augmented_dataset_train, color_space=args.color_space)
-		training_callbacks.append(compositeTrainCallback)
+		training_callbacks.append(composite_train_callback)
 
-		#if non_augmented_dataset_validation:
+		# if non_augmented_dataset_validation:
 		if non_augmented_dataset_validation:
-			compositeValidationCallback = CompositeImageResultCallBack(
+			composite_validation_callback = CompositeImageResultCallBack(
 				dir_path=args.output_dir,
 				name="validation",
 				train_data_subset=non_augmented_dataset_validation, color_space=args.color_space)
-			training_callbacks.append(compositeValidationCallback)
-
+			training_callbacks.append(composite_validation_callback)
 
 		graph_output_filepath: str = os.path.join(args.output_dir, "history_graph.png")
 		training_callbacks.append(GraphHistory(filepath=graph_output_filepath))
@@ -367,16 +363,14 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 											epochs=args.epochs,
 											callbacks=training_callbacks)
 		# Save final model.
-		training_model.save(args.model_filepath,verbose='auto')
+		training_model.save(args.model_filepath)
 
 		# Test model.
 		if test_dataset:
-			training_model.test(x=test_dataset)
+			training_model.test(x=test_dataset, verbose='auto')
 
 		# Plot history result.
 		plotTrainingHistory(history_result.history)
-
-
 
 
 def dcsuperresolution_program(vargs=None):
@@ -392,31 +386,40 @@ def dcsuperresolution_program(vargs=None):
 
 		logger.addHandler(console_handler)
 
+		# Load model and iterate existing models.
+		model_list = load_builtin_model_interfaces()
+
+		child_parsers: list = [DefaultArgumentParser()]
+
+		for model_object_inter in model_list.values():
+			logger.info("Found Model: " + model_object_inter.get_name())
+			child_parsers.append(model_object_inter.load_argument())
+
 		parser = argparse.ArgumentParser(
 			prog='SuperResolution',
 			add_help=True,
 			description='Super Resolution Training Model Program',
-			parents=[DefaultArgumentParser()]
+			parents=child_parsers
 		)
 
 		# Model Save Path.
 		default_generator_id = randrange(10000000)
-		parser.add_argument('--model-filename', type=str, dest='model_filepath',
+		parser.add_argument('--model-filename', type=str, dest='model_filepath', required=False,
 							default=str.format(
 								"super-resolution-model-{0}.keras", default_generator_id),
 							help='Define file path that the generator model will be saved at.')
 		#
 		parser.add_argument('--output-dir', type=str, dest='output_dir',
-							default="",
+							default=str.format("super-resolution-{0}",date.today().strftime("%b-%d-%Y_%H:%M:%S")),
 							help='Set the output directory that all the models and results will be stored at')
 
 		#
-		parser.add_argument('--example-batch', dest='example_batch',  # TODO rename
+		parser.add_argument('--example-batch', dest='example_batch', required=False,  # TODO rename
 							type=int,
 							default=1024,
 							help='Set the number of train batches between saving work in progress result.')
 		#
-		parser.add_argument('--example-batch-gridsize', dest='example_batch_grid_size',
+		parser.add_argument('--example-batch-grid-size', dest='example_batch_grid_size',
 							type=int, metavar=('width', 'height'),
 							nargs=2, default=(8, 8), help='Set the grid size of number of example images.')
 
@@ -426,16 +429,16 @@ def dcsuperresolution_program(vargs=None):
 
 		# TODO add support
 		parser.add_argument('--metrics', dest='metrics',
-							type=str, action='append',
-							nargs=1, default="", help='Set what metric to capture.')
+							action='append',
+							default="", help='Set what metric to capture.')
 
 		#
 		parser.add_argument('--decay-rate', dest='learning_rate_decay',
-							default=0.98,
+							default=0.98, required=False,
 							help='Set Learning rate Decay.', type=float)
 		#
 		parser.add_argument('--decay-step', dest='learning_rate_decay_step',
-							default=10000,
+							default=10000, required=False,
 							help='Set Learning rate Decay Step.', type=int)
 		#
 		parser.add_argument('--model', dest='model',
@@ -448,13 +451,6 @@ def dcsuperresolution_program(vargs=None):
 							default='mse',
 							choices=['mse', 'ssim', 'msa', 'psnr', 'vgg16', 'none'],
 							help='Set Loss Function', type=str)
-
-		# Load model and iterate existing models.
-		model_list = load_builtin_model_interfaces()
-
-		for model_object_inter in model_list.values():
-			logger.info("Found Model: " + model_object_inter.get_name())
-			parser.add_argument_group(model_object_inter.get_name(), model_object_inter.load_argument())
 
 		# If invalid number of arguments, print help.
 		if len(sys.argv) < 2:

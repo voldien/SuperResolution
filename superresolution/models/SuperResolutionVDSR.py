@@ -10,7 +10,7 @@ from tensorflow.keras import layers
 
 class VDSRSuperResolutionModel(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=True, prog="", description="")
+		self.parser = argparse.ArgumentParser(add_help=False)
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
@@ -69,6 +69,7 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters: int, ker
 		upscale = layers.Conv2DTranspose(filters=(filters << (number_layers - 1)), kernel_size=(4, 4), strides=(
 			2, 2), padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(upscale)
 
+	filter_size: int = 0
 	for i in range(0, number_layers):
 		filter_size = filters << i
 		filter_size = min(filter_size, 1024)
@@ -82,6 +83,8 @@ def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters: int, ker
 
 	# Upscale
 	for _ in range(0, int(upscale_mode / 2)):
+		assert filter_size != 0
+
 		x = layers.Conv2DTranspose(filters=filter_size, kernel_size=(4, 4), strides=(
 			2, 2), padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
 

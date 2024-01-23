@@ -9,8 +9,8 @@ from tensorflow.keras import layers
 
 class SuperResolutionModelCNN(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=True, prog="Basic SuperResolution",
-											  description="Basic Deep Convolutional Super Resolution")
+		self.parser = argparse.ArgumentParser(add_help=False)#, prog="Basic SuperResolution",
+#											  description="Basic Deep Convolutional Super Resolution")
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,

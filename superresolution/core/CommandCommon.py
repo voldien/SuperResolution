@@ -31,13 +31,13 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						dest='learning_rate', default=0.0002, help='Set the initial Learning Rate')
 
 	# Default, all devices will be used.
-	parser.add_argument('--device', action='append', default=None,
-						dest='devices', help='Select the device explicitly that will be used.',
-						choices=device_lib.list_local_devices())
+	parser.add_argument('--device', action='append', default=None, required=False,
+						dest='devices', help='Select the device explicitly that will be used.')
+	# TODO:extract str					choices=device_lib.list_local_devices())
 
 	parser.add_argument('--cpu', action='store_true',
-						default=False, required=False,
-						dest='use_explicit_cpu', help='Explicit use of CPU')
+						default=False,
+						dest='use_explicit_cpu', help='Explicit use the CPU as the compute device.')
 
 	parser.add_argument('--gpu', action='store_true',
 						default=None, required=False,
@@ -87,7 +87,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						help='Set the size of the images in width and height for the model.')
 
 	parser.add_argument('--output-image-size', type=int, dest='output_image_size',
-						nargs=2,
+						nargs=2, required=False,
 						default=(256, 256),
 						help='Set the size of the images in width and height for the model.')
 	#

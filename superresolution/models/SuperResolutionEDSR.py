@@ -8,7 +8,7 @@ from tensorflow.keras import layers
 
 class EDSRSuperResolutionModel(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=True, prog="", description="")
+		self.parser = argparse.ArgumentParser(add_help=False)
 
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
@@ -107,8 +107,8 @@ def res_block(x_in, filters: int, scaling):
 def upsample(x, scale: int, num_filters: int):
 	def upsample_1(input_layer, factor, **kwargs):
 		"""Sub-pixel convolution."""
-		x = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=(3, 3), padding='same', **kwargs)(input_layer)
-		return tf.nn.depth_to_space(x, 2)
+		x_ = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=(3, 3), padding='same', **kwargs)(input_layer)
+		return tf.nn.depth_to_space(x_, 2)
 
 	if scale == 2:
 		x = upsample_1(x, 2, name='conv2d_1_scale_2')

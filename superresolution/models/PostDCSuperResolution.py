@@ -11,16 +11,13 @@ class DCPostSuperResolutionModel(ModelBase):
 		pass
 
 	def load_argument(self) -> argparse.ArgumentParser:
-		parser = argparse.ArgumentParser(add_help=True, prog="", description="")
+		parser = argparse.ArgumentParser(add_help=False, prog="Post Basic SuperResolution",
+											  description="Basic Deep Convolutional Super Resolution")
 
-		parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
-							help='Set the number of passes that the training set will be trained against.')
+		group = parser.add_argument_group(self.get_name())
 
-		parser.add_argument('--override-latentspace-size', dest='generate_latentspace',
-							default=False,
-							help='', type=bool)
 		#
-		parser.add_argument('--regularization', dest='regularization',
+		group.add_argument('--regularization', dest='regularization', required=False,
 							type=float,
 							default=0.0001,
 							help='Set the L1 Regularization applied.')
