@@ -42,6 +42,7 @@ def create_setup_optimizer(args: dict):
 	learning_rate: float = args.learning_rate
 	learning_decay_step: int = args.learning_rate_decay_step
 	learning_decay_rate: float = args.learning_rate_decay
+	optimizer : str =  args.optimizer
 
 	# Setup Learning Rate with Decay.
 	lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -51,11 +52,38 @@ def create_setup_optimizer(args: dict):
 		staircase=False)
 
 	#
-	parameters = {'beta_1': 0.5, 'beta_2': 0.9, 'learning_rate': lr_schedule}
-	return tf.keras.optimizers.Adam(learning_rate=lr_schedule, beta_1=0.5, beta_2=0.9)
-	# model_optimizer = tf.keras.optimizers.get(args.optimizer, kwargs=parameters)
+	if optimizer == 'adam':
+		return tf.keras.optimizers.Adam(learning_rate=lr_schedule, beta_1=0.5, beta_2=0.9)
+	elif optimizer == 'ada':
+		return None
+	elif optimizer == 'rmsprop':
+		return None
+	elif optimizer == 'sgd':
+		return None
+	elif optimizer == 'adadelta':
+		return None
+	else:
+		raise ValueError( optimizer + " Is not a valid option")
 
-	return model_optimizer
+
+def load_dataset_collection(filepaths: list, args: dict, override_size: tuple) -> Dataset:
+	# Setup Dataset
+	training_dataset = None
+	for directory_path in filepaths:
+		# Check if directory.
+		if os.path.isdir(directory_path):
+			pass
+
+		data_dir = pathlib.Path(directory_path)
+		logging.info("Loading dataset directory {0}".format(data_dir))
+
+		local_dataset = load_dataset_from_directory(data_path=data_dir, args=args, override_size=override_size)
+		if not training_dataset:
+			training_dataset = local_dataset
+		else:
+			training_dataset.concatenate(local_dataset)
+
+	return training_dataset
 
 
 def setup_tensorflow_strategy(args: dict):
@@ -281,71 +309,74 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		# Save copy.
 		training_model.save(args.model_filepath)
 
-		# Create a callback that saves the model's.py weights
+		# Create a callback that saves the model weights
 		checkpoint_path: str = args.checkpoint_dir
 
-		# Create a callback that saves the model's.py weights
-		cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:02d}.keras"),
-														 monitor='val_loss',
-														 save_weights_only=True,
-														 save_freq='epoch',
-														 verbose=0)
+		# Create a callback that saves the model weights
+		if validation_data_ds:
+			checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:03d}-{val_loss:.4f}.keras"),
+															monitor='val_loss',
+															mode='min',
+															save_best_only=True,
+															save_weights_only=True,
+															save_freq='epoch',
+															verbose=0)
+		else:
+			checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=(checkpoint_path + "-{epoch:03d}-{loss:.4f}.keras"),
+															monitor='loss',
+															mode='min',
+															save_best_only=True,
+															save_weights_only=True,
+															save_freq='epoch',
+															verbose=0)
+
+
 
 		# If exists, load weights.
 		if os.path.exists(checkpoint_path):
 			training_model.load_weights(checkpoint_path)
+		
+		training_callbacks : list = []
+		training_callbacks.append(checkpoint_callback)
+		training_callbacks.append( tf.keras.callbacks.TerminateOnNaN())
 
 		ExampleResultCallBack = SaveExampleResultImageCallBack(
 			args.output_dir,
 			non_augmented_dataset_train, args.color_space)
+		training_callbacks.append(ExampleResultCallBack)
+
 		compositeTrainCallback = CompositeImageResultCallBack(
 			dir_path=args.output_dir,
 			name="train",
 			train_data_subset=non_augmented_dataset_train, color_space=args.color_space)
+		training_callbacks.append(compositeTrainCallback)
 
-		compositeValidationCallback = CompositeImageResultCallBack(
-			dir_path=args.output_dir,
-			name="validation",
-			train_data_subset=non_augmented_dataset_validation, color_space=args.color_space)
+		#if non_augmented_dataset_validation:
+		if non_augmented_dataset_validation:
+			compositeValidationCallback = CompositeImageResultCallBack(
+				dir_path=args.output_dir,
+				name="validation",
+				train_data_subset=non_augmented_dataset_validation, color_space=args.color_space)
+			training_callbacks.append(compositeValidationCallback)
+
 
 		graph_output_filepath: str = os.path.join(args.output_dir, "history_graph.png")
-		graph_history = GraphHistory(filepath=graph_output_filepath)
+		training_callbacks.append(GraphHistory(filepath=graph_output_filepath))
 
 		history_result = training_model.fit(x=training_dataset, validation_data=validation_data_ds, verbose='auto',
 											epochs=args.epochs,
-											callbacks=[cp_callback, tf.keras.callbacks.TerminateOnNaN(),
-													   ExampleResultCallBack, compositeTrainCallback,
-													   compositeValidationCallback,
-													   graph_history])
+											callbacks=training_callbacks)
 		# Save final model.
-		training_model.save(args.model_filepath)
+		training_model.save(args.model_filepath,verbose='auto')
 
-		if training_dataset:
-			pass
+		# Test model.
+		if test_dataset:
+			training_model.test(x=test_dataset)
 
 		# Plot history result.
 		plotTrainingHistory(history_result.history)
 
 
-def load_dataset_collection(filepaths: list, args: dict, override_size: tuple):
-	# Setup Dataset
-	# TODO: move to its owm function.
-	training_dataset = None
-	for directory_path in filepaths:
-		# Check if directory.
-		if os.path.isdir(directory_path):
-			pass
-
-		data_dir = pathlib.Path(directory_path)
-		logging.info("Loading dataset directory {0}".format(data_dir))
-
-		local_dataset = load_dataset_from_directory(data_path=data_dir, args=args, override_size=override_size)
-		if not training_dataset:
-			training_dataset = local_dataset
-		else:
-			training_dataset.concatenate(local_dataset)
-
-	return training_dataset
 
 
 def dcsuperresolution_program(vargs=None):

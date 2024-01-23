@@ -87,7 +87,7 @@ def load_dataset_from_directory(data_path: str, args : dict, override_size=None,
 		return normalized_ds
 
 	elif os.path.isfile(data_path):
-		assert 0  # TODO add support
+		raise NotImplementedError("Not supported to add file.")
 
 
 def augment_dataset(dataset: Dataset, image_crop_shape: tuple) -> Dataset:

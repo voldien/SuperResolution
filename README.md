@@ -35,6 +35,17 @@ python superresolution/SuperResolution.py  --data-set-directory /path_to_trainin
 python superresolution/SuperResolution.py  --data-set-directory /path_to_training_data/ --batch-size 16 --epochs 10 --output-dir image-super-resolution-result/ --image-size 128 128 --model dcsr-resnet --learning-rate 0.0003 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr
 ```
 
+## Features
+
+### Model Architecture
+* **EDSR**
+* **VDR**
+
+### Loss/Cost Function
+* **SSIM**
+* **MSA**
+* **MSE**
+
 
 ### SuperResolution Training Program Argument
 

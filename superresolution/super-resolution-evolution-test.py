@@ -1,3 +1,4 @@
+# !/usr/bin/env python3
 import argparse
 import itertools
 import os
@@ -18,6 +19,13 @@ parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
 
 parser.add_argument('--data-set-directory', type=str, dest='train_directory_paths',
 					action='append', required=True,
+					help='Directory path where the images are located dataset images')
+parser.add_argument('--validation-data-directory', dest='validation_directory_paths', type=str,
+					action='append',
+					help='Directory path where the images are located dataset images')
+
+parser.add_argument('--test-data-directory', dest='test_directory_paths', type=str,
+					action='append',
 					help='Directory path where the images are located dataset images')
 #
 parser.add_argument('--output-dir', type=str, dest='output_dir',
@@ -50,7 +58,9 @@ args = parser.parse_args(args=sys.argv[1:])
 epochs: int = args.epochs
 output_dir: str = args.output_dir
 batch_size: int = args.batch_size
-dataset_paths = args.train_directory_paths
+training_dataset_paths = args.train_directory_paths
+validation_dataset_paths = args.validation_directory_paths
+test_dataset_paths = args.test_directory_paths
 image_size: tuple = args.image_size
 image_output_size: tuple = args.output_image_size
 seed: int = args.seed
@@ -63,6 +73,7 @@ hyperparameters = {
 	"--use-resnet": [True, False],
 	"--regularization": [0.001, 0.002, 0.003, 0.008, 0.0],
 	"--decay-rate": [0.85, 0.90, 0.96],
+	"--decay-step": [1000, 10000],
 	"--use-float16": [False, True],
 	"--seed": [seed],
 	"--model": ['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
@@ -71,7 +82,9 @@ hyperparameters = {
 	"--epochs": [epochs],
 	"--shuffle-data-set-size": [2048],
 	"--checkpoint-every-epoch": [0],
-	"--data-set-directory": [dataset_paths],
+	"--data-set-directory": [training_dataset_paths],
+	"--validation-set-directory": [validation_dataset_paths],
+	"--test-set-directory": [test_dataset_paths],
 	"--batch-size": [batch_size],
 	"--use-valdiation": [' '],
 	" --show-psnr": [''],
