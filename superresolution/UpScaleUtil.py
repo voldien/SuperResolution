@@ -5,6 +5,7 @@ import math
 import os
 import sys
 import traceback
+from logging import Logger
 from multiprocessing import Pool
 
 import numpy as np
@@ -12,11 +13,10 @@ import tensorflow as tf
 from PIL import Image
 from skimage.color import rgb2lab
 
-from util.util import convert_nontensor_color_space, upscale_image_func
+from util.util import upscale_image_func
 
+global sr_logger
 
-# def pixel_shuffle(scale):
-#	return lambda x: tf.nn.depth_to_space(x, scale)
 
 def save_result_file(argument):
 	upscale_image, new_cropped_size, full_output_path = argument
@@ -25,10 +25,10 @@ def save_result_file(argument):
 	upscale_image = upscale_image.crop(new_cropped_size)
 	# Save image
 	try:
-		logger.info("Saving Image {0}".format(full_output_path))
+		sr_logger.info("Saving Image {0}".format(full_output_path))
 		upscale_image.save(full_output_path)
 	except Exception as excep:
-		logger.error(excep)
+		sr_logger.error(excep)
 
 
 def super_resolution_upscale(argv):
@@ -64,7 +64,7 @@ def super_resolution_upscale(argv):
 						default=1,
 						help='')
 
-	parser.add_argument('--debug',  action='store_true',  dest='debug', help='')
+	parser.add_argument('--debug', action='store_true', dest='debug', help='')
 
 	#
 	parser.add_argument('--color-space', type=str, default="rgb", dest='color_space', choices=['rgb', 'lab'],
@@ -76,15 +76,14 @@ def super_resolution_upscale(argv):
 
 	args = parser.parse_args(args=argv)
 
-	global logger
-	logger = logging.getLogger('SuperResolution Upscale')
+	logger: Logger = logging.getLogger('SuperResolution Upscale')
 	logger.setLevel(logging.INFO)
 	if args.debug:
 		logger.setLevel(logging.DEBUG)
 
 	with tf.device('/device:GPU:0'):
 
-		#TODO: fix output.
+		# TODO: fix output.
 		output_path: str = args.save_path
 		if os.path.isdir(output_path):
 			pass
@@ -213,6 +212,6 @@ if __name__ == '__main__':
 	try:
 		super_resolution_upscale(sys.argv[1:])
 	except Exception as ex:
-		logger.error(ex)
+		sr_logger.error(ex)
 		print(ex)
 		traceback.print_exc()

@@ -8,12 +8,14 @@ import pathlib
 import sys
 import traceback
 from importlib import import_module
+from logging import Logger
 from random import randrange
 from typing import Dict
 
 import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow_io as tfio
+from matplotlib import pyplot as plt
 from tensorflow.python.data import Dataset
 
 from core import ModelBase
@@ -26,13 +28,16 @@ import models.SuperResolutionResNet
 import models.SuperResolutionVDSR
 import models.SuperResolutionCNN
 
-from core.CommandCommon import ParseDefaultArgument, DefaultArgumentParser
+from core.common import ParseDefaultArgument, DefaultArgumentParser
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset, split_dataset
 from util.metrics import PSNRMetric
 from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, compute_normalized_PSNR, \
 	CompositeImageResultCallBack
 from util.util import plotTrainingHistory
+
+global sr_logger
+sr_logger: Logger = logging.getLogger("Super Resolution Logger")
 
 
 def setup_dataset(dataset, args: dict):
@@ -101,7 +106,7 @@ def setup_tensorflow_strategy(args: dict):
 
 	# initialize
 	strategy = tf.distribute.MirroredStrategy(devices=selected_devices)
-	logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
+	sr_logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
 	return strategy
 
 
@@ -122,7 +127,6 @@ def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
 def load_model_interface(model_name: str) -> ModelBase:
 	# Load ML model from either runtime from script or from builtin.
 	builtin_models = load_builtin_model_interfaces()
-	module_interface: ModelBase = None
 
 	# Load model module from python file if provided.
 	if os.path.isfile(model_name) and model_name.endswith('.py'):
@@ -193,7 +197,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 
 	# Compute the total batch size.
 	batch_size: int = args.batch_size * strategy.num_replicas_in_sync
-	logger.info("Number of batches {0} of {1} elements".format(
+	sr_logger.info("Number of batches {0} of {1} elements".format(
 		len(training_dataset), batch_size))
 
 	# Create Input and Output Size
@@ -294,7 +298,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 			layer_range=None
 		)
 
-		logger.debug(training_model.summary())
+		sr_logger.debug(training_model.summary())
 
 		# NOTE currently, only support checkpoint if generated model and not when using existing.
 		loss_fn = setup_loss_builtin_function(args)
@@ -339,7 +343,8 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 
 		example_result_call_back = SaveExampleResultImageCallBack(
 			args.output_dir,
-			non_augmented_dataset_train, args.color_space)
+			non_augmented_dataset_train, args.color_space,
+			nth_batch_sample=args.example_batch, grid_size=args.example_batch_grid_size)
 		training_callbacks.append(example_result_call_back)
 
 		composite_train_callback = CompositeImageResultCallBack(
@@ -370,21 +375,22 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 			training_model.test(x=test_dataset, verbose='auto')
 
 		# Plot history result.
-		plotTrainingHistory(history_result.history)
+		fig = plotTrainingHistory(history_result.history)
+		fig.savefig(os.path.join(args.output_dir, "final_history_graph.png"))
+		plt.close()
 
 
 def dcsuperresolution_program(vargs=None):
 	try:
 		# Create logger and output information
-		global logger
-		logger = logging.getLogger("Super Resolution Logger")
-		logger.setLevel(level=logging.INFO)
+
+		sr_logger.setLevel(level=logging.INFO)
 		#
 		console_handler = logging.StreamHandler()
 		log_format = '%(asctime)s | %(levelname)s: %(message)s'
 		console_handler.setFormatter(logging.Formatter(log_format))
 
-		logger.addHandler(console_handler)
+		sr_logger.addHandler(console_handler)
 
 		# Load model and iterate existing models.
 		model_list = load_builtin_model_interfaces()
@@ -392,8 +398,8 @@ def dcsuperresolution_program(vargs=None):
 		child_parsers: list = [DefaultArgumentParser()]
 
 		for model_object_inter in model_list.values():
-			logger.info("Found Model: " + model_object_inter.get_name())
-			child_parsers.append(model_object_inter.load_argument())
+			sr_logger.info("Found Model: " + model_object_inter.get_name())
+		# child_parsers.append(model_object_inter.load_argument())
 
 		parser = argparse.ArgumentParser(
 			prog='SuperResolution',
@@ -410,7 +416,7 @@ def dcsuperresolution_program(vargs=None):
 							help='Define file path that the generator model will be saved at.')
 		#
 		parser.add_argument('--output-dir', type=str, dest='output_dir',
-							default=str.format("super-resolution-{0}",date.today().strftime("%b-%d-%Y_%H:%M:%S")),
+							default=str.format("super-resolution-{0}", date.today().strftime("%b-%d-%Y_%H:%M:%S")),
 							help='Set the output directory that all the models and results will be stored at')
 
 		#
@@ -420,8 +426,8 @@ def dcsuperresolution_program(vargs=None):
 							help='Set the number of train batches between saving work in progress result.')
 		#
 		parser.add_argument('--example-batch-grid-size', dest='example_batch_grid_size',
-							type=int, metavar=('width', 'height'),
-							nargs=2, default=(8, 8), help='Set the grid size of number of example images.')
+							type=int, required=False,
+							default=8, help='Set the grid size of number of example images.')
 
 		#
 		parser.add_argument('--show-psnr', dest='show_psnr', action='store_true',
@@ -467,29 +473,29 @@ def dcsuperresolution_program(vargs=None):
 		tf.random.set_seed(args.seed)
 
 		# Override the default logging level
-		logger.setLevel(args.verbosity)
+		sr_logger.setLevel(args.verbosity)
 		# Add logging output path.
-		logger.addHandler(logging.FileHandler(filename=os.path.join(args.output_dir, "log.txt")))
+		sr_logger.addHandler(logging.FileHandler(filename=os.path.join(args.output_dir, "log.txt")))
 
 		# Logging about all the options etc.
-		logger.info(str.format("Epochs: {0}", args.epochs))
-		logger.info(str.format("Batch Size: {0}", args.batch_size))
+		sr_logger.info(str.format("Epochs: {0}", args.epochs))
+		sr_logger.info(str.format("Batch Size: {0}", args.batch_size))
 
-		logger.info(str.format("Use float16: {0}", args.use_float16))
+		sr_logger.info(str.format("Use float16: {0}", args.use_float16))
 
-		logger.info(str.format("CheckPoint Save Every Nth Epoch: {0}", args.checkpoint_every_nth_epoch))
+		sr_logger.info(str.format("CheckPoint Save Every Nth Epoch: {0}", args.checkpoint_every_nth_epoch))
 
-		logger.info(str.format("Use RAM Cache: {0}", args.cache_ram))
+		sr_logger.info(str.format("Use RAM Cache: {0}", args.cache_ram))
 
-		logger.info(str.format("Example Batch Grid Size: {0}", args.example_batch_grid_size))
-		logger.info(str.format("Image Training Set: {0}", args.image_size))
-		logger.info(str.format("Learning Rate: {0}", args.learning_rate))
-		logger.info(str.format(
+		sr_logger.info(str.format("Example Batch Grid Size: {0}", args.example_batch_grid_size))
+		sr_logger.info(str.format("Image Training Set: {0}", args.image_size))
+		sr_logger.info(str.format("Learning Rate: {0}", args.learning_rate))
+		sr_logger.info(str.format(
 			"Learning Decay Rate: {0}", args.learning_rate_decay))
-		logger.info(str.format(
+		sr_logger.info(str.format(
 			"Learning Decay Step: {0}", args.learning_rate_decay_step))
-		logger.info(str.format("Image ColorSpace: {0}", args.color_space))
-		logger.info(str.format("Output Directory: {0}", args.output_dir))
+		sr_logger.info(str.format("Image ColorSpace: {0}", args.color_space))
+		sr_logger.info(str.format("Output Directory: {0}", args.output_dir))
 
 		# Create absolute path for model file, if relative path.
 		if not os.path.isabs(args.model_filepath):
@@ -517,7 +523,7 @@ def dcsuperresolution_program(vargs=None):
 			test_dataset = load_dataset_collection(filepaths=test_set_filepaths, args=args, override_size=override_size)
 
 		if not training_dataset:
-			logger.error("Failed to construct dataset")
+			sr_logger.error("Failed to construct dataset")
 			raise RuntimeError("Could not create dataset from {0}".format(data_set_filepaths))
 
 		# Make a copy of the command line.
@@ -536,7 +542,7 @@ def dcsuperresolution_program(vargs=None):
 
 	except Exception as ex:
 		print(ex)
-		logger.error(ex)
+		sr_logger.error(ex)
 
 		traceback.print_exc()
 
