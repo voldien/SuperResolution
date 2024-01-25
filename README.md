@@ -145,10 +145,10 @@ python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5
 The Evolution Program allow sto try multiple variable combination in order to find a good set of variable configuration. Simliar to hyperparameter testing.
 
 ```bash
-python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5 --save-output  high_output_dir/ --input-file low_input_dir/ --batch 32 --color-space rgb
+python3 superresolution/super-resolution-evolution-test.py  --epochs 8 --batch 32 rgb  --image-size 128 128  --data-set-directory /path_to_training_data/ --validation-data-directory /path_to_validation_data/   --output-dir  evolution_test/
 ```
 
-
+Argument options
 ```bash
 usage: [-h] [--epochs EPOCHS] [--batch-size BATCH_SIZE] --data-set-directory DATA_SETS_DIRECTORY_PATHS [--output-dir OUTPUT_DIR] [--image-size IMAGE_SIZE IMAGE_SIZE] [--output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE] [--seed SEED]
 

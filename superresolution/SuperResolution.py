@@ -339,7 +339,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		if os.path.exists(checkpoint_path):
 			training_model.load_weights(checkpoint_path)
 
-		training_callbacks: list = [checkpoint_callback, tf.keras.callbacks.TerminateOnNaN()]
+		training_callbacks: list = [tf.keras.callbacks.TerminateOnNaN(), checkpoint_callback]
 
 		example_result_call_back = SaveExampleResultImageCallBack(
 			args.output_dir,

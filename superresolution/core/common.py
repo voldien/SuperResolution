@@ -54,7 +54,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						help='Set the verbosity level of the program')
 
 	#
-	parser.add_argument('--use-float16', action='store_true',
+	parser.add_argument('--use-float16', # action='store_true',
 						dest='use_float16', default=False, help='Hint the usage of Float 16 (FP16) in the model.')
 	#
 	parser.add_argument('--cache-ram', action='store_true', default=False,
