@@ -45,7 +45,7 @@ parser.add_argument('--output-image-size', type=int, dest='output_image_size',
 
 parser.add_argument('--seed', type=int, dest='seed',
 					nargs=1,
-					default=42,
+					default=random.randrange(10000000),
 					help='Seed')
 
 # If invalid number of arguments, print help.
@@ -68,15 +68,17 @@ seed: int = args.seed
 
 hyperparameters = {
 	#
+	"--optimizer": ["adam"],
 	"--color-space": ["rgb", "lab"],
-	"--learning-rate": [0.0002, 0.0001, 0.0003, 0.002],
+	"--learning-rate": [0.0015, 0.0008, 0.0001, 0.0003, 0.002],
 	"--example-batch": [512],
 	"--example-batch-grid-size": [8],
 	# "--use-resnet": [True, False],
 	# "--regularization": [0.001, 0.002, 0.003, 0.008, 0.0],
 	"--decay-rate": [0.85, 0.90, 0.96],
 	"--decay-step": [1000, 10000],
-	"--use-float16": [False, True],
+	#"--use-float16": [False, True], #TODO: Cause problem?
+	"--loss-fn": ['mse', 'ssim', 'msa'],
 	"--seed": [seed],
 	"--model": ['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
 	"--cache-file": [
@@ -97,6 +99,7 @@ hyperparameter_combinations = [dict(zip(keys, v)) for v in itertools.product(*va
 
 #
 random.shuffle(hyperparameter_combinations)
+print("Number of hyperparameter combinations: " + str(len(hyperparameter_combinations)))
 
 for i, custom_argv in enumerate(hyperparameter_combinations):
 
@@ -111,11 +114,12 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 	argvlist.append(str(image_size[1]))
 
 	output_target_dir = str(os.path.join(output_dir,
-										 "It{0}Learning:{1}Size{2}DecRate:{3}".format(
+										 "It{0}Learning:{1}DecRate:{2}ColorSpace:{3}Loss:{4}".format(
 											 i,
 											 custom_argv["--learning-rate"],
-											 image_size,
-											 custom_argv["--decay-rate"])))
+											 custom_argv["--decay-rate"],
+											 custom_argv["--color-space"],
+											 custom_argv["--loss-fn"])))
 	argvlist.append("--output-dir")
 	argvlist.append(output_target_dir)
 	argvlist.append("--show-psnr")
