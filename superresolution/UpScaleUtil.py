@@ -15,7 +15,7 @@ from skimage.color import rgb2lab
 
 from util.util import upscale_image_func
 
-global sr_logger
+sr_logger: Logger = logging.getLogger('SuperResolution Upscale')
 
 
 def save_result_file(argument):
@@ -36,7 +36,12 @@ def super_resolution_upscale(argv):
 		description='UpScale')
 
 	#
-	parser.add_argument('--save-output', dest='save_path', default=None, help='')
+	parser.add_argument('--save-output', dest='save_path',
+						default=None, type=str, help='')
+
+	#
+	parser.add_argument('--input-file', type=str,
+						default=None, dest='input_files')
 
 	#
 	parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
@@ -47,23 +52,23 @@ def super_resolution_upscale(argv):
 						help='number images processed at the same time.')
 
 	#
-	parser.add_argument('--model', dest='model_filepath', default=None, help='')
+	parser.add_argument('--model', dest='model_filepath',
+						default=None, help='')
 
 	#
-	parser.add_argument('--input-file', action='store', dest='input_files')
-
-	#
-	parser.add_argument('--model-weight', action='store', dest='model_weight_path', type=str,
+	parser.add_argument('--model-weight', dest='model_weight_path', type=str,
 						help='Select Model Weight Path', default=None)
 
 	#
-	parser.add_argument('--device', type=str, dest='', default=None, help='Select Device')
+	parser.add_argument('--device', type=str, dest='',
+						default=None, help='Select Device')
 
 	#
 	parser.add_argument('--verbosity', type=int, dest='accumulate',
 						default=1,
 						help='')
 
+	#
 	parser.add_argument('--debug', action='store_true', dest='debug', help='')
 
 	#
@@ -76,10 +81,9 @@ def super_resolution_upscale(argv):
 
 	args = parser.parse_args(args=argv)
 
-	logger: Logger = logging.getLogger('SuperResolution Upscale')
-	logger.setLevel(logging.INFO)
+	sr_logger.setLevel(logging.INFO)
 	if args.debug:
-		logger.setLevel(logging.DEBUG)
+		sr_logger.setLevel(logging.DEBUG)
 
 	with tf.device('/device:GPU:0'):
 
@@ -90,19 +94,21 @@ def super_resolution_upscale(argv):
 
 		# TODO improved extraction of filepaths.
 		input_filepaths: str = args.input_files
-		logging.info(input_filepaths)
+		sr_logger.info("File Paths: " + str(input_filepaths))
 		if os.path.isdir(input_filepaths):
 			all_files = os.listdir(input_filepaths)
 			base_bath = input_filepaths
-			input_filepaths: list = [os.path.join(base_bath, path) for path in all_files]
+			input_filepaths: list = [os.path.join(
+				base_bath, path) for path in all_files]
 		else:  # Convert to list
 			input_filepaths: list = [input_filepaths]
 
-		batch_size = args.batch_size
+		batch_size: int = args.batch_size
 
-		logger.info("Number of files {0}".format(len(input_filepaths)))
+		sr_logger.info("Number of files {0}".format(len(input_filepaths)))
 
-		upscale_model = tf.keras.models.load_model(filepath=args.model_filepath, compile=False)
+		upscale_model = tf.keras.models.load_model(
+			filepath=args.model_filepath, compile=False)
 
 		# Optionally, load specific weight.
 		if args.model_weight_path:
@@ -123,38 +129,43 @@ def super_resolution_upscale(argv):
 		#
 		width_scale: float = float(output_width) / float(input_width)
 		height_scale: float = float(output_height) / float(input_height)
-		logger.info("Upscale X" + str(width_scale) + " UpscaleY " + str(height_scale))
+		sr_logger.info("Upscale X" + str(width_scale) +
+					   " UpscaleY " + str(height_scale))
 
 		# Create a pool of task scheduler.
 		with Pool(processes=10) as p:
-
 			# TODO add batch, if possible.
-
 			for file_path in input_filepaths:
+
 				if not os.path.isfile(file_path):
 					continue
-				logger.info("Starting Image {0}".format(file_path))
+				sr_logger.info("Starting Image {0}".format(file_path))
 
 				#
 				base_filepath: str = os.path.basename(file_path)
-				full_output_path: str = os.path.join(output_path, base_filepath)
+				full_output_path: str = os.path.join(
+					output_path, base_filepath)
 
 				# Open File and Convert to RGB Color Space.
 				input_im: Image = Image.open(file_path)
 				input_im: Image = input_im.convert('RGB')
 
 				#
-				upscale_new_size: tuple = (int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
-				logger.info("Upscale Size " + str(upscale_new_size))
+				upscale_new_size: tuple = (
+					int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
+				sr_logger.info("Upscale Size " + str(upscale_new_size))
 
 				#
 				upscale_image = Image.new("RGB", upscale_new_size, (0, 0, 0))
 
 				#
-				nr_width_block: int = math.ceil(float(input_im.width) / float(input_width))
-				nr_height_block: int = math.ceil(float(input_im.height) / float(input_height))
+				nr_width_block: int = math.ceil(
+					float(input_im.width) / float(input_width))
+				nr_height_block: int = math.ceil(
+					float(input_im.height) / float(input_height))
 
-				logger.debug(str.format("Number of tiles: {0}:{1}", nr_width_block, nr_height_block))
+				sr_logger.debug(str.format(
+					"Number of tiles: {0}:{1}", nr_width_block, nr_height_block))
 
 				# Construct all crops.
 				image_crop_list: list = []
@@ -168,11 +179,13 @@ def super_resolution_upscale(argv):
 						image_crop_list.append((left, top, right, bottom))
 
 				# Compute number of cropped batches.
-				nr_cropped_batches: int = int(math.ceil(len(image_crop_list) / batch_size))
+				nr_cropped_batches: int = int(
+					math.ceil(len(image_crop_list) / batch_size))
 
 				#
 				for nth_batch in range(0, nr_cropped_batches):
-					cropped_batch = image_crop_list[nth_batch * batch_size:(nth_batch + 1) * batch_size]
+					cropped_batch = image_crop_list[nth_batch *
+													batch_size:(nth_batch + 1) * batch_size]
 
 					crop_batch = []
 					for crop in cropped_batch:
@@ -184,9 +197,11 @@ def super_resolution_upscale(argv):
 
 					# TODO fix color space conversation.
 					if color_space == 'lab':
-						cropped_sub_input_image = rgb2lab(normalized_subimage_color) * (1.0 / 128.0)
+						cropped_sub_input_image = rgb2lab(
+							normalized_subimage_color) * (1.0 / 128.0)
 					elif color_space == 'rgb':
-						cropped_sub_input_image = (normalized_subimage_color * 2) - 1
+						cropped_sub_input_image = (
+													  normalized_subimage_color * 2) - 1
 
 					# Upscale.
 					upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,
@@ -199,12 +214,16 @@ def super_resolution_upscale(argv):
 						output_right = int(crop[2] * width_scale)
 						output_bottom = int(crop[3] * width_scale)
 
-						upscale_image.paste(upscale, (output_left, output_top, output_right, output_bottom))
+						upscale_image.paste(
+							upscale, (output_left, output_top, output_right, output_bottom))
 
 				# Offload final crop and save to separate thread.
-				final_cropped_size = (0, 0, upscale_new_size[0], upscale_new_size[1])
-				logger.debug(str.format("Saving {0}", full_output_path))
-				p.map_async(save_result_file, [(upscale_image, final_cropped_size, full_output_path)])
+				final_cropped_size = (
+					0, 0, upscale_new_size[0], upscale_new_size[1])
+				sr_logger.debug(str.format("Saving {0}", full_output_path))
+				result = p.map_async(save_result_file, [
+					(upscale_image, final_cropped_size, full_output_path)])
+
 
 
 # If running the script as main executable

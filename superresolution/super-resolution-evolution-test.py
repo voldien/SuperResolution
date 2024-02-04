@@ -42,11 +42,13 @@ parser.add_argument('--output-image-size', type=int, dest='output_image_size',
 					nargs=2,
 					default=(256, 256),
 					help='Set the size of the images in width and height for the model.')
-
+#TODO: add model specific.
+#
 parser.add_argument('--seed', type=int, dest='seed',
 					nargs=1,
 					default=random.randrange(10000000),
 					help='Seed')
+
 
 # If invalid number of arguments, print help.
 if len(sys.argv) < 2:
@@ -114,12 +116,13 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 	argvlist.append(str(image_size[1]))
 
 	output_target_dir = str(os.path.join(output_dir,
-										 "It{0}Learning:{1}DecRate:{2}ColorSpace:{3}Loss:{4}".format(
+										 "It{0}Learning:{1}DecRate:{2}ColorSpace:{3}Loss:{4}Model:{5}".format(
 											 i,
 											 custom_argv["--learning-rate"],
 											 custom_argv["--decay-rate"],
 											 custom_argv["--color-space"],
-											 custom_argv["--loss-fn"])))
+											 custom_argv["--loss-fn"],
+											 custom_argv["--model"])))
 	argvlist.append("--output-dir")
 	argvlist.append(output_target_dir)
 	argvlist.append("--show-psnr")

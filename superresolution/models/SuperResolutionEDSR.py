@@ -61,18 +61,17 @@ def create_edsr_model(input_shape: tuple, output_shape: tuple, scale: int, num_f
 	"""Creates an EDSR model."""
 
 	output_width, output_height, output_channels = output_shape
-	init = tf.keras.initializers.GlorotUniform()
 
 	x_in = layers.Input(shape=input_shape)
 
 	#
-	x = _res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same', kernel_initializer=init)(
+	x = _res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same', kernel_initializer=tf.keras.initializers.GlorotUniform())(
 		x_in)
 	for _ in range(num_res_blocks):
 		_res_block = res_block(_res_block, num_filters, res_block_scaling)
 
 	#
-	_res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same', kernel_initializer=init)(
+	_res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same', kernel_initializer=tf.keras.initializers.GlorotUniform())(
 		_res_block)
 	x = layers.Add()([x, _res_block])
 
@@ -80,7 +79,7 @@ def create_edsr_model(input_shape: tuple, output_shape: tuple, scale: int, num_f
 	x = upsample(x, scale, num_filters)
 
 	# Output layer.
-	x = layers.Conv2D(filters=output_channels, kernel_size=(3, 3), padding='same', kernel_initializer=init)(x)
+	x = layers.Conv2D(filters=output_channels, kernel_size=(3, 3), padding='same', kernel_initializer=tf.keras.initializers.GlorotUniform())(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
@@ -91,12 +90,11 @@ def create_edsr_model(input_shape: tuple, output_shape: tuple, scale: int, num_f
 
 
 def res_block(x_in, filters: int, scaling):
-	init = tf.keras.initializers.GlorotUniform()
 
 	"""Creates an EDSR residual block."""
-	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same', kernel_initializer=init)(x_in)
+	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same', kernel_initializer=tf.keras.initializers.GlorotUniform())(x_in)
 	x = layers.ReLU(dtype='float32')(x)
-	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same', kernel_initializer=init)(x)
+	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), padding='same', kernel_initializer=tf.keras.initializers.GlorotUniform())(x)
 
 	if scaling:
 		x = layers.Lambda(lambda t: t * scaling)(x)
