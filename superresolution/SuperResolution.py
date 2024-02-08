@@ -37,7 +37,7 @@ from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, 
 from util.util import plotTrainingHistory
 
 global sr_logger
-sr_logger: Logger = logging.getLogger("Super Resolution Logger")
+sr_logger: Logger = logging.getLogger("Super Resolution Training")
 
 
 def setup_dataset(dataset, args: dict):

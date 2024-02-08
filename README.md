@@ -172,10 +172,15 @@ optional arguments:
 
 ### Setup Virtual Environment
 
+```bash
+python3 -m venv venv
+```
+
 ### Installing Required Packages
 
 ```bash
 pip install -r requirements.txt
+pip install tensorflow[and-cuda]
 ```
 
 ## License

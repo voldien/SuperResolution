@@ -50,7 +50,7 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 
 class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 
-	def __init__(self, dir_path: str, name: str, train_data_subset, color_space: str, **kwargs):
+	def __init__(self, dir_path: str, name: str, train_data_subset, color_space: str, num_images: int = 1, **kwargs):
 		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
 
 		self.trainSet = train_data_subset
@@ -59,6 +59,7 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 		self.dir_path = dir_path
 		self.current_epoch = 0
 		self.color_space = color_space
+		self.num_images = num_images
 		if not os.path.exists(self.dir_path):
 			os.mkdir(self.dir_path)
 
@@ -69,27 +70,30 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 		batch_iter = iter(self.trainSet)
 		_, expected_image_batch = batch_iter.next()
 
-		# Convert image to normalized [0,1]
-		data_image = np.asarray(
-			convert_nontensor_color_space(expected_image_batch[0], color_space=self.color_space)).astype(
-			dtype='float32')
+		for i in range(0, self.num_images):
 
-		# Clip and convert it to [0,255], for RGB.
-		data_image = data_image.clip(0.0, 1.0)
-		decoder_image_u8 = np.uint8((data_image * 255).round())
 
-		input_rgb_image = Img.fromarray(decoder_image_u8, mode='RGB')
+			# Convert image to normalized [0,1]
+			data_image = np.asarray(
+				convert_nontensor_color_space(expected_image_batch[i], color_space=self.color_space)).astype(
+				dtype='float32')			#TODO: add iterate fix when exceed the size.
 
-		final_cropped_size, upscale_image = upscale_composite_image(upscale_model=self.model, input_im=input_rgb_image,
-																	batch_size=16, color_space=self.color_space)
+			# Clip and convert it to [0,255], for RGB.
+			data_image = data_image.clip(0.0, 1.0)
+			decoder_image_u8 = np.uint8((data_image * 255).round())
 
-		full_output_path = os.path.join(self.dir_path,
-										"SuperResolution_Composite_{0}_{1}.png".format(self.composite_name,
-																					   self.current_epoch))
-		# Crop image final size image.
-		upscale_image = upscale_image.crop(final_cropped_size)
-		# Save image
-		upscale_image.save(full_output_path)
+			input_rgb_image = Img.fromarray(decoder_image_u8, mode='RGB')
+
+			final_cropped_size, upscale_image = upscale_composite_image(upscale_model=self.model, input_im=input_rgb_image,
+																		batch_size=16, color_space=self.color_space)
+
+			full_output_path = os.path.join(self.dir_path,
+											"SuperResolution_Composite_{0}_{1}_{2}.png".format(self.composite_name,
+																						self.current_epoch, i))
+			# Crop image final size image.
+			upscale_image = upscale_image.crop(final_cropped_size)
+			# Save image
+			upscale_image.save(full_output_path)
 
 
 class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
@@ -126,9 +130,10 @@ class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 
 
 class GraphHistory(tf.keras.callbacks.History):
-	def __init__(self, filepath: str, **kwargs):
+	def __init__(self, filepath: str, nthBatch: int = 8, **kwargs):
 		super().__init__(**kwargs)
 		self.fig_savepath = filepath
+		self.nthBatch = nthBatch
 		self.batch_history = {}
 
 	def on_train_begin(self, logs=None):
@@ -136,13 +141,14 @@ class GraphHistory(tf.keras.callbacks.History):
 
 	def on_train_batch_end(self, batch, logs=None):
 		super().on_train_batch_end(batch=batch, logs=logs)
-		for k, v in logs.items():
-			self.batch_history.setdefault(k, []).append(v)
-		# Append learning rate. #TODO fix how to extract learning rate
-		learning_rate = 0.0
-		if isinstance(self.model.optimizer.lr, tf.keras.optimizers.schedules.ExponentialDecay):
-			learning_rate = 0.0  # self.model.optimizer.lr()
-		self.batch_history.setdefault("learning-rate", []).append(learning_rate)
+		if batch % self.nthBatch == 0:
+			for k, v in logs.items():
+				self.batch_history.setdefault(k, []).append(v)
+			# Append learning rate. #TODO fix how to extract learning rate
+			learning_rate = 0.0
+			if isinstance(self.model.optimizer.lr, tf.keras.optimizers.schedules.ExponentialDecay):
+				learning_rate = 0.0  # self.model.optimizer.lr()
+			self.batch_history.setdefault("learning-rate", []).append(learning_rate)
 
 	def on_epoch_end(self, epoch, logs=None):
 		super().on_epoch_end(epoch=epoch, logs=logs)
