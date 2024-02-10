@@ -16,7 +16,7 @@ parser.add_argument('--epochs', type=int, default=12, dest='epochs',
 #
 parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
 					help='number of training element per each batch, during training.')
-
+#
 parser.add_argument('--data-set-directory', type=str, dest='train_directory_paths',
 					action='append', required=True,
 					help='Directory path where the images are located dataset images')
@@ -24,7 +24,7 @@ parser.add_argument('--data-set-directory', type=str, dest='train_directory_path
 parser.add_argument('--validation-data-directory', dest='validation_directory_paths', type=str,
 					action='append',
 					help='Directory path where the images are located dataset images')
-
+#
 parser.add_argument('--test-data-directory', dest='test_directory_paths', type=str,
 					action='append',
 					help='Directory path where the images are located dataset images')
@@ -42,12 +42,20 @@ parser.add_argument('--output-image-size', type=int, dest='output_image_size',
 					nargs=2,
 					default=(256, 256),
 					help='Set the size of the images in width and height for the model.')
-#TODO: add model specific.
+#
+parser.add_argument('--model', dest='model', action='append', nargs='*', required=False,
+					default=['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
+					choices=['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
+					help='Overide what Model to include in training evolution.')
 #
 parser.add_argument('--seed', type=int, dest='seed',
 					nargs=1,
 					default=random.randrange(10000000),
 					help='Seed')
+parser.add_argument('--cpu', action='store_true',
+					default=False,
+					dest='use_explicit_cpu', help='Explicit use the CPU as the compute device.')
+
 
 
 # If invalid number of arguments, print help.
@@ -67,6 +75,7 @@ test_dataset_paths = args.test_directory_paths
 image_size: tuple = args.image_size
 image_output_size: tuple = args.output_image_size
 seed: int = args.seed
+models: list = args.model
 
 hyperparameters = {
 	#
@@ -82,7 +91,7 @@ hyperparameters = {
 	#"--use-float16": [False, True], #TODO: Cause problem?
 	"--loss-fn": ['mse', 'ssim', 'msa'],
 	"--seed": [seed],
-	"--model": ['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
+	"--model": models,
 	"--cache-file": [
 		"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
 	"--epochs": [epochs],
@@ -123,8 +132,11 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 											 custom_argv["--color-space"],
 											 custom_argv["--loss-fn"],
 											 custom_argv["--model"])))
+	# Add option
 	argvlist.append("--output-dir")
 	argvlist.append(output_target_dir)
 	argvlist.append("--show-psnr")
+	if args.use_explicit_cpu:
+		argvlist.append("--cpu")
 
 	dcsuperresolution_program(argvlist)
