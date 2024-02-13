@@ -14,18 +14,18 @@ class DCSuperResolutionModel(ModelBase):
 		group = self.parser.add_argument_group(self.get_name())
 		#
 		group.add_argument('--regularization', dest='regularization',
-								 type=float,
-								 default=0.000001,
-								 required=False,
-								 help='Set the L1 Regularization applied.')
+						   type=float,
+						   default=0.000001,
+						   required=False,
+						   help='Set the L1 Regularization applied.')
 
 		#
 		group.add_argument('--upscale-mode', dest='upscale_mode',
-								 type=int,
-								 choices=[2, 4],
-								 default=2,
-								 required=False,
-								 help='Upscale Mode')
+						   type=int,
+						   choices=[2, 4],
+						   default=2,
+						   required=False,
+						   help='Upscale Mode')
 
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser
@@ -101,7 +101,7 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 	# Output to 3 channel output.
 	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
 		1, 1), padding='same', use_bias=use_bias, kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(x)
-	x = layers.Activation('tanh')(x)
+	x = layers.Activation('tanh', dtype='float32')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
 	# Confirm the output shape.

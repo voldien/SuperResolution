@@ -1,7 +1,22 @@
-# Super Resolution 
+# Super Resolution - Machine Learning
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![GitHub release](https://img.shields.io/github/release/voldien/SuperResolution.svg)](https://github.com/voldien/SuperResolution/releases)
 
-A SuperResolution training program for creating/training upscaling model, developed for educational purposes.
+A SuperResolution training program for creating/training upscaling machine learning model, developed for educational purposes only.
+
+## Features
+
+### Model Architecture
+* **EDSR** - Enhanced Deep Residual Networks for Single Image Super-Resolution
+* **VDR** - Very Deep Convolutional Network
+* **AE** - AutoEncoder Super Resolution
+* **DCNN** - Deep Convolutional Super Resolution Neural Network
+* **Resnet** - Residual Network Deep Convolutional Super Resolution Neural Network
+
+### Loss/Cost Function
+* **SSIM** - Structural similarity index measure
+* **MSA** - Mean Square Absolute
+* **MSE** - Mean Square Error
 
 ## Basic Program Command Line
 
@@ -11,43 +26,29 @@ A SuperResolution training program for creating/training upscaling model, develo
 python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-size 128 128 --model edsr --learning-rate 0.0003 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/   --output-dir image-super-resolution-result/
 ```
 
-### VDR - 
+### VDR - Very Deep Convolutional Network
 
 ```bash
 python superresolution/SuperResolution.py  --batch-size 16 --epochs 10 --image-size 128 128 --model vdr --learning-rate 0.0003 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/ --output-dir image-super-resolution-result/
 ```
 
-### AE - AutoEncoder
+### AE - AutoEncoder Super Resolution
 
 ```bash
 python superresolution/SuperResolution.py  --batch-size 16 --epochs 10 --image-size 128 128 --model dcsr-ae --learning-rate 0.0003 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/ --output-dir image-super-resolution-result/
 ```
 
-### DCNN - Deep Convolutional Neural Network
+### DCNN - Deep Convolutional Super Resolution Neural Network
 
 ```bash
 python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-size 128 128 --model cnnsr --learning-rate 0.002 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/ --output-dir image-super-resolution-result/
 ```
 
-### Resnet -
+### Resnet - Residual Network Deep Convolutional Super Resolution Neural Network
 
 ```bash
 python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-size 128 128 --model dcsr-resnet --learning-rate 0.0003 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/ --output-dir image-super-resolution-result/ 
 ```
-
-## Features
-
-### Model Architecture
-* **EDSR** -
-* **VDR** - 
-* **AE** - 
-* **DCNN** - 
-* **Resnet** - 
-
-### Loss/Cost Function
-* **SSIM** -
-* **MSA** - 
-* **MSE** -
 
 ### SuperResolution Training Program Argument
 
@@ -147,7 +148,7 @@ python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5
 The Evolution Program allow sto try multiple variable combination in order to find a good set of variable configuration. Simliar to hyperparameter testing.
 
 ```bash
-python3 superresolution/super-resolution-evolution-test.py  --epochs 8 --batch 32 rgb  --image-size 128 128  --data-set-directory /path_to_training_data/ --validation-data-directory /path_to_validation_data/   --output-dir  evolution_test/
+python3 superresolution/super-resolution-evolution-test.py  --epochs 8 --batch 32 rgb  --image-size 128 128  --data-set-directory /path_to_training_data/ --validation-data-directory /path_to_validation_data/   --output-dir evolution_test/
 ```
 
 Argument options

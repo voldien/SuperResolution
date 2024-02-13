@@ -43,7 +43,7 @@ parser.add_argument('--output-image-size', type=int, dest='output_image_size',
 					default=(256, 256),
 					help='Set the size of the images in width and height for the model.')
 #
-parser.add_argument('--model', dest='model', action='append', nargs='*', required=False,
+parser.add_argument('--models', dest='models', action='append', nargs='*', required=False,
 					default=['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
 					choices=['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
 					help='Overide what Model to include in training evolution.')
@@ -75,7 +75,7 @@ test_dataset_paths = args.test_directory_paths
 image_size: tuple = args.image_size
 image_output_size: tuple = args.output_image_size
 seed: int = args.seed
-models: list = args.model
+models: list = args.models
 
 hyperparameters = {
 	#
@@ -118,7 +118,7 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 	for key, value in custom_argv.items():
 		argvlist.append(str(key))
 		argvlist.append(str(value))
-
+	
 	# Add resolution.
 	argvlist.append("--image-size")
 	argvlist.append(str(image_size[0]))

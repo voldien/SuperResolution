@@ -115,6 +115,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 def ParseDefaultArgument(args: dict):
 	#
 	tf.config.experimental.enable_tensor_float_32_execution(True)
+	
 	# Set global precision default policy.
 	if args.use_float16:
 		mixed_precision.set_global_policy('mixed_float16')

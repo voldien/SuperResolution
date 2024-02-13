@@ -80,7 +80,7 @@ def create_edsr_model(input_shape: tuple, output_shape: tuple, scale: int, num_f
 
 	# Output layer.
 	x = layers.Conv2D(filters=output_channels, kernel_size=(3, 3), padding='same', kernel_initializer=tf.keras.initializers.GlorotUniform())(x)
-	x = layers.Activation('tanh')(x)
+	x = layers.Activation('tanh', dtype='float32')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
 	# Confirm the output shape.

@@ -138,8 +138,8 @@ def super_resolution_upscale(argv):
 					   " UpscaleY " + str(height_scale))
 
 		# Create a pool of task scheduler.
-		pool =  Pool(processes=16)
-		# TODO add batch, if possible.
+		pool = Pool(processes=16)
+
 		for file_path in input_filepaths:
 
 			if not os.path.isfile(file_path):
@@ -226,7 +226,7 @@ def super_resolution_upscale(argv):
 			final_cropped_size = (
 				0, 0, upscale_new_size[0], upscale_new_size[1])
 			sr_logger.debug(str.format("Saving {0}", full_output_path))
-			result = pool.apply_async(save_result_file, [
+			pool.apply_async(save_result_file, [
 				(upscale_image, final_cropped_size, full_output_path)])
 		# Close and wait intill all taks has been finished.
 		pool.close()
