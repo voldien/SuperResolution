@@ -30,7 +30,7 @@ import models.SuperResolutionCNN
 
 from core.common import ParseDefaultArgument, DefaultArgumentParser
 from util.dataProcessing import load_dataset_from_directory, \
-	configure_dataset_performance, dataset_super_resolution, augment_dataset, split_dataset
+	configure_dataset_performance, dataset_super_resolution, augment_dataset
 from util.metrics import PSNRMetric
 from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, compute_normalized_PSNR, \
 	CompositeImageResultCallBack
