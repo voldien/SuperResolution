@@ -6,57 +6,22 @@ import random
 import sys
 
 from SuperResolution import dcsuperresolution_program
+from superresolution.core.common import DefaultArgumentParser
 
 # Epochs, dataset, batch, size, imagesize, output dir
-parser = argparse.ArgumentParser(add_help=True, prog="", description="")
+parser = argparse.ArgumentParser(add_help=True, prog="SuperResolution Evolution", description="",
+	description='Super Resolution Training Model Evolution Program',
+	parents=DefaultArgumentParser())
 
-#
-parser.add_argument('--epochs', type=int, default=12, dest='epochs',
-					help='Set the number of passes that the training set will be trained against.')
-#
-parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
-					help='number of training element per each batch, during training.')
-#
-parser.add_argument('--data-set-directory', type=str, dest='train_directory_paths',
-					action='append', required=True,
-					help='Directory path where the images are located dataset images')
-#
-parser.add_argument('--validation-data-directory', dest='validation_directory_paths', type=str,
-					action='append',
-					help='Directory path where the images are located dataset images')
-#
-parser.add_argument('--test-data-directory', dest='test_directory_paths', type=str,
-					action='append',
-					help='Directory path where the images are located dataset images')
 #
 parser.add_argument('--output-dir', type=str, dest='output_dir',
 					default="test_output",
 					help='Set the output directory that all the models and results will be stored at')
 #
-parser.add_argument('--image-size', type=int, dest='image_size',
-					nargs=2,
-					default=(128, 128),
-					help='Set the size of the images in width and height for the model.')
-#
-parser.add_argument('--output-image-size', type=int, dest='output_image_size',
-					nargs=2,
-					default=(256, 256),
-					help='Set the size of the images in width and height for the model.')
-#
 parser.add_argument('--models', dest='models', action='append', nargs='*', required=False,
 					default=['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
 					choices=['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
 					help='Overide what Model to include in training evolution.')
-#
-parser.add_argument('--seed', type=int, dest='seed',
-					nargs=1,
-					default=random.randrange(10000000),
-					help='Seed')
-parser.add_argument('--cpu', action='store_true',
-					default=False,
-					dest='use_explicit_cpu', help='Explicit use the CPU as the compute device.')
-
-
 
 # If invalid number of arguments, print help.
 if len(sys.argv) < 2:
@@ -76,6 +41,8 @@ image_size: tuple = args.image_size
 image_output_size: tuple = args.output_image_size
 seed: int = args.seed
 models: list = args.models
+usefp16: bool = args.use_float16
+use_cpu_only: bool = args.use_explicit_cpu
 
 hyperparameters = {
 	#
@@ -84,16 +51,16 @@ hyperparameters = {
 	"--learning-rate": [0.0015, 0.0008, 0.0001, 0.0003, 0.002],
 	"--example-batch": [512],
 	"--example-batch-grid-size": [8],
+	#TODO: add each model specific parameter options.
 	# "--use-resnet": [True, False],
 	# "--regularization": [0.001, 0.002, 0.003, 0.008, 0.0],
 	"--decay-rate": [0.85, 0.90, 0.96],
 	"--decay-step": [1000, 10000],
-	#"--use-float16": [False, True], #TODO: Cause problem?
 	"--loss-fn": ['mse', 'ssim', 'msa'],
 	"--seed": [seed],
 	"--model": models,
-	"--cache-file": [
-		"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
+	#"--cache-file": [
+	#	"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
 	"--epochs": [epochs],
 	"--shuffle-data-set-size": [1024],
 	"--checkpoint-every-epoch": [0],
@@ -101,6 +68,8 @@ hyperparameters = {
 	"--validation-data-directory": validation_dataset_paths,
 	"--batch-size": [batch_size],
 }
+
+# Optionally add test.
 if test_dataset_paths:
 	hyperparameters['--test-set-directory'] = test_dataset_paths
 
@@ -136,7 +105,9 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 	argvlist.append("--output-dir")
 	argvlist.append(output_target_dir)
 	argvlist.append("--show-psnr")
-	if args.use_explicit_cpu:
+	if use_cpu_only:
 		argvlist.append("--cpu")
+	if usefp16:
+		argvlist.append("--use-float16")
 
 	dcsuperresolution_program(argvlist)

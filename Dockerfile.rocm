@@ -1,0 +1,18 @@
+FROM docker.io/rocm/tensorflow:rocm6.0-tf2.13-runtime
+
+ENV LANG=C.UTF-8
+ENV LANGUAGE=C.UTF-8 LC_ALL=C.UTF-8
+ARG DEBIAN_FRONTEND=noninteractive
+
+COPY ./superresolution superresolution
+COPY ./requirements.txt requirements.txt
+COPY ./requirements_rocm.txt requirements_rocm.txt
+
+# Update
+RUN pip install --upgrade pip \
+	pip install -r requirements.txt ;
+
+
+ENTRYPOINT ["python3", "superresolution/SuperResolution.py"]
+
+CMD [ "--help" ]

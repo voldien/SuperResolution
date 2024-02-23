@@ -1,0 +1,2 @@
+tensorrt==8.6.1
+tensorflow[and-cuda]==2.14.1

@@ -3,7 +3,6 @@ from ast import Dict
 
 from matplotlib import pyplot as plt
 from skimage.color import lab2rgb, rgb2lab
-from sklearn.manifold import TSNE
 from tensorflow.keras import layers
 
 import numpy as np

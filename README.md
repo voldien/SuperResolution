@@ -179,12 +179,38 @@ optional arguments:
 python3 -m venv venv
 ```
 
-### Installing Required Packages
+## Installing Required Packages
+
+### Nvidia - CUDA
+```bash
+pip install -r requirements.txt requirements_cuda.txt
+pip install tensorflow[and-cuda]==2.14.1
+```
+
+### AMD - ROCM
+```bash
+pip install -r requirements.txt requirements_rocm.txt
+```
+
+## Docker
+
+### AMD - ROCM
 
 ```bash
-pip install -r requirements.txt
-pip install tensorflow[and-cuda]
+docker build -t super-resolution-rocm -f Dockerfile.rocm .
+docker run --network=host --device=/dev/kfd --device=/dev/dri --ipc=host --shm-size 16G --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name sr-rocm super-resolution-rocm 
 ```
+### Nvidia - CUDA
+
+```bash
+sudo apt-get install -y nvidia-container-toolkit
+```
+
+```bash
+docker build -t super-resolution-cuda -f  Dockerfile.cuda .
+docker run --network=host --gpus all --name sr-cuda super-resolution-cuda 
+```
+
 
 ## License
 

@@ -1,0 +1,19 @@
+FROM tensorflow/tensorflow:2.14.0-gpu
+
+ENV LANG=C.UTF-8
+ENV LANGUAGE=C.UTF-8 LC_ALL=C.UTF-8
+ARG DEBIAN_FRONTEND=noninteractive
+
+
+COPY ./superresolution superresolution
+COPY ./requirements.txt requirements.txt
+COPY ./requirements_cuda.txt requirements_cuda.txt0
+
+# Update
+RUN pip install --upgrade pip \
+	pip install -r requirements.txt #requirements_cuda.txt;
+
+#
+ENTRYPOINT ["python3", "superresolution/SuperResolution.py"]
+
+CMD [ "--help" ]
