@@ -13,6 +13,7 @@ import tensorflow as tf
 from PIL import Image
 from skimage.color import rgb2lab
 
+from core.common import setup_tensorflow_strategy
 from util.util import upscale_image_func
 
 sr_logger: Logger = logging.getLogger('SuperResolution Upscale Program')
@@ -67,6 +68,11 @@ def super_resolution_upscale(argv):
 	#
 	parser.add_argument('--device', type=str, dest='',
 						default=None, help='Select Device')
+	
+	parser.add_argument('--cpu', action='store_true',
+						default=False,
+						dest='use_explicit_cpu', help='Explicit use the CPU as the compute device.')
+
 
 	#
 	parser.add_argument('--verbosity', type=int, dest='accumulate',
@@ -90,7 +96,10 @@ def super_resolution_upscale(argv):
 	if args.debug:
 		sr_logger.setLevel(logging.DEBUG)
 
-	with tf.device('/device:GPU:0'):
+	# Allow to use multiple GPU
+	strategy = setup_tensorflow_strategy(args={})
+	sr_logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
+	with strategy.scope():
 
 		# TODO: fix output.
 		output_path: str = args.save_path
@@ -108,7 +117,7 @@ def super_resolution_upscale(argv):
 		else:  # Convert to list
 			input_filepaths: list = [input_filepaths]
 
-		batch_size: int = args.batch_size
+		batch_size: int = args.batch_size * strategy.num_replicas_in_sync
 
 		sr_logger.info("Number of files {0}".format(len(input_filepaths)))
 

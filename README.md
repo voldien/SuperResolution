@@ -1,4 +1,5 @@
 # Super Resolution - Machine Learning
+[![Super Resolution Linux](https://github.com/voldien/SuperResolution/actions/workflows/ci.yaml/badge.svg)](https://github.com/voldien/SuperResolution/actions/workflows/ci.yaml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GitHub release](https://img.shields.io/github/release/voldien/SuperResolution.svg)](https://github.com/voldien/SuperResolution/releases)
 
@@ -17,6 +18,7 @@ A SuperResolution training program for creating/training upscaling machine learn
 * **SSIM** - Structural similarity index measure
 * **MSA** - Mean Square Absolute
 * **MSE** - Mean Square Error
+* **VGG16** - Perceptible Loss Error Function
 
 ## Basic Program Command Line
 

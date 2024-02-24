@@ -6,12 +6,10 @@ import random
 import sys
 
 from SuperResolution import dcsuperresolution_program
-from superresolution.core.common import DefaultArgumentParser
+from core.common import DefaultArgumentParser
 
-# Epochs, dataset, batch, size, imagesize, output dir
-parser = argparse.ArgumentParser(add_help=True, prog="SuperResolution Evolution", description="",
-	description='Super Resolution Training Model Evolution Program',
-	parents=DefaultArgumentParser())
+parser = argparse.ArgumentParser(add_help=True, prog="SuperResolution Evolution", description='Super Resolution Training Model Evolution Program',
+								 parents=[DefaultArgumentParser()])
 
 #
 parser.add_argument('--output-dir', type=str, dest='output_dir',
@@ -19,8 +17,10 @@ parser.add_argument('--output-dir', type=str, dest='output_dir',
 					help='Set the output directory that all the models and results will be stored at')
 #
 parser.add_argument('--models', dest='models', action='append', nargs='*', required=False,
-					default=['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
-					choices=['cnnsr', 'dcsr', 'edsr', 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
+					default=['cnnsr', 'dcsr', 'edsr',
+							 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
+					choices=['cnnsr', 'dcsr', 'edsr',
+							 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
 					help='Overide what Model to include in training evolution.')
 
 # If invalid number of arguments, print help.
@@ -51,16 +51,16 @@ hyperparameters = {
 	"--learning-rate": [0.0015, 0.0008, 0.0001, 0.0003, 0.002],
 	"--example-batch": [512],
 	"--example-batch-grid-size": [8],
-	#TODO: add each model specific parameter options.
+	# TODO: add each model specific parameter options.
 	# "--use-resnet": [True, False],
 	# "--regularization": [0.001, 0.002, 0.003, 0.008, 0.0],
 	"--decay-rate": [0.85, 0.90, 0.96],
 	"--decay-step": [1000, 10000],
-	"--loss-fn": ['mse', 'ssim', 'msa'],
+	"--loss-fn": ['mse', 'ssim', 'msa', 'vgg16'],
 	"--seed": [seed],
 	"--model": models,
-	#"--cache-file": [
-	#	"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
+	# "--cache-file": [
+	# "/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
 	"--epochs": [epochs],
 	"--shuffle-data-set-size": [1024],
 	"--checkpoint-every-epoch": [0],
@@ -75,11 +75,13 @@ if test_dataset_paths:
 
 #
 keys, values = zip(*hyperparameters.items())
-hyperparameter_combinations = [dict(zip(keys, v)) for v in itertools.product(*values)]
+hyperparameter_combinations = [dict(zip(keys, v))
+							   for v in itertools.product(*values)]
 
 #
 random.shuffle(hyperparameter_combinations)
-print("Number of hyperparameter combinations: " + str(len(hyperparameter_combinations)))
+print("Number of hyperparameter combinations: " +
+	  str(len(hyperparameter_combinations)))
 
 for i, custom_argv in enumerate(hyperparameter_combinations):
 
@@ -87,7 +89,7 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 	for key, value in custom_argv.items():
 		argvlist.append(str(key))
 		argvlist.append(str(value))
-	
+
 	# Add resolution.
 	argvlist.append("--image-size")
 	argvlist.append(str(image_size[0]))

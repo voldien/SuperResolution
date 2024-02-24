@@ -54,7 +54,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						help='Set the verbosity level of the program')
 
 	#
-	parser.add_argument('--use-float16', # action='store_true',
+	parser.add_argument('--use-float16', action='store_true',
 						dest='use_float16', default=False, help='Hint the usage of Float 16 (FP16) in the model.')
 	#
 	parser.add_argument('--cache-ram', action='store_true', default=False,
@@ -158,3 +158,19 @@ def create_virtual_gpu_devices():
 			# Virtual devices must be set before GPUs have been initialized
 			print(e)
 	return []
+
+def setup_tensorflow_strategy(args: dict):
+	# Configure
+	if args.use_explicit_cpu:
+		selected_devices = tf.config.list_logical_devices('CPU')
+	else:
+		selected_devices = tf.config.list_logical_devices('GPU')
+		if args.devices is not None:
+			# TODO add support
+			selected_devices = args.devices
+		else:
+			pass
+
+	# initialize
+	strategy = tf.distribute.MirroredStrategy(devices=selected_devices)
+	return strategy

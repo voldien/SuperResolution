@@ -28,10 +28,11 @@ import models.SuperResolutionResNet
 import models.SuperResolutionVDSR
 import models.SuperResolutionCNN
 
-from core.common import ParseDefaultArgument, DefaultArgumentParser
+
+from core.common import ParseDefaultArgument, DefaultArgumentParser, setup_tensorflow_strategy
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset
-from util.metrics import PSNRMetric
+from util.metrics import PSNRMetric, VGG16Error
 from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, compute_normalized_PSNR, \
 	CompositeImageResultCallBack
 from util.util import plotTrainingHistory
@@ -90,24 +91,6 @@ def load_dataset_collection(filepaths: list, args: dict, override_size: tuple) -
 			training_dataset.concatenate(local_dataset)
 
 	return training_dataset
-
-
-def setup_tensorflow_strategy(args: dict):
-	# Configure
-	if args.use_explicit_cpu:
-		selected_devices = tf.config.list_logical_devices('CPU')
-	else:
-		selected_devices = tf.config.list_logical_devices('GPU')
-		if args.devices is not None:
-			# TODO add support
-			selected_devices = args.devices
-		else:
-			pass
-
-	# initialize
-	strategy = tf.distribute.MirroredStrategy(devices=selected_devices)
-	sr_logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
-	return strategy
 
 
 def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
@@ -185,7 +168,7 @@ def setup_loss_builtin_function(args: dict):
 
 	#
 	builtin_loss_functions = {'mse': tf.keras.losses.MeanSquaredError(), 'ssim': ssim_loss,
-							  'msa': tf.keras.losses.MeanAbsoluteError(), 'psnr': psnr_loss}
+							  'msa': tf.keras.losses.MeanAbsoluteError(), 'psnr': psnr_loss, 'vgg16': VGG16Error()}
 
 	return builtin_loss_functions[args.loss_fn]
 
@@ -194,6 +177,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 					test_dataset: Dataset = None):
 	# Configure how models will be executed.
 	strategy = setup_tensorflow_strategy(args=args)
+	sr_logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
 
 	# Compute the total batch size.
 	batch_size: int = args.batch_size * strategy.num_replicas_in_sync
