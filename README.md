@@ -3,7 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GitHub release](https://img.shields.io/github/release/voldien/SuperResolution.svg)](https://github.com/voldien/SuperResolution/releases)
 
-A SuperResolution training program for creating/training upscaling machine learning model, developed for educational purposes only.
+A SuperResolution training program for creating/training upscaling machine learning model, developed for educational purposes only. The result may vary between training data and hyperparameter, the example are from own trained model.
 
 ## Features
 
@@ -28,17 +28,29 @@ A SuperResolution training program for creating/training upscaling machine learn
 python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-size 128 128 --model edsr --learning-rate 0.0003 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/   --output-dir image-super-resolution-result/
 ```
 
+![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/1951a0c3-cebb-4ea8-818e-4a04bf28e116)
+![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/17609c40-3b86-4a0d-a562-20d71359655a)
+
+
 ### VDR - Very Deep Convolutional Network
 
 ```bash
 python superresolution/SuperResolution.py  --batch-size 16 --epochs 10 --image-size 128 128 --model vdr --learning-rate 0.0003 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/ --output-dir image-super-resolution-result/
 ```
 
+![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/24cccb38-807f-4454-bbc6-35ad9e03b57f)
+![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/153792f5-c35a-4fae-8bba-aed47c8902de)
+
 ### AE - AutoEncoder Super Resolution
 
 ```bash
 python superresolution/SuperResolution.py  --batch-size 16 --epochs 10 --image-size 128 128 --model dcsr-ae --learning-rate 0.0003 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/ --output-dir image-super-resolution-result/
 ```
+
+![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/0dac4554-6169-4662-9401-204feac33846)
+![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/bc77e853-a5e8-4eac-880b-e6d7a5f3c801)
+
+
 
 ### DCNN - Deep Convolutional Super Resolution Neural Network
 
