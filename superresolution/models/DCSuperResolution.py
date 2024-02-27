@@ -34,6 +34,7 @@ class DCSuperResolutionModel(ModelBase):
 		# Model Construct Parameters.
 		regularization: float = kwargs.get("regularization", 0.000001)  #
 		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
+		nr_filters: int = kwargs.get("filters", 64)
 
 		#
 		return create_simple_model(input_shape=input_shape,
@@ -59,10 +60,12 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 
 	for i in range(0, int(upscale_mode / 2)):
 		nrfilters = output_width
+
 		#
 		x = layers.Conv2D(filters=nrfilters, kernel_size=(9, 9), strides=1, padding='same',
 						  use_bias=use_bias,
-						  kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(x)
+						  kernel_initializer=tf.keras.initializers.HeNormal(),
+						  bias_initializer=tf.keras.initializers.HeNormal())(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
@@ -70,7 +73,8 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 		#
 		x = layers.Conv2D(filters=nrfilters / 2, kernel_size=(4, 4), strides=1, padding='same',
 						  use_bias=use_bias,
-						  kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(x)
+						  kernel_initializer=tf.keras.initializers.HeNormal(),
+						  bias_initializer=tf.keras.initializers.HeNormal())(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
@@ -78,14 +82,16 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 		#
 		x = layers.Conv2D(filters=nrfilters / 4, kernel_size=(3, 3), strides=1, padding='same',
 						  use_bias=use_bias,
-						  kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(x)
+						  kernel_initializer=tf.keras.initializers.HeNormal(),
+						  bias_initializer=tf.keras.initializers.HeNormal())(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
 
 		# Upscale -
 		x = layers.Conv2DTranspose(filters=output_width, kernel_size=(5, 5), strides=(
-			2, 2), use_bias=use_bias, padding='same', kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(x)
+			2, 2), use_bias=use_bias, padding='same', kernel_initializer=tf.keras.initializers.HeNormal(),
+								   bias_initializer=tf.keras.initializers.HeNormal())(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
@@ -93,14 +99,16 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 		#
 		x = layers.Conv2D(filters=nrfilters, kernel_size=(4, 4), strides=1, padding='same',
 						  use_bias=use_bias,
-						  kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(x)
+						  kernel_initializer=tf.keras.initializers.HeNormal(),
+						  bias_initializer=tf.keras.initializers.HeNormal())(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
 
 	# Output to 3 channel output.
 	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
-		1, 1), padding='same', use_bias=use_bias, kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(x)
+		1, 1), padding='same', use_bias=use_bias, kernel_initializer=tf.keras.initializers.HeNormal(),
+							   bias_initializer=tf.keras.initializers.HeNormal())(x)
 	x = layers.Activation('tanh', dtype='float32')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 

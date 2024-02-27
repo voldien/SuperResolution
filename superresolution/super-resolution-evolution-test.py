@@ -8,7 +8,8 @@ import sys
 from SuperResolution import dcsuperresolution_program
 from core.common import DefaultArgumentParser
 
-parser = argparse.ArgumentParser(add_help=True, prog="SuperResolution Evolution", description='Super Resolution Training Model Evolution Program',
+parser = argparse.ArgumentParser(add_help=True, prog="SuperResolution Evolution",
+								 description='Super Resolution Training Model Evolution Program',
 								 parents=[DefaultArgumentParser()])
 
 #
@@ -22,6 +23,16 @@ parser.add_argument('--models', dest='models', action='append', nargs='*', requi
 					choices=['cnnsr', 'dcsr', 'edsr',
 							 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
 					help='Overide what Model to include in training evolution.')
+#
+parser.add_argument('--loss-functions', dest='loss_functions', action='append', nargs='*', required=False,
+					default=['mse', 'ssim', 'msa', 'vgg16'],
+					choices=['mse', 'ssim', 'msa', 'vgg16'],
+					help='Overide what Loss functions to include in training evolution.')
+#
+parser.add_argument('--optimizer', dest='optimizer', action='append', nargs='*', required=False,
+					default=['adam', 'ada', 'rmsprop', 'sgd', 'adadelta'],
+					choices=['adam', 'ada', 'rmsprop', 'sgd', 'adadelta'],
+					help='Select optimizer to be used')
 
 # If invalid number of arguments, print help.
 if len(sys.argv) < 2:
@@ -41,12 +52,14 @@ image_size: tuple = args.image_size
 image_output_size: tuple = args.output_image_size
 seed: int = args.seed
 models: list = args.models
+loss_functions: list = args.loss_functions
+optimizer: list = args.optimizer
 usefp16: bool = args.use_float16
 use_cpu_only: bool = args.use_explicit_cpu
 
 hyperparameters = {
 	#
-	"--optimizer": ["adam"],
+	"--optimizer": optimizer,
 	"--color-space": ["rgb", "lab"],
 	"--learning-rate": [0.0015, 0.0008, 0.0001, 0.0003, 0.002],
 	"--example-batch": [512],
@@ -56,7 +69,7 @@ hyperparameters = {
 	# "--regularization": [0.001, 0.002, 0.003, 0.008, 0.0],
 	"--decay-rate": [0.85, 0.90, 0.96],
 	"--decay-step": [1000, 10000],
-	"--loss-fn": ['mse', 'ssim', 'msa', 'vgg16'],
+	"--loss-fn": loss_functions,
 	"--seed": [seed],
 	"--model": models,
 	# "--cache-file": [

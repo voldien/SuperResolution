@@ -28,9 +28,8 @@ class PSNRMetric(tf.keras.metrics.MeanMetricWrapper):
 
 
 class VGG16Error(LossFunctionWrapper):
-
 	selected_layers = ['block1_conv1', 'block2_conv2',
-									   "block3_conv3", 'block4_conv3', 'block5_conv4']
+					   "block3_conv3", 'block4_conv3', 'block5_conv4']
 	selected_layer_weights = [1.0, 4.0, 4.0, 8.0, 16.0]
 
 	@tf.function
@@ -46,13 +45,12 @@ class VGG16Error(LossFunctionWrapper):
 		y_pred = tf.image.resize(y_pred, (224, 224))
 		y_true = tf.image.resize(y_true, (224, 224))
 
-		# Remap [-1,1] -> [0,1]
-		h1_list = self.model((y_pred + 1)*0.5)
-		h2_list = self.model((y_true + 1)*0.5)
+		# Remap [-1,1] -> [0,1] | [RGB] -> [BGR]
+		h1_list = self.model(preprocess_input((y_pred + 1) * 0.5))
+		h2_list = self.model(preprocess_input((y_true + 1) * 0.5))
 
 		rc_loss: float = 0.0
 		for h1, h2, weight in zip(h1_list, h2_list, self.selected_layer_weights):
-
 			h1 = K.batch_flatten(h1)
 			h2 = K.batch_flatten(h2)
 

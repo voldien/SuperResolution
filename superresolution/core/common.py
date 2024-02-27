@@ -20,7 +20,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						help='number of training element per each batch, during training.')
 	#
 	parser.add_argument('--checkpoint-filepath', type=str, dest='checkpoint_dir',
-						default="./training_checkpoints",
+						default="training_checkpoints",
 						help='Set the path the checkpoint will be saved/loaded.')
 	#
 	parser.add_argument('--checkpoint-every-epoch', type=int, dest='checkpoint_every_nth_epoch',
@@ -115,7 +115,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 def ParseDefaultArgument(args: dict):
 	#
 	tf.config.experimental.enable_tensor_float_32_execution(True)
-	
+
 	# Set global precision default policy.
 	if args.use_float16:
 		mixed_precision.set_global_policy('mixed_float16')
@@ -158,6 +158,7 @@ def create_virtual_gpu_devices():
 			# Virtual devices must be set before GPUs have been initialized
 			print(e)
 	return []
+
 
 def setup_tensorflow_strategy(args: dict):
 	# Configure

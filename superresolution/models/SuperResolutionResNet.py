@@ -58,12 +58,14 @@ def get_model_interface() -> ModelBase:
 def residual_block(input_layer, filters=64, use_batch_norm=False):
 	start_ref = input_layer
 
-	x = layers.Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(input_layer)
+	x = layers.Conv2D(filters, kernel_size=(3, 3), strides=1, padding='same',
+					  kernel_initializer=tf.keras.initializers.HeNormal())(input_layer)
 	if use_batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 	x = layers.ReLU(dtype='float32')(x)
 
-	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), strides=1, padding='same', kernel_initializer=tf.keras.initializers.HeNormal())(x)
+	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), strides=1, padding='same',
+					  kernel_initializer=tf.keras.initializers.HeNormal())(x)
 	if use_batch_norm:
 		x = layers.BatchNormalization(dtype='float32')(x)
 
@@ -83,7 +85,8 @@ def create_resnet_model(input_shape: tuple, output_shape: tuple, upscale_mode: i
 	number_layers = 2
 
 	input_layer = layers.Input(shape=input_shape)
-	x = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias, kernel_initializer=tf.keras.initializers.HeNormal())(
+	x = layers.Conv2D(64, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias,
+					  kernel_initializer=tf.keras.initializers.HeNormal())(
 		input_layer)
 
 	for i in range(0, num_res_blocks):

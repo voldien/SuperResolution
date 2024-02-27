@@ -24,6 +24,7 @@ console_handler.setFormatter(logging.Formatter(log_format))
 
 sr_logger.addHandler(console_handler)
 
+
 def save_result_file(argument):
 	upscale_image, new_cropped_size, full_output_path = argument
 
@@ -46,7 +47,7 @@ def super_resolution_upscale(argv):
 						default=None, type=str, help='')
 
 	#
-	parser.add_argument('--input-file', type=str,
+	parser.add_argument('--input-file', type=str,  # action='append', TODO:add later
 						default=None, dest='input_files')
 
 	#
@@ -66,13 +67,12 @@ def super_resolution_upscale(argv):
 						help='Select Model Weight Path', default=None)
 
 	#
-	parser.add_argument('--device', type=str, dest='',
-						default=None, help='Select Device')
-	
+	parser.add_argument('--device', action='append', default=None, required=False,
+						dest='devices', help='Select the device explicitly that will be used.')
+
 	parser.add_argument('--cpu', action='store_true',
 						default=False,
 						dest='use_explicit_cpu', help='Explicit use the CPU as the compute device.')
-
 
 	#
 	parser.add_argument('--verbosity', type=int, dest='accumulate',
@@ -97,24 +97,26 @@ def super_resolution_upscale(argv):
 		sr_logger.setLevel(logging.DEBUG)
 
 	# Allow to use multiple GPU
-	strategy = setup_tensorflow_strategy(args={})
+	strategy = setup_tensorflow_strategy(args=args)
 	sr_logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
 	with strategy.scope():
 
 		# TODO: fix output.
 		output_path: str = args.save_path
-		if os.path.isdir(output_path):
-			pass
+		if not os.path.exists(output_path):
+			os.mkdir(output_path)
 
 		# TODO improved extraction of filepaths.
 		input_filepaths: str = args.input_files
-		sr_logger.info("File Paths: " + str(input_filepaths))
+
 		if os.path.isdir(input_filepaths):
+			sr_logger.info("Directory Path: " + str(input_filepaths))
 			all_files = os.listdir(input_filepaths)
 			base_bath = input_filepaths
 			input_filepaths: list = [os.path.join(
 				base_bath, path) for path in all_files]
 		else:  # Convert to list
+			sr_logger.info("File Path: " + str(input_filepaths))
 			input_filepaths: list = [input_filepaths]
 
 		batch_size: int = args.batch_size * strategy.num_replicas_in_sync
@@ -149,19 +151,19 @@ def super_resolution_upscale(argv):
 		# Create a pool of task scheduler.
 		pool = Pool(processes=16)
 
-		for file_path in input_filepaths:
+		for input_file_path in input_filepaths:
 
-			if not os.path.isfile(file_path):
+			if not os.path.isfile(input_file_path):
 				continue
-			sr_logger.info("Starting Image {0}".format(file_path))
+			sr_logger.info("Starting Image {0}".format(input_file_path))
 
 			#
-			base_filepath: str = os.path.basename(file_path)
+			base_filepath: str = os.path.basename(input_file_path)
 			full_output_path: str = os.path.join(
 				output_path, base_filepath)
 
 			# Open File and Convert to RGB Color Space.
-			input_im: Image = Image.open(file_path)
+			input_im: Image = Image.open(input_file_path)
 			input_im: Image = input_im.convert('RGB')
 
 			#
@@ -215,7 +217,7 @@ def super_resolution_upscale(argv):
 						normalized_subimage_color) * (1.0 / 128.0)
 				elif color_space == 'rgb':
 					cropped_sub_input_image = (
-													normalized_subimage_color * 2) - 1
+												  normalized_subimage_color * 2) - 1
 
 				# Upscale.
 				upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,
@@ -240,6 +242,7 @@ def super_resolution_upscale(argv):
 		# Close and wait intill all taks has been finished.
 		pool.close()
 		pool.join()
+
 
 # If running the script as main executable
 if __name__ == '__main__':

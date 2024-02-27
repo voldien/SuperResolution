@@ -93,8 +93,8 @@ def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_r
 		if use_resnet:
 			if last_sum_layer is not None:
 				last_sum_layer = layers.Conv2D(filters=filter_size, kernel_size=(1, 1),
-											 kernel_initializer=tf.keras.initializers.GlorotUniform(),
-											 strides=(2, 2))(last_sum_layer)
+											   kernel_initializer=tf.keras.initializers.GlorotUniform(),
+											   strides=(2, 2))(last_sum_layer)
 				x = layers.add([attach_layer, last_sum_layer])
 
 			last_sum_layer = x

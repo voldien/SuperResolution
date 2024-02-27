@@ -167,6 +167,7 @@ def upscale_composite_image(upscale_model, input_im: Image, batch_size: int, col
 	final_cropped_size = (0, 0, upscale_new_size[0], upscale_new_size[1])
 	return final_cropped_size, upscale_image
 
+
 def get_last_multidim_model(model):
 	last_multi_layer = None
 

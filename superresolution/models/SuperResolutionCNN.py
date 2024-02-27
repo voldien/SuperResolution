@@ -9,8 +9,8 @@ from tensorflow.keras import layers
 
 class SuperResolutionModelCNN(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=False)#, prog="Basic SuperResolution",
-#											  description="Basic Deep Convolutional Super Resolution")
+		self.parser = argparse.ArgumentParser(add_help=False)  # , prog="Basic SuperResolution",
+		#											  description="Basic Deep Convolutional Super Resolution")
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
@@ -74,7 +74,8 @@ def create_cnn_model(input_shape: tuple, output_shape: tuple, input_filter_size:
 
 	# Output to 3 channel output.
 	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
-		1, 1), padding='same', use_bias=use_bias, kernel_initializer=tf.keras.initializers.HeNormal(), bias_initializer=tf.keras.initializers.HeNormal())(x)
+		1, 1), padding='same', use_bias=use_bias, kernel_initializer=tf.keras.initializers.HeNormal(),
+							   bias_initializer=tf.keras.initializers.HeNormal())(x)
 	x = layers.Activation('tanh')(x)
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 

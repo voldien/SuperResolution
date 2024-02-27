@@ -61,4 +61,3 @@ def show_expect_predicted_result(model: tf.keras.Model, image_batch_dataset, col
 	fig.subplots_adjust(wspace=0.05, hspace=0.05)
 	plt.close()
 	return fig
-

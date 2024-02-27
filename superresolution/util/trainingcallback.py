@@ -71,12 +71,10 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 		_, expected_image_batch = batch_iter.next()
 
 		for i in range(0, self.num_images):
-
-
 			# Convert image to normalized [0,1]
 			data_image = np.asarray(
 				convert_nontensor_color_space(expected_image_batch[i], color_space=self.color_space)).astype(
-				dtype='float32')			#TODO: add iterate fix when exceed the size.
+				dtype='float32')  # TODO: add iterate fix when exceed the size.
 
 			# Clip and convert it to [0,255], for RGB.
 			data_image = data_image.clip(0.0, 1.0)
@@ -84,12 +82,13 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 
 			input_rgb_image = Img.fromarray(decoder_image_u8, mode='RGB')
 
-			final_cropped_size, upscale_image = upscale_composite_image(upscale_model=self.model, input_im=input_rgb_image,
+			final_cropped_size, upscale_image = upscale_composite_image(upscale_model=self.model,
+																		input_im=input_rgb_image,
 																		batch_size=16, color_space=self.color_space)
 
 			full_output_path = os.path.join(self.dir_path,
 											"SuperResolution_Composite_{0}_{1}_{2}.png".format(self.composite_name,
-																						self.current_epoch, i))
+																							   self.current_epoch, i))
 			# Crop image final size image.
 			upscale_image = upscale_image.crop(final_cropped_size)
 			# Save image

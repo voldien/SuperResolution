@@ -28,7 +28,6 @@ import models.SuperResolutionResNet
 import models.SuperResolutionVDSR
 import models.SuperResolutionCNN
 
-
 from core.common import ParseDefaultArgument, DefaultArgumentParser, setup_tensorflow_strategy
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset
@@ -146,6 +145,7 @@ def setup_loss_builtin_function(args: dict):
 		y_true_color = None
 		y_pred_color = None
 
+		#
 		if args.color_space == 'rgb':
 			# Remap [-1,1] to [0,1]
 			y_true_color = ((y_true + 1.0) * 0.5)
@@ -198,24 +198,25 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 	non_augmented_dataset_train = dataset_super_resolution(dataset=training_dataset,
 														   input_size=image_input_size,
 														   output_size=image_output_size)
+	non_augmented_dataset_validation = None
+	if validation_dataset:
+		non_augmented_dataset_validation = dataset_super_resolution(dataset=validation_dataset,
+																	input_size=image_input_size,
+																	output_size=image_output_size)
+		non_augmented_dataset_validation = non_augmented_dataset_validation.batch(batch_size)
 
-	non_augmented_dataset_validation = dataset_super_resolution(dataset=validation_dataset,
-																input_size=image_input_size,
-																output_size=image_output_size)
+		options = tf.data.Options()
+		options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
+		non_augmented_dataset_validation = non_augmented_dataset_validation.with_options(options)
 
 	non_augmented_dataset_train = configure_dataset_performance(ds=non_augmented_dataset_train, use_cache=False,
 																cache_path=None, shuffle_size=0)
 
 	non_augmented_dataset_train = non_augmented_dataset_train.batch(batch_size)
-	non_augmented_dataset_validation = non_augmented_dataset_validation.batch(batch_size)
 
 	options = tf.data.Options()
 	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
 	non_augmented_dataset_train = non_augmented_dataset_train.with_options(options)
-
-	options = tf.data.Options()
-	options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.DATA
-	non_augmented_dataset_validation = non_augmented_dataset_validation.with_options(options)
 
 	# Configure cache, shuffle and performance of the dataset.
 	training_dataset = configure_dataset_performance(ds=training_dataset, use_cache=args.cache_ram,
@@ -293,35 +294,24 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 			metrics.append(PSNRMetric())
 
 		training_model.compile(optimizer=model_optimizer, loss=loss_fn, metrics=metrics)
-		# Save copy.
-		training_model.save(args.model_filepath)
+
+		# checkpoint root_path
+		checkpoint_root_path: str = args.checkpoint_dir
 
 		# Create a callback that saves the model weights
-		checkpoint_path: str = args.checkpoint_dir
+		checkpoint_path = os.path.join(checkpoint_root_path, "cpkt-{epoch:02d}")
+		checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+			filepath=checkpoint_path,
+			monitor='val_loss' if validation_data_ds else 'loss',
+			mode='min',
+			save_freq='epoch',
+			verbose=1)
 
-		# Create a callback that saves the model weights
-		if validation_data_ds:
-			checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-				filepath=(checkpoint_path + "-{epoch:03d}-{val_loss:.4f}.keras"),
-				monitor='val_loss',
-				mode='min',
-				save_best_only=True,
-				save_weights_only=True,
-				save_freq='epoch',
-				verbose=0)
-		else:
-			checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-				filepath=(checkpoint_path + "-{epoch:03d}-{loss:.4f}.keras"),
-				monitor='loss',
-				mode='min',
-				save_best_only=True,
-				save_weights_only=True,
-				save_freq='epoch',
-				verbose=0)
-
-		# If exists, load weights.
-		if os.path.exists(checkpoint_path):
-			training_model.load_weights(checkpoint_path)
+		#
+		checkpoint = tf.train.Checkpoint(optimizer=model_optimizer, model=training_model)
+		latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=checkpoint_root_path)
+		if latest_checkpoint:
+			status = checkpoint.restore(save_path=latest_checkpoint).assert_consumed()
 
 		training_callbacks: list = [tf.keras.callbacks.TerminateOnNaN(), checkpoint_callback]
 
@@ -348,10 +338,14 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		graph_output_filepath: str = os.path.join(args.output_dir, "history_graph.png")
 		training_callbacks.append(GraphHistory(filepath=graph_output_filepath))
 
+		# Save copy.
+		training_model.save(args.model_filepath)
+
 		history_result = training_model.fit(x=training_dataset, validation_data=validation_data_ds, verbose='auto',
 											epochs=args.epochs,
 											callbacks=training_callbacks)
-		# Save final model.
+		#
+		# training_model.load_weights(checkpoint_path)
 		training_model.save(args.model_filepath)
 
 		# Test model.
