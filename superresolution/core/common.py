@@ -93,9 +93,6 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	#
 	parser.add_argument('--seed', type=int, default=randrange(10000000), dest='seed',
 						help='Set the random seed')
-
-	parser.add_argument('--nr_image_example_generate', type=int, default=16, dest='num_examples_to_generate',
-						help='Number')
 	#
 	parser.add_argument('--color-space', type=str, default="rgb", dest='color_space', choices=['rgb', 'lab'],
 						help='Select Color Space used in the model.')

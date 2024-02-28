@@ -25,7 +25,7 @@ A SuperResolution training program for creating/training upscaling machine learn
 ### EDSR - Enhanced Deep Residual Networks for Single Image Super-Resolution
 
 ```bash
-python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-size 128 128 --model edsr --learning-rate 0.0003 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/   --output-dir image-super-resolution-result/
+python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-size 128 128 --model edsr --learning-rate 0.0003 --decay-rate 0.9 --decay-step 10000 --color-space rgb --loss-fn msa --shuffle-data-set-size 1024 --show-psnr --data-set-directory /path_to_training_data/   --output-dir image-super-resolution-result/
 ```
 
 ![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/1951a0c3-cebb-4ea8-818e-4a04bf28e116)

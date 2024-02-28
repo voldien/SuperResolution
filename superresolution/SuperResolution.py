@@ -186,8 +186,10 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 
 	# Create Input and Output Size
 	# TODO determine size.
+	resolution_upscale_constant: int = 2
 	image_input_size = (
-		int(args.image_size[0] / 2), int(args.image_size[1] / 2), args.color_channels)
+		int(args.image_size[0] / resolution_upscale_constant), int(args.image_size[1] / resolution_upscale_constant),
+		args.color_channels)
 	image_output_size = (
 		args.image_size[0], args.image_size[1], args.color_channels)
 
@@ -246,7 +248,6 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		validation_data_ds = configure_dataset_performance(ds=validation_dataset, use_cache=False,
 														   cache_path=None,
 														   shuffle_size=0)
-
 		# Apply data augmentation
 		validation_data_ds = augment_dataset(dataset=validation_data_ds, image_crop_shape=image_output_size)
 
@@ -318,8 +319,14 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		example_result_call_back = SaveExampleResultImageCallBack(
 			args.output_dir,
 			non_augmented_dataset_train, args.color_space,
-			nth_batch_sample=args.example_batch, grid_size=args.example_batch_grid_size)
+			nth_batch_sample=args.example_nth_batch, grid_size=args.example_nth_batch_grid_size)
 		training_callbacks.append(example_result_call_back)
+
+		# Debug output of trained data.
+		#training_callbacks.append(SaveExampleResultImageCallBack(
+		#	args.output_dir,
+		#	training_dataset, args.color_space, fileprefix="trainSuperResolution",
+		#	nth_batch_sample=args.example_nth_batch, grid_size=args.example_nth_batch_grid_size))
 
 		composite_train_callback = CompositeImageResultCallBack(
 			dir_path=args.output_dir,
@@ -396,14 +403,13 @@ def dcsuperresolution_program(vargs=None):
 		parser.add_argument('--output-dir', type=str, dest='output_dir',
 							default=str.format("super-resolution-{0}", date.today().strftime("%b-%d-%Y_%H:%M:%S")),
 							help='Set the output directory that all the models and results will be stored at')
-
 		#
-		parser.add_argument('--example-batch', dest='example_batch', required=False,  # TODO rename
+		parser.add_argument('--example-batch', dest='example_nth_batch', required=False,  # TODO rename
 							type=int,
 							default=1024,
 							help='Set the number of train batches between saving work in progress result.')
 		#
-		parser.add_argument('--example-batch-grid-size', dest='example_batch_grid_size',
+		parser.add_argument('--example-batch-grid-size', dest='example_nth_batch_grid_size',
 							type=int, required=False,
 							default=8, help='Set the grid size of number of example images.')
 
@@ -465,7 +471,7 @@ def dcsuperresolution_program(vargs=None):
 
 		sr_logger.info(str.format("Use RAM Cache: {0}", args.cache_ram))
 
-		sr_logger.info(str.format("Example Batch Grid Size: {0}", args.example_batch_grid_size))
+		sr_logger.info(str.format("Example Batch Grid Size: {0}", args.example_nth_batch_grid_size))
 		sr_logger.info(str.format("Image Training Set: {0}", args.image_size))
 		sr_logger.info(str.format("Learning Rate: {0}", args.learning_rate))
 		sr_logger.info(str.format(

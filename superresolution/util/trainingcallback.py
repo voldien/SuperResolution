@@ -13,7 +13,7 @@ def compute_normalized_PSNR(orignal, data):
 
 class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 
-	def __init__(self, dir_path, train_data_subset, color_space: str, nth_batch_sample: int = 512, grid_size: int = 6,
+	def __init__(self, dir_path, train_data_subset, color_space: str, nth_batch_sample: int = 512, grid_size: int = 6, fileprefix: str = "SuperResolution",
 				 **kwargs):
 		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
 
@@ -26,6 +26,8 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 		self.color_space = color_space
 		self.grid_size = grid_size
 
+		self.fileprefix = fileprefix
+
 		if not os.path.exists(self.dir_path):
 			os.mkdir(self.dir_path)
 
@@ -35,7 +37,7 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 	def on_epoch_end(self, epoch, logs=None):
 		fig = show_expect_predicted_result(model=self.model, image_batch_dataset=self.trainSet,
 										   color_space=self.color_space, nr_col=self.grid_size)
-		fig.savefig(os.path.join(self.dir_path, "SuperResolution{0}.png".format(epoch)))
+		fig.savefig(os.path.join(self.dir_path, "{0}{1}.png".format(self.fileprefix,epoch)))
 		fig.clf()
 		plt.close(fig)
 
@@ -43,7 +45,7 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 		if batch % self.nth_batch_sample == 0:
 			fig = show_expect_predicted_result(model=self.model, image_batch_dataset=self.trainSet,
 											   color_space=self.color_space, nr_col=self.grid_size)
-			fig.savefig(os.path.join(self.dir_path, "SuperResolution_{0}_{1}.png".format(self.current_epoch, batch)))
+			fig.savefig(os.path.join(self.dir_path, "{0}_{1}_{2}.png".format(self.fileprefix, self.current_epoch, batch)))
 			fig.clf()
 			plt.close(fig)
 

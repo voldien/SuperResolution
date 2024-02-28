@@ -98,21 +98,22 @@ def augment_dataset(dataset: Dataset, image_crop_shape: tuple) -> Dataset:
 	:return: Augmented DataSet
 	"""
 	trainAug = tf.keras.Sequential([
-		# Select random section of Image.
-		tf.keras.layers.RandomCrop(
-			image_crop_shape[0], image_crop_shape[1]),
-		# Flip image around on each axis randomly.
-		layers.RandomFlip("horizontal_and_vertical"),
 		# Random Zoom.
 		layers.RandomZoom(
-			height_factor=(-0.05, 0.05),
-			width_factor=(-0.05, 0.05),
+			height_factor=(-0.1, 0.1),
+			width_factor=(-0.1, 0.1),
 			fill_mode='reflect',
 			interpolation='bilinear'),
 		# Random Rotation.
 		layers.RandomRotation(factor=0.65,
 							  fill_mode='reflect',
-							  interpolation='bilinear')
+							  interpolation='bilinear'),
+		# Select random section of Image.
+		tf.keras.layers.RandomCrop(
+			image_crop_shape[0], image_crop_shape[1]),
+		# Flip image around on each axis randomly.
+		layers.RandomFlip("horizontal_and_vertical"),
+
 	])
 
 	def AgumentFunc(x):
@@ -127,7 +128,7 @@ def augment_dataset(dataset: Dataset, image_crop_shape: tuple) -> Dataset:
 	return dataset
 
 
-def dataset_super_resolution(dataset: Dataset, input_size, output_size) -> Dataset:
+def dataset_super_resolution(dataset: Dataset, input_size: tuple, output_size: tuple) -> Dataset:
 	"""
 	Perform Super Resolution Data and Expected Data to Correct Size. For providing
 	the model with corrected sized Data.
@@ -150,6 +151,14 @@ def dataset_super_resolution(dataset: Dataset, input_size, output_size) -> Datas
 				interpolation='bilinear',
 				crop_to_aspect_ratio=False
 			)])
+		
+		expectedScale = tf.keras.Sequential([
+			layers.Resizing(
+				output_size[0],
+				output_size[1],
+				interpolation='bilinear',
+				crop_to_aspect_ratio=False
+			)])
 
 		# Create a copy to prevent augmentation be done twice separately.
 		expected = tf.identity(data)
@@ -161,7 +170,11 @@ def dataset_super_resolution(dataset: Dataset, input_size, output_size) -> Datas
 		# Remap from [0, 1] to [-1,1]
 		data = (2.0 * data) - 1.0
 
-		return data, expected
+		expected_data = (expected + 1.0) * 0.5
+		expected_data = expectedScale(expected_data)
+		expected_data = (2.0 * expected_data) - 1.0
+
+		return data, expected_data
 
 	DownScaledDataSet = (
 		dataset

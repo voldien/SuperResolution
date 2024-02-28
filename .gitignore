@@ -113,8 +113,12 @@ experiments/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-commandline
 */cpkt*
+*.index
+*.pb
+*.data-*
+
+commandline
 *.png
 *.json
 *.txt

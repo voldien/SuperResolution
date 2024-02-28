@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 from util.util import convert_nontensor_color_space
 import tensorflow as tf
 from numpy import asarray
+from tensorflow.python.data import Dataset
 
 
-def show_expect_predicted_result(model: tf.keras.Model, image_batch_dataset, color_space: str, nr_col=6):
+def show_expect_predicted_result(model: tf.keras.Model, image_batch_dataset: Dataset, color_space: str, nr_col=6):
 	batch_iter = iter(image_batch_dataset)
 	data_image_batch, expected_image_batch = batch_iter.next()
 
