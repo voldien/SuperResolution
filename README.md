@@ -51,12 +51,15 @@ python superresolution/SuperResolution.py  --batch-size 16 --epochs 10 --image-s
 ![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/bc77e853-a5e8-4eac-880b-e6d7a5f3c801)
 
 
-
 ### DCNN - Deep Convolutional Super Resolution Neural Network
 
 ```bash
 python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-size 128 128 --model cnnsr --learning-rate 0.002 --color-space rgb --loss-fn msa --shuffle-data-set-size 512 --show-psnr --data-set-directory /path_to_training_data/ --output-dir image-super-resolution-result/
 ```
+
+![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/f164b778-296d-4ded-b658-ef46d8e77910)
+![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/e5c33097-72ed-4c42-92a4-3a24d45b2110)
+
 
 ### Resnet - Residual Network Deep Convolutional Super Resolution Neural Network
 
