@@ -8,6 +8,7 @@ from tensorflow.python.keras.utils import metrics_utils, losses_utils
 from util.trainingcallback import compute_normalized_PSNR
 
 
+@keras.saving.register_keras_serializable(package="superresolution", name="PSNRMetric")
 class PSNRMetric(tf.keras.metrics.MeanMetricWrapper):
 	def __init__(self, name="PSNR", dtype=None):
 		def psnr(y_true, y_pred):
@@ -27,6 +28,7 @@ class PSNRMetric(tf.keras.metrics.MeanMetricWrapper):
 		super().__init__(psnr, name, dtype=dtype)
 
 
+@keras.saving.register_keras_serializable(package="superresolution", name="VGG16Error")
 class VGG16Error(LossFunctionWrapper):
 	selected_layers = ['block1_conv1', 'block2_conv2',
 					   "block3_conv3", 'block4_conv3', 'block5_conv4']

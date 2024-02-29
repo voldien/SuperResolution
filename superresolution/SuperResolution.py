@@ -199,7 +199,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 	# Setup none-augmented version for presentation.
 	non_augmented_dataset_train = dataset_super_resolution(dataset=training_dataset,
 														   input_size=image_input_size,
-														   output_size=image_output_size)
+														   output_size=image_output_size, crop=False)
 	non_augmented_dataset_validation = None
 	if validation_dataset:
 		non_augmented_dataset_validation = dataset_super_resolution(dataset=validation_dataset,
@@ -299,6 +299,11 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		# checkpoint root_path
 		checkpoint_root_path: str = args.checkpoint_dir
 
+		# TODO: improve
+		if os.path.exists(checkpoint_root_path):
+			custom_objects = {'PSNRMetric' : PSNRMetric(), 'VGG16Error' : VGG16Error()}
+			training_model = tf.keras.models.load_model(checkpoint_root_path, custom_objects=custom_objects)
+
 		# Create a callback that saves the model weights
 		checkpoint_path = os.path.join(checkpoint_root_path, "cpkt-{epoch:02d}")
 		checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
@@ -308,12 +313,6 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 			save_freq='epoch',
 			verbose=1)
 
-		#
-		checkpoint = tf.train.Checkpoint(optimizer=model_optimizer, model=training_model)
-		latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir=checkpoint_root_path)
-		if latest_checkpoint:
-			status = checkpoint.restore(save_path=latest_checkpoint).assert_consumed()
-
 		training_callbacks: list = [tf.keras.callbacks.TerminateOnNaN(), checkpoint_callback]
 
 		example_result_call_back = SaveExampleResultImageCallBack(
@@ -322,7 +321,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 			nth_batch_sample=args.example_nth_batch, grid_size=args.example_nth_batch_grid_size)
 		training_callbacks.append(example_result_call_back)
 
-		# Debug output of trained data.
+		# Debug output of the trained augmented data.
 		#training_callbacks.append(SaveExampleResultImageCallBack(
 		#	args.output_dir,
 		#	training_dataset, args.color_space, fileprefix="trainSuperResolution",
@@ -352,7 +351,6 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 											epochs=args.epochs,
 											callbacks=training_callbacks)
 		#
-		# training_model.load_weights(checkpoint_path)
 		training_model.save(args.model_filepath)
 
 		# Test model.

@@ -128,7 +128,7 @@ def augment_dataset(dataset: Dataset, image_crop_shape: tuple) -> Dataset:
 	return dataset
 
 
-def dataset_super_resolution(dataset: Dataset, input_size: tuple, output_size: tuple) -> Dataset:
+def dataset_super_resolution(dataset: Dataset, input_size: tuple, output_size: tuple, crop: bool = False) -> Dataset:
 	"""
 	Perform Super Resolution Data and Expected Data to Correct Size. For providing
 	the model with corrected sized Data.
@@ -176,6 +176,13 @@ def dataset_super_resolution(dataset: Dataset, input_size: tuple, output_size: t
 
 		return data, expected_data
 
+	def resize_data(images):
+		SIZE = output_size
+		return tf.image.resize_with_crop_or_pad(images, SIZE[0], SIZE[1])
+
+	if crop:
+		dataset = dataset.map(resize_data)
+		
 	DownScaledDataSet = (
 		dataset
 		.map(DownScaleLayer,
