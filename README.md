@@ -229,6 +229,11 @@ docker run --network=host --gpus all --name sr-cuda super-resolution-cuda
 ```
 
 
+# Convert
+
+```
+python3 superresolution/generate_tflite.py --model super-resolution-model.keras --output model-lite.tflite
+```
 ## License
 
 This project is licensed under the GPL+3 License - see the [LICENSE](LICENSE) file for details.

@@ -8,6 +8,8 @@ from tensorflow.keras import layers
 
 class EDSRSuperResolutionModel(ModelBase):
 	def __init__(self):
+		self.possible_upscale = [2, 3, 4]
+
 		self.parser = argparse.ArgumentParser(add_help=False)
 
 		#
@@ -20,13 +22,10 @@ class EDSRSuperResolutionModel(ModelBase):
 		#
 		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
 								 type=int,
-								 choices=[2, 4],
+								 choices=self.possible_upscale,
 								 default=2,
 								 required=False,
 								 help='Upscale Mode')
-		#
-		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
-								 help='Set the number of passes that the training set will be trained against.')
 
 		#
 		self.parser.add_argument('--edsr-filters', type=int, default=256, dest='edsr_filters',
@@ -37,10 +36,16 @@ class EDSRSuperResolutionModel(ModelBase):
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
+		scale_width: int = int(output_shape[0] / input_shape[0])
+		scale_height: int = int(output_shape[1] / input_shape[1])
+
+		if scale_width not in self.possible_upscale and scale_height not in self.possible_upscale:
+			raise ValueError("Ivalid upscale")
+
 		# Model constructor parameters.
 		regularization: float = kwargs.get("regularization", 0.00001)  #
-		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
-		num_input_filters: int = kwargs.get("edsr_filters", 192)  #
+		upscale_mode: int = scale_width  #
+		num_input_filters: int = kwargs.get("edsr_filters", 256)  #
 
 		#
 		return create_edsr_model(input_shape=input_shape,
@@ -68,6 +73,7 @@ def create_edsr_model(input_shape: tuple, output_shape: tuple, scale: int, num_f
 	x = _res_block = layers.Conv2D(filters=num_filters, kernel_size=(3, 3), padding='same',
 								   kernel_initializer=tf.keras.initializers.GlorotUniform())(
 		x_in)
+	# Residual blocks.
 	for _ in range(num_res_blocks):
 		_res_block = res_block(_res_block, num_filters, res_block_scaling)
 
