@@ -81,14 +81,14 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						help='Directory path where the images are located dataset images')
 
 	#
-	parser.add_argument('--image-size', type=int, dest='image_size',
+	parser.add_argument('--image-size', type=int, dest='input_image_size',
 						nargs=2,
-						default=(128, 128),
+						default=(64, 64),
 						help='Set the size of the images in width and height for the model.')
 
 	parser.add_argument('--output-image-size', type=int, dest='output_image_size',
 						nargs=2, required=False,
-						default=(256, 256),
+						default=(128, 128),
 						help='Set the size of the images in width and height for the model.')
 	#
 	parser.add_argument('--seed', type=int, default=randrange(10000000), dest='seed',

@@ -185,13 +185,11 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		len(training_dataset), batch_size))
 
 	# Create Input and Output Size
-	# TODO determine size.
-	resolution_upscale_constant: int = 2
 	image_input_size = (
-		int(args.image_size[0] / resolution_upscale_constant), int(args.image_size[1] / resolution_upscale_constant),
+		int(args.input_image_size[0]), int(args.input_image_size[1]),
 		args.color_channels)
 	image_output_size = (
-		args.image_size[0], args.image_size[1], args.color_channels)
+		args.output_image_size[0], args.output_image_size[1], args.color_channels)
 
 	logging.info("Input Size {0}".format(image_input_size))
 	logging.info("Output Size {0}".format(image_output_size))
@@ -199,7 +197,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 	# Setup none-augmented version for presentation.
 	non_augmented_dataset_train = dataset_super_resolution(dataset=training_dataset,
 														   input_size=image_input_size,
-														   output_size=image_output_size, crop=False)
+														   output_size=image_output_size, crop=True)
 	non_augmented_dataset_validation = None
 	if validation_dataset:
 		non_augmented_dataset_validation = dataset_super_resolution(dataset=validation_dataset,
@@ -470,7 +468,7 @@ def dcsuperresolution_program(vargs=None):
 		sr_logger.info(str.format("Use RAM Cache: {0}", args.cache_ram))
 
 		sr_logger.info(str.format("Example Batch Grid Size: {0}", args.example_nth_batch_grid_size))
-		sr_logger.info(str.format("Image Training Set: {0}", args.image_size))
+		sr_logger.info(str.format("Image Training Set: {0}", args.input_image_size))
 		sr_logger.info(str.format("Learning Rate: {0}", args.learning_rate))
 		sr_logger.info(str.format(
 			"Learning Decay Rate: {0}", args.learning_rate_decay))

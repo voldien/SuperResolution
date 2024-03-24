@@ -229,9 +229,9 @@ docker run --network=host --gpus all --name sr-cuda super-resolution-cuda
 ```
 
 
-# Convert
+# Convert TensorLite
 
-```
+```bash
 python3 superresolution/generate_tflite.py --model super-resolution-model.keras --output model-lite.tflite
 ```
 ## License

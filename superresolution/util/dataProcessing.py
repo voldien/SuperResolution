@@ -39,11 +39,10 @@ def load_dataset_from_directory(data_path: str, args: dict, override_size=None, 
 			float_precision = tf.float16
 
 		# Set import image size.
-		image_size = args.image_size
+		input_image_size = args.input_image_size
 		if override_size:
-			image_size = override_size
+			input_image_size = override_size
 
-		split: float = 0
 		#
 		color_mode = 'rgb' if args.color_channels == 3 else 'gray'
 		train_ds = tf.keras.utils.image_dataset_from_directory(
@@ -55,7 +54,7 @@ def load_dataset_from_directory(data_path: str, args: dict, override_size=None, 
 			shuffle=False,
 			follow_links=True,
 			batch_size=None,
-			image_size=image_size)
+			image_size=input_image_size)
 
 		normalization_layer = tf.keras.layers.Rescaling(1. / 255.0)
 

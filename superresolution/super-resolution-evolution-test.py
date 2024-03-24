@@ -48,7 +48,7 @@ batch_size: int = args.batch_size
 training_dataset_paths = args.train_directory_paths
 validation_dataset_paths = args.validation_directory_paths
 test_dataset_paths = args.test_directory_paths
-image_size: tuple = args.image_size
+input_image_size: tuple = args.input_image_size
 image_output_size: tuple = args.output_image_size
 seed: int = args.seed
 models: list = args.models
@@ -105,8 +105,8 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 
 	# Add resolution.
 	argvlist.append("--image-size")
-	argvlist.append(str(image_size[0]))
-	argvlist.append(str(image_size[1]))
+	argvlist.append(str(input_image_size[0]))
+	argvlist.append(str(input_image_size[1]))
 
 	output_target_dir = str(os.path.join(output_dir,
 										 "It{0}Learning:{1}DecRate:{2}ColorSpace:{3}Loss:{4}Model:{5}".format(

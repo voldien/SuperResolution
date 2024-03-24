@@ -154,6 +154,8 @@ class GraphHistory(tf.keras.callbacks.History):
 	def on_epoch_end(self, epoch, logs=None):
 		super().on_epoch_end(epoch=epoch, logs=logs)
 
+		#TODO: add file output.
+
 		# Plot detailed
 		fig = plotTrainingHistory(self.batch_history, x_label="Batches", y_label="value")
 		fig.savefig(self.fig_savepath)

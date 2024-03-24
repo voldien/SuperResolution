@@ -40,7 +40,7 @@ class EDSRSuperResolutionModel(ModelBase):
 		scale_height: int = int(output_shape[1] / input_shape[1])
 
 		if scale_width not in self.possible_upscale and scale_height not in self.possible_upscale:
-			raise ValueError("Ivalid upscale")
+			raise ValueError("Invalid upscale")
 
 		# Model constructor parameters.
 		regularization: float = kwargs.get("regularization", 0.00001)  #
