@@ -36,15 +36,15 @@ class EDSRSuperResolutionModel(ModelBase):
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		scale_width: int = int(output_shape[0] / input_shape[0])
-		scale_height: int = int(output_shape[1] / input_shape[1])
+		scale_factor: int = int(output_shape[0] / input_shape[0])
+		scale_factor: int = int(output_shape[1] / input_shape[1])
 
-		if scale_width not in self.possible_upscale and scale_height not in self.possible_upscale:
+		if scale_factor not in self.possible_upscale and scale_factor not in self.possible_upscale:
 			raise ValueError("Invalid upscale")
 
 		# Model constructor parameters.
 		regularization: float = kwargs.get("regularization", 0.00001)  #
-		upscale_mode: int = scale_width  #
+		upscale_mode: int = scale_factor  #
 		num_input_filters: int = kwargs.get("edsr_filters", 256)  #
 
 		#

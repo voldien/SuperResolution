@@ -10,6 +10,9 @@ from tensorflow.keras import layers
 
 class VDSRSuperResolutionModel(ModelBase):
 	def __init__(self):
+		self.possible_upscale = [2, 4]
+
+		
 		self.parser = argparse.ArgumentParser(add_help=False)
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
@@ -27,11 +30,17 @@ class VDSRSuperResolutionModel(ModelBase):
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		#
+		scale_factor: int = int(output_shape[0] / input_shape[0])
+		scale_factor: int = int(output_shape[1] / input_shape[1])
+
+		if scale_factor not in self.possible_upscale and scale_factor not in self.possible_upscale:
+			raise ValueError("Invalid upscale")
+		
 		# parser_result = self.parser.parse_known_args(sys.argv[1:])
 		# Model constructor parameters.
+
 		regularization: float = kwargs.get("regularization", 0.00001)  #
-		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
+		upscale_mode: int = scale_factor  #
 		num_input_filters: int = kwargs.get("edsr_filters", 128)  #
 
 		#
