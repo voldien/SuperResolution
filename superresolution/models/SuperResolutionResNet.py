@@ -19,12 +19,6 @@ class ResNetSuperResolutionModel(ModelBase):
 								 default=0.001,
 								 help='Set the L1 Regularization applied.')
 
-		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
-								 type=str,
-								 choices=[''],
-								 default='',
-								 help='Set the L1 Regularization applied.')
-
 	def load_argument(self) -> argparse.ArgumentParser:
 		"""Load in the file for extracting text."""
 

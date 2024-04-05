@@ -299,7 +299,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 
 		# TODO: improve
 		if os.path.exists(checkpoint_root_path):
-			custom_objects = {'PSNRMetric' : PSNRMetric(), 'VGG16Error' : VGG16Error()}
+			custom_objects = {'PSNRMetric': PSNRMetric(), 'VGG16Error': VGG16Error()}
 			training_model = tf.keras.models.load_model(checkpoint_root_path, custom_objects=custom_objects)
 
 		# Create a callback that saves the model weights
@@ -320,7 +320,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		training_callbacks.append(example_result_call_back)
 
 		# Debug output of the trained augmented data.
-		#training_callbacks.append(SaveExampleResultImageCallBack(
+		# training_callbacks.append(SaveExampleResultImageCallBack(
 		#	args.output_dir,
 		#	training_dataset, args.color_space, fileprefix="trainSuperResolution",
 		#	nth_batch_sample=args.example_nth_batch, grid_size=args.example_nth_batch_grid_size))
@@ -429,7 +429,7 @@ def dcsuperresolution_program(vargs=None):
 		#
 		parser.add_argument('--model', dest='model',
 							default='dcsr',
-							choices=['cnnsr', 'dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae', 'dcsr-resnet',
+							choices=['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae', 'dcsr-resnet',
 									 'vdsr'],
 							help='Set which model type to use.', type=str)
 		#
@@ -482,7 +482,7 @@ def dcsuperresolution_program(vargs=None):
 			args.model_filepath = os.path.join(args.output_dir, args.model_filepath)
 
 		# Allow override to enable cropping for increase details in the dataset.
-		override_size: tuple = (512, 512)  # TODO fix.
+		override_size: tuple = (768, 768)  # TODO fix.
 
 		# Setup Dataset
 		training_dataset = None

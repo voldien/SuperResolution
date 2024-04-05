@@ -1,7 +1,7 @@
 from tensorflow.keras import layers
 
 
-def create_activation(activation):
+def create_activation(activation: str):
 	if activation == "leaky_relu":
 		return layers.LeakyReLU(alpha=0.2, dtype='float32')
 	elif activation == "relu":

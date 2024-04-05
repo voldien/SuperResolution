@@ -191,9 +191,10 @@ optional arguments:
 ## Installation Instructions
 
 ### Setup Virtual Environment
-
+python3.9 or higher
 ```bash
 python3 -m venv venv
+source venv/bin/activate
 ```
 
 ## Installing Required Packages

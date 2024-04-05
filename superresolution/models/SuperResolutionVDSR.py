@@ -12,7 +12,6 @@ class VDSRSuperResolutionModel(ModelBase):
 	def __init__(self):
 		self.possible_upscale = [2, 4]
 
-		
 		self.parser = argparse.ArgumentParser(add_help=False)
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
@@ -35,9 +34,6 @@ class VDSRSuperResolutionModel(ModelBase):
 
 		if scale_factor not in self.possible_upscale and scale_factor not in self.possible_upscale:
 			raise ValueError("Invalid upscale")
-		
-		# parser_result = self.parser.parse_known_args(sys.argv[1:])
-		# Model constructor parameters.
 
 		regularization: float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = scale_factor  #

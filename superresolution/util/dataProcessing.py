@@ -150,7 +150,7 @@ def dataset_super_resolution(dataset: Dataset, input_size: tuple, output_size: t
 				interpolation='bilinear',
 				crop_to_aspect_ratio=False
 			)])
-		
+
 		expectedScale = tf.keras.Sequential([
 			layers.Resizing(
 				output_size[0],
@@ -181,7 +181,7 @@ def dataset_super_resolution(dataset: Dataset, input_size: tuple, output_size: t
 
 	if crop:
 		dataset = dataset.map(resize_data)
-		
+
 	DownScaledDataSet = (
 		dataset
 		.map(DownScaleLayer,

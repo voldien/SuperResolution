@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-def convert_model(model, dataset=None):
 
+def convert_model(model, dataset=None):
 	converter = tf.lite.TFLiteConverter.from_keras_model(model)
 	converter.optimizations = [tf.lite.Optimize.DEFAULT]
 	converter.inference_input_type = tf.float32
@@ -14,7 +14,7 @@ def convert_model(model, dataset=None):
 							]
 
 	converter.post_training_quantize = True
-	
+
 	if dataset:
 		converter.representative_dataset = tf.lite.RepresentativeDataset(
 			dataset)
