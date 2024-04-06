@@ -87,7 +87,7 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 	return packed_cropped_result
 
 
-def upscale_composite_image(upscale_model, input_im: Image, batch_size: int, color_space: str):
+def upscale_composite_image(upscale_model : tf.keras.Model, input_im: Image, batch_size: int, color_space: str):
 	image_input_shape: tuple = upscale_model.input_shape[1:]
 	image_output_shape: tuple = upscale_model.output_shape[1:]
 

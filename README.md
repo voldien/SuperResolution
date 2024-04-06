@@ -41,6 +41,17 @@ python superresolution/SuperResolution.py  --batch-size 16 --epochs 10 --image-s
 ![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/24cccb38-807f-4454-bbc6-35ad9e03b57f)
 ![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/153792f5-c35a-4fae-8bba-aed47c8902de)
 
+
+### GAN - Generative Adversarial Network - Super Resolution
+
+```bash
+
+```
+
+$
+l^{SR} = l_X^{SR} + 10^-3l^{SR}_{GEN}
+$
+
 ### AE - AutoEncoder Super Resolution
 
 ```bash

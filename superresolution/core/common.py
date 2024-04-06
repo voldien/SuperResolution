@@ -18,6 +18,11 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 
 	parser.add_argument('--batch-size', type=int, default=16, dest='batch_size',
 						help='number of training element per each batch, during training.')
+	
+	
+	#
+	parser.add_argument('--use-checkpoint', dest='use_checkpoint', action='store_true',
+						help='Set the path the checkpoint will be saved/loaded.')
 	#
 	parser.add_argument('--checkpoint-filepath', type=str, dest='checkpoint_dir',
 						default="training_checkpoints",

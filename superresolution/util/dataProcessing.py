@@ -173,7 +173,7 @@ def dataset_super_resolution(dataset: Dataset, input_size: tuple, output_size: t
 		expected_data = expectedScale(expected_data)
 		expected_data = (2.0 * expected_data) - 1.0
 
-		return data, expected_data
+		return (data, expected_data)
 
 	def resize_data(images):
 		SIZE = output_size

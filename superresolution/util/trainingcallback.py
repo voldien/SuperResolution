@@ -67,7 +67,7 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 		if not os.path.exists(self.dir_path):
 			os.mkdir(self.dir_path)
 
-	def on_epoch_begin(self, epoch, logs=None):
+	def on_epoch_start(self, epoch, logs=None):
 		self.current_epoch = epoch
 
 		# TODO: relocate to its own function
