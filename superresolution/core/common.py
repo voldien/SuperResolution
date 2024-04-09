@@ -111,6 +111,10 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 
 	parser.add_argument('--disable-validation', default=True, dest='use_validation', action='store_false',
 						help='Select if use data validation step.')
+	
+	parser.add_argument('--config', default=None, dest='config',
+						help='Config File - Json.')
+
 	return parser
 
 

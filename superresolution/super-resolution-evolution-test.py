@@ -19,14 +19,14 @@ parser.add_argument('--output-dir', type=str, dest='output_dir',
 #
 parser.add_argument('--models', dest='models', action='append', nargs='*', required=False,
 					default=['cnnsr', 'dcsr', 'edsr',
-							 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
+							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan'],
 					choices=['cnnsr', 'dcsr', 'edsr',
-							 'dcsr-ae', 'dcsr-resnet', 'vdsr'],
+							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan'],
 					help='Overide what Model to include in training evolution.')
 #
 parser.add_argument('--loss-functions', dest='loss_functions', action='append', nargs='*', required=False,
-					default=['mse', 'ssim', 'msa', 'vgg16'],
-					choices=['mse', 'ssim', 'msa', 'vgg16'],
+					default=['mse', 'ssim', 'msa', 'vgg16','vgg19'],
+					choices=['mse', 'ssim', 'msa', 'vgg16','vgg19'],
 					help='Overide what Loss functions to include in training evolution.')
 #
 parser.add_argument('--optimizer', dest='optimizer', action='append', nargs='*', required=False,
@@ -72,8 +72,8 @@ hyperparameters = {
 	"--loss-fn": loss_functions,
 	"--seed": [seed],
 	"--model": models,
-	# "--cache-file": [
-	# "/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
+	"--cache-file": [
+	"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
 	"--epochs": [epochs],
 	"--shuffle-data-set-size": [1024],
 	"--checkpoint-every-epoch": [0],
