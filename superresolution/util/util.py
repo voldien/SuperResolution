@@ -14,11 +14,11 @@ def convert_nontensor_color_space(image_data, color_space: str):
 	"""_summary_
 
 	Args:
-		image_data (_type_): _description_
-		color_space (str): _description_
+					image_data (_type_): _description_
+					color_space (str): _description_
 
 	Returns:
-		_type_: [0,1]
+					_type_: [0,1]
 	"""
 	if color_space == 'lab':
 		if isinstance(image_data, list):
@@ -57,12 +57,12 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 	"""_summary_
 
 	Args:
-		model (tf.keras.Model): _description_
-		image (_type_): _description_
-		color_space (str): _description_
+					model (tf.keras.Model): _description_
+					image (_type_): _description_
+					color_space (str): _description_
 
 	Returns:
-		list: _description_
+					list: _description_
 	"""
 	# Perform upscale.
 	result_upscale_raw = model(image, training=False)
@@ -87,13 +87,26 @@ def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 	return packed_cropped_result
 
 
-def upscale_composite_image(upscale_model : tf.keras.Model, input_im: Image, batch_size: int, color_space: str):
-	image_input_shape: tuple = upscale_model.input_shape[1:]
-	image_output_shape: tuple = upscale_model.output_shape[1:]
+def upscale_composite_image(upscale_model: tf.keras.Model, input_im: Image, batch_size: int, color_space: str):
+	image_input: object = upscale_model.input_shape
+	image_output: object = upscale_model.output_shape
+
+	# TODO: improve if absent.
+	if image_input:
+		image_input_shape_size: tuple = image_input[1:]
+	else:
+		image_input_shape_size: tuple = upscale_model.get_layer(
+			"input").shape[1:]
+
+	if image_output:
+		image_output_shape_size: tuple = image_output[1:]
+	else:
+		image_output_shape_size: tuple = upscale_model.get_layer(
+			"output").shape[1:]
 
 	#
-	input_width, input_height, input_channels = image_input_shape
-	output_width, output_height, output_channels = image_output_shape
+	input_width, input_height, input_channels = image_input_shape_size
+	output_width, output_height, output_channels = image_output_shape_size
 
 	#
 	width_scale: float = float(output_width) / float(input_width)
@@ -103,14 +116,16 @@ def upscale_composite_image(upscale_model : tf.keras.Model, input_im: Image, bat
 	input_im: Image = input_im.convert('RGB')
 
 	#
-	upscale_new_size: tuple = (int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
+	upscale_new_size: tuple = (
+		int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
 
 	#
 	upscale_image = Image.new("RGB", upscale_new_size, (0, 0, 0))
 
 	#
 	nr_width_block: int = math.ceil(float(input_im.width) / float(input_width))
-	nr_height_block: int = math.ceil(float(input_im.height) / float(input_height))
+	nr_height_block: int = math.ceil(
+		float(input_im.height) / float(input_height))
 
 	# Construct all crops.
 	image_crop_list: list = []
@@ -128,7 +143,8 @@ def upscale_composite_image(upscale_model : tf.keras.Model, input_im: Image, bat
 
 	#
 	for nth_batch in range(0, nr_cropped_batchs):
-		cropped_batch = image_crop_list[nth_batch * batch_size:(nth_batch + 1) * batch_size]
+		cropped_batch = image_crop_list[nth_batch *
+										batch_size:(nth_batch + 1) * batch_size]
 
 		#
 		crop_batch: list = []
@@ -143,7 +159,8 @@ def upscale_composite_image(upscale_model : tf.keras.Model, input_im: Image, bat
 		# COnmvert RGB to the color space used by the model.
 		if color_space == 'lab':
 			# [0,1] -> [-128,128] ->  [-1,1]
-			cropped_sub_input_image = rgb2lab(normalized_subimage_color) * (1.0 / 128.0)
+			cropped_sub_input_image = rgb2lab(
+				normalized_subimage_color) * (1.0 / 128.0)
 		elif color_space == 'rgb':
 			# [0,1] -> [-1,1]
 			cropped_sub_input_image = (normalized_subimage_color * 2) - 1
@@ -161,7 +178,8 @@ def upscale_composite_image(upscale_model : tf.keras.Model, input_im: Image, bat
 			output_right = int(crop[2] * width_scale)
 			output_bottom = int(crop[3] * width_scale)
 
-			upscale_image.paste(upscale, (output_left, output_top, output_right, output_bottom))
+			upscale_image.paste(
+				upscale, (output_left, output_top, output_right, output_bottom))
 
 	# Offload final crop and save to seperate thread.
 	final_cropped_size = (0, 0, upscale_new_size[0], upscale_new_size[1])

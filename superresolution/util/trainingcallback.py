@@ -35,7 +35,7 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 	def on_epoch_begin(self, epoch, logs=None):
 		self.current_epoch = epoch
 
-	def on_epoch_end(self, epoch, logs=None):
+	def on_epoch_begin(self, epoch, logs=None):
 		fig = show_expect_predicted_result(model=self.model, image_batch_dataset=self.trainSet,
 										   color_space=self.color_space, nr_col=self.grid_size)
 		fig.savefig(os.path.join(self.dir_path, "{0}{1}.png".format(self.fileprefix, epoch)))
@@ -60,14 +60,14 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 		self.trainSet = train_data_subset
 
 		self.composite_name = name
-		self.dir_path = dir_path
+		self.output_dir = dir_path
 		self.current_epoch = 0
 		self.color_space = color_space
 		self.num_images = num_images
-		if not os.path.exists(self.dir_path):
-			os.mkdir(self.dir_path)
+		if not os.path.exists(self.output_dir):
+			os.mkdir(self.output_dir)
 
-	def on_epoch_start(self, epoch, logs=None):
+	def on_epoch_begin(self, epoch, logs=None):
 		self.current_epoch = epoch
 
 		# TODO: relocate to its own function
@@ -90,7 +90,7 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 																		input_im=input_rgb_image,
 																		batch_size=16, color_space=self.color_space)
 
-			full_output_path = os.path.join(self.dir_path,
+			full_output_path = os.path.join(self.output_dir,
 											"SuperResolution_Composite_{0}_{1}_{2}.png".format(self.composite_name,
 																							   self.current_epoch, i))
 			# Crop image final size image.

@@ -44,15 +44,14 @@ class GANSuperResolutionModel(ModelBase):
 		generator = make_generator_model(
 			input_shape=input_shape, upscale_num=upscale_mode, output_shape=output_shape, num_res_blocks=num_res_blocks)
 
-		sr_gan_model = SRGANModel(discriminator=discriminator, generator=generator,
-								  input_shape=input_shape, output_shape=output_shape)
+		srgan_model = SRGANModel(discriminator=discriminator, generator=generator)
 
 		# Build
 		input_build = list(input_shape)
 		input_build.insert(0, None)
-		sr_gan_model.build(input_shape=input_build)
+		srgan_model.build(input_shape=input_build)
 
-		return sr_gan_model
+		return srgan_model
 
 	def get_name(self):
 		return "SuperResolution - GAN - Generative Adversarial Network"
@@ -106,7 +105,7 @@ def make_generator_model(input_shape, output_shape, upscale_num: int = 2, num_re
 	output_width, output_height, output_channels = output_shape
 	init = 'glorot_uniform'
 
-	input = layers.Input(shape=input_shape)
+	input = layers.Input(shape=input_shape, name="input")
 
 	x = layers.Conv2D(filters=64, kernel_size=(9, 9), strides=(1, 1), use_bias=True,
 					  padding='same',
@@ -129,7 +128,7 @@ def make_generator_model(input_shape, output_shape, upscale_num: int = 2, num_re
 	# output layer
 	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
 		1, 1), padding='same', kernel_initializer=init)(x)
-	x = layers.Activation('tanh')(x)
+	x = layers.Activation('tanh', name="output")(x)
 
 	# Confirm the output shape.
 	print(x.shape[1:])
@@ -212,7 +211,7 @@ def make_discriminator_model(input_size, regularization_l1=0.0002, upscale_mode=
 
 
 class SRGANModel(tf.keras.Model):
-	def __init__(self, discriminator, generator, input_shape: tuple, output_shape: tuple, **kwargs):
+	def __init__(self, discriminator, generator, **kwargs):
 		super(SRGANModel, self).__init__(**kwargs)
 		self.discriminator = discriminator
 		self.generator = generator
@@ -224,6 +223,8 @@ class SRGANModel(tf.keras.Model):
 		self.gradient_loss_rate = 0.01
 		self.discriminator_loss_rate = 0.0001
 
+		self.local_metrics = None
+
 		self.cross_entropy = tf.keras.losses.BinaryCrossentropy(
 			from_logits=False, reduction=tf.keras.losses.Reduction.NONE)
 
@@ -232,11 +233,7 @@ class SRGANModel(tf.keras.Model):
 
 	@property
 	def metrics(self):
-
-		tracker = [self.gen_loss_tracker, self.disc_loss_tracker]
-		if self.local_metrics:
-			tracker.extend(self.local_metrics)
-		return tracker
+		return self.local_metrics
 
 	def compile(self, d_optimizer=None, g_optimizer=None, loss=None, optimizer=None, metrics=None):
 		super().compile(metrics=metrics, loss=loss)
@@ -244,17 +241,21 @@ class SRGANModel(tf.keras.Model):
 		self.generator_optimizer = optimizer  # g_optimizer
 		self.discriminator_optimizer = optimizer  # d_optimizer
 
-		self.discriminator_optimizer = tf.keras.optimizers.Adam(
-			learning_rate=optimizer.learning_rate, beta_1=0.5, beta_2=0.9)
+		self.discriminator_optimizer = optimizer.from_config(optimizer.get_config())
 
 		self.content_loss_fn = loss
 		self.gp_weight = 0.5
-		self.local_metrics = metrics
+		self.local_metrics = [self.gen_loss_tracker, self.disc_loss_tracker]
+
+		#if metrics:
+		#	self.local_metrics = [self.gen_loss_tracker, self.disc_loss_tracker].extend(metrics)
 
 	def build(self, input_shape):
+		#self.layers[0] = self.generator.input
 		super().build(input_shape=input_shape)
-		self.discriminator.build(input_shape)
-		self.generator.build(input_shape)
+
+		self.discriminator.build(input_shape=input_shape)
+		self.generator.build(input_shape=input_shape)
 		#
 		self._set_inputs(inputs=input_shape)
 
@@ -264,14 +265,23 @@ class SRGANModel(tf.keras.Model):
 		else:
 			return self.generator(x, training)
 
-	#def summary(self):
-	#	self.generator.summary()
-	#	self.discriminator.summary()
-
 	def get_config(self):
 		config = super().get_config()
 
 		return config
+	
+	@property
+	def input_shape(self):
+		return self.generator.input_shape
+
+	@property
+	def output_shape(self):
+		return self.generator.output_shape
+	
+	def get_layer(self, name=None, index=None):
+		super().get_layer(name, index)
+		return self.generator.get_layer(name, index)
+
 
 	def train_step(self, data):
 
@@ -356,7 +366,7 @@ class SRGANModel(tf.keras.Model):
 								  ragged=True)
 
 		return tf.keras.Model(inputs=[x],
-							  outputs=[self.call(x), self.discriminator.call(x)] )
+							  outputs=[self.call(x, False), self.discriminator.call(x)] )
 
 	def gan_generator_loss(self, gradient_loss_rate, real_image, generated_image, fake_output):
 		# The objective is to penalize the generator whenever it produces images which the discriminator classifies as 'fake'
