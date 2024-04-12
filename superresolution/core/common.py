@@ -106,7 +106,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						help='Select Number of channels in the color space. GrayScale, RGB and RGBA.')
 	#
 	parser.add_argument('--optimizer', type=str, default='adam', dest='optimizer',
-						choices=['adam', 'ada', 'rmsprop', 'sgd', 'adadelta'],
+						choices=['adam', 'rmsprop', 'sgd', 'adadelta'],
 						help='Select optimizer to be used')
 
 	parser.add_argument('--disable-validation', default=True, dest='use_validation', action='store_false',

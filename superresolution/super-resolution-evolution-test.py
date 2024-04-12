@@ -25,13 +25,15 @@ parser.add_argument('--models', dest='models', action='append', nargs='*', requi
 					help='Overide what Model to include in training evolution.')
 #
 parser.add_argument('--loss-functions', dest='loss_functions', action='append', nargs='*', required=False,
-					default=['mse', 'ssim', 'msa', 'vgg16','vgg19'],
-					choices=['mse', 'ssim', 'msa', 'vgg16','vgg19'],
+					default=['mse', 'ssim', 'msa', 'vgg16', 'vgg19'],
+					choices=['mse', 'ssim', 'msa', 'vgg16', 'vgg19'],
 					help='Overide what Loss functions to include in training evolution.')
 #
 parser.add_argument('--optimizer', dest='optimizer', action='append', nargs='*', required=False,
-					default=['adam', 'ada', 'rmsprop', 'sgd', 'adadelta'],
-					choices=['adam', 'ada', 'rmsprop', 'sgd', 'adadelta'],
+					default=['adam',
+							 'rmsprop', 'sgd', 'adadelta'],
+					choices=['adam',
+							 'rmsprop', 'sgd', 'adadelta'],
 					help='Select optimizer to be used')
 
 # If invalid number of arguments, print help.
@@ -73,7 +75,7 @@ hyperparameters = {
 	"--seed": [seed],
 	"--model": models,
 	"--cache-file": [
-	"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
+		"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
 	"--epochs": [epochs],
 	"--shuffle-data-set-size": [1024],
 	"--checkpoint-every-epoch": [0],

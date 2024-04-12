@@ -6,10 +6,10 @@ from tensorflow.keras import layers
 from core import ModelBase
 
 
-class GANSuperResolutionModel(ModelBase):
+class SRGANSuperResolutionModel(ModelBase):
 	def __init__(self):
 		self.parser = argparse.ArgumentParser(add_help=False)
-		self.possible_upscale = [2, 4]
+		self.possible_upscale = [2, 4, 8]
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
@@ -22,7 +22,6 @@ class GANSuperResolutionModel(ModelBase):
 								 help='Set the number of passes that the training set will be trained against.')
 
 	def load_argument(self) -> argparse.ArgumentParser:
-		#
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
@@ -44,7 +43,8 @@ class GANSuperResolutionModel(ModelBase):
 		generator = make_generator_model(
 			input_shape=input_shape, upscale_num=upscale_mode, output_shape=output_shape, num_res_blocks=num_res_blocks)
 
-		srgan_model = SRGANModel(discriminator=discriminator, generator=generator)
+		srgan_model = SRGANModel(
+			discriminator=discriminator, generator=generator)
 
 		# Build
 		input_build = list(input_shape)
@@ -58,7 +58,7 @@ class GANSuperResolutionModel(ModelBase):
 
 
 def get_model_interface() -> ModelBase:
-	return GANSuperResolutionModel()
+	return SRGANSuperResolutionModel()
 
 
 def residual_block(input, filters, init):
@@ -93,6 +93,13 @@ def upsample(x, scale: int, num_filters: int):
 	elif scale == 4:
 		x = upsample_1(x, 2, name='conv2d_1_scale_2')
 		x = upsample_1(x, 2, name='conv2d_2_scale_2')
+	elif scale == 6:
+		x = upsample_1(x, 3, name='conv2d_1_scale_3')
+		x = upsample_1(x, 3, name='conv2d_2_scale_3')
+	elif scale == 8:
+		x = upsample_1(x, 2, name='conv2d_1_scale_2')
+		x = upsample_1(x, 2, name='conv2d_2_scale_2')
+		x = upsample_1(x, 2, name='conv2d_3_scale_2')
 	else:
 		assert 0
 
@@ -123,7 +130,7 @@ def make_generator_model(input_shape, output_shape, upscale_num: int = 2, num_re
 		x = layers.BatchNormalization()(x)
 		x = layers.add([firstLayer, x])
 
-	x = upsample(x, upscale_num, 256)
+	x = upsample(x, upscale_num, 128)
 
 	# output layer
 	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
@@ -220,8 +227,8 @@ class SRGANModel(tf.keras.Model):
 		self.use_wgandp = False
 		self.use_gradient_penalty = False
 
-		self.gradient_loss_rate = 0.01
-		self.discriminator_loss_rate = 0.0001
+		self.gradient_loss_rate = 0.5
+		self.discriminator_loss_rate = 0.999
 
 		self.local_metrics = None
 
@@ -241,17 +248,18 @@ class SRGANModel(tf.keras.Model):
 		self.generator_optimizer = optimizer  # g_optimizer
 		self.discriminator_optimizer = optimizer  # d_optimizer
 
-		self.discriminator_optimizer = optimizer.from_config(optimizer.get_config())
+		self.discriminator_optimizer = optimizer.from_config(
+			optimizer.get_config())
 
 		self.content_loss_fn = loss
 		self.gp_weight = 0.5
 		self.local_metrics = [self.gen_loss_tracker, self.disc_loss_tracker]
 
-		#if metrics:
-		#	self.local_metrics = [self.gen_loss_tracker, self.disc_loss_tracker].extend(metrics)
+		# if metrics:
+		# self.local_metrics = [self.gen_loss_tracker, self.disc_loss_tracker].extend(metrics)
 
 	def build(self, input_shape):
-		#self.layers[0] = self.generator.input
+		# self.layers[0] = self.generator.input
 		super().build(input_shape=input_shape)
 
 		self.discriminator.build(input_shape=input_shape)
@@ -269,7 +277,7 @@ class SRGANModel(tf.keras.Model):
 		config = super().get_config()
 
 		return config
-	
+
 	@property
 	def input_shape(self):
 		return self.generator.input_shape
@@ -277,11 +285,10 @@ class SRGANModel(tf.keras.Model):
 	@property
 	def output_shape(self):
 		return self.generator.output_shape
-	
+
 	def get_layer(self, name=None, index=None):
 		super().get_layer(name, index)
 		return self.generator.get_layer(name, index)
-
 
 	def train_step(self, data):
 
@@ -308,6 +315,7 @@ class SRGANModel(tf.keras.Model):
 					generated_upscale_image, training=True), tf.float32)
 
 				# Calculate the gradient penalty
+				gp = None
 				if self.use_gradient_penalty:
 					gp = tf.dtypes.cast(self.gradient_penalty(self.discriminator, data_batch_size, upscale_image, generated_upscale_image),
 										tf.float32)
@@ -315,7 +323,9 @@ class SRGANModel(tf.keras.Model):
 				#
 				disc_loss = tf.dtypes.cast(
 					self.gan_discriminator_loss(self.cross_entropy, self.gradient_loss_rate, self.discriminator_loss_rate,
-												real_output, fake_output), tf.float32)  # + gp * self.gp_weight  # * (
+												real_output, fake_output), tf.float32)
+				if gp:
+					disc_loss += gp * self.gp_weight
 
 				# compute gradient
 				discriminator_grad = disc_tape.gradient(
@@ -366,18 +376,19 @@ class SRGANModel(tf.keras.Model):
 								  ragged=True)
 
 		return tf.keras.Model(inputs=[x],
-							  outputs=[self.call(x, False), self.discriminator.call(x)] )
+							  outputs=[self.call(x, False), self.discriminator.call(x, False)])
 
 	def gan_generator_loss(self, gradient_loss_rate, real_image, generated_image, fake_output):
-		# The objective is to penalize the generator whenever it produces images which the discriminator classifies as 'fake'
+		"""The objective is to penalize the generator whenever it produces images which the discriminator classifies as 'fake'
+		"""
 
 		content_loss = self.content_loss_fn(real_image, generated_image)
 
-		adversarial_loss = 10**-3 * \
+		adversarial_loss = 1e-3 * \
 			self.gan_discriminator_loss(
 				self.cross_entropy, 1, 1, real_image, generated_image)
 
-		return content_loss + adversarial_loss
+		return tf.add(content_loss, adversarial_loss)
 
 	def gan_discriminator_loss(self, cross_entropy, gradient_loss_rate, discriminator_loss_rate, real_output, fake_output,
 							   smooth=0.01):
@@ -387,15 +398,17 @@ class SRGANModel(tf.keras.Model):
 			real_output) * (1 - smooth), real_output)
 		#
 		fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
-		total_loss = gradient_loss_rate * fake_loss + discriminator_loss_rate * real_loss
+
+		total_loss = gradient_loss_rate * \
+			(fake_loss + discriminator_loss_rate * real_loss)
 
 		return total_loss
 
 	def gradient_penalty(self, discriminator, batch_size, real_images, fake_images):
 		"""	
-						Calculates the gradient penalty.
-						This loss is calculated on an interpolated image
-						and added to the discriminator loss.
+										Calculates the gradient penalty.
+										This loss is calculated on an interpolated image
+										and added to the discriminator loss.
 		"""
 		# Get the interpolated image
 		alpha = tf.random.normal([batch_size, 1, 1, 1], 0.0, 1.0)

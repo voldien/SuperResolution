@@ -1,7 +1,7 @@
 from util.trainingcallback import compute_normalized_PSNR
 from keras.src.applications import VGG19, VGG16
-from keras.src.applications.vgg16 import preprocess_input as preprocess_input16
-from keras.src.applications.vgg19 import preprocess_input as preprocess_input19
+from keras.src.applications.vgg16 import preprocess_input as preprocess_input_vgg16
+from keras.src.applications.vgg19 import preprocess_input as preprocess_input_vgg19
 from keras.src.losses import LossFunctionWrapper
 import tensorflow as tf
 from tensorflow.python.keras.utils import losses_utils
@@ -30,8 +30,8 @@ class VGG16Error(LossFunctionWrapper):
 		y_true = tf.image.resize(y_true, (224, 224))
 
 		# Remap [-1,1] -> [0,1] | [RGB] -> [BGR]
-		h1_list = self.model(preprocess_input16((y_pred + 1) * 0.5))
-		h2_list = self.model(preprocess_input16((y_true + 1) * 0.5))
+		h1_list = self.model(preprocess_input_vgg16((y_pred + 1) * 0.5))
+		h2_list = self.model(preprocess_input_vgg16((y_true + 1) * 0.5))
 
 		rc_loss: float = 0.0
 		for h1, h2, weight in zip(h1_list, h2_list, self.selected_layer_weights):
@@ -73,8 +73,8 @@ class VGG19Error(LossFunctionWrapper):
 		y_true = tf.image.resize(y_true, (224, 224))
 
 		# Remap [-1,1] -> [0,1] | [RGB] -> [BGR]
-		h1_list = self.model(preprocess_input19((y_pred + 1) * 0.5))
-		h2_list = self.model(preprocess_input19((y_true + 1) * 0.5))
+		h1_list = self.model(preprocess_input_vgg19((y_pred + 1) * 0.5))
+		h2_list = self.model(preprocess_input_vgg19((y_true + 1) * 0.5))
 
 		rc_loss: float = 0.0
 		for h1, h2, weight in zip(h1_list, h2_list, self.selected_layer_weights):
@@ -128,8 +128,6 @@ class SSIMError(LossFunctionWrapper):
 		color_space : str = None,
 	):
 		super().__init__(self.ssim_loss, name=name, reduction=reduction)
-		self.VGG = None
-		self.model = None
 		self.color_space = color_space
 
 

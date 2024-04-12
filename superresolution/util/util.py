@@ -32,7 +32,6 @@ def convert_nontensor_color_space(image_data, color_space: str):
 	else:
 		assert 0
 
-
 # TODO: add
 # @tf.function
 # def setup_color_encoding(img, color_space: str):

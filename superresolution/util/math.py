@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def psnr(target, ref):
 	# Assume target is RGB/BGR image
 	target_data = target.astype(np.float32)

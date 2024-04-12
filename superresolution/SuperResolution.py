@@ -30,7 +30,7 @@ import models.SuperResolutionSRGAN
 from core.common import ParseDefaultArgument, DefaultArgumentParser, setup_tensorflow_strategy
 from util.dataProcessing import load_dataset_from_directory, \
 	configure_dataset_performance, dataset_super_resolution, augment_dataset
-from util.metrics import PSNRMetric
+from util.metrics import PSNRMetric, SSIMMetric
 from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, \
 	CompositeImageResultCallBack
 from util.util import plotTrainingHistory
@@ -42,6 +42,16 @@ sr_logger: Logger = logging.getLogger("Super Resolution Training")
 
 def setup_dataset(dataset, args: dict):
 	pass
+
+
+def create_metric(metrics: list):
+	metric = []
+	for m in metrics:
+		if m == 'ssim':
+			metric.append(SSIMMetric())
+		elif m == 'psnr':
+			metric.append(PSNRMetric())
+	return metric
 
 
 def create_setup_optimizer(args: dict):
@@ -60,14 +70,12 @@ def create_setup_optimizer(args: dict):
 	#
 	if optimizer == 'adam':
 		return tf.keras.optimizers.Adam(learning_rate=lr_schedule, beta_1=0.5, beta_2=0.9)
-	elif optimizer == 'ada':
-		return None
 	elif optimizer == 'rmsprop':
-		return None
+		return tf.keras.optimizers.RMSprop(learning_rate=lr_schedule)
 	elif optimizer == 'sgd':
-		return None
+		return tf.keras.optimizers.SGD(learning_rate=lr_schedule)
 	elif optimizer == 'adadelta':
-		return None
+		return tf.keras.optimizers.Adadelta(learning_rate=lr_schedule)
 	else:
 		raise ValueError(optimizer + " Is not a valid option")
 
@@ -263,6 +271,9 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 
 		# TODO metric list.
 		metrics = [tf.keras.metrics.Accuracy(), ]
+		additional_metrics = create_metric(args.metrics)
+		if additional_metrics:
+			metrics.extend(create_metric(args.metrics))
 		if args.show_psnr:
 			metrics.append(PSNRMetric())
 
@@ -401,6 +412,7 @@ def dcsuperresolution_program(vargs=None):
 		# TODO add support
 		parser.add_argument('--metrics', dest='metrics',
 							action='append',
+							choices=['psnr', 'ssim'],
 							default="", help='Set what metric to capture.')
 
 		#
