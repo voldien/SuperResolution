@@ -1,4 +1,5 @@
 import argparse
+from . import create_activation
 import tensorflow as tf
 import math
 from tensorflow import keras
@@ -6,35 +7,40 @@ from tensorflow.keras import layers
 from core import ModelBase
 
 
-class SRGANSuperResolutionModel(ModelBase):
+class ESRGANSuperResolutionModel(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=False, description="SRGAN Specific Argument")
+		self.parser = argparse.ArgumentParser(add_help=False)
 		self.possible_upscale = [2, 4, 8]
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
-								 default=0.000001,
+								 default=0.00001,
 								 required=False,
 								 help='Set the L1 Regularization applied.')
-		
 		self.parser.add_argument('--res_blocks', dest='res_blocks',
 								 type=int,
-								 default=8,
+								 default=3,
 								 required=False,
 								 help='')
 
+		#
+		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
+								 help='Set the number of passes that the training set will be trained against.')
+
 	def load_argument(self) -> argparse.ArgumentParser:
+		#
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		scale_width_factor, scale_height_factor = self.compute_upscale_mode(input_shape, output_shape)
+		scale_factor: int = int(output_shape[0] / input_shape[0])
+		scale_factor: int = int(output_shape[1] / input_shape[1])
 
-		if scale_width_factor not in self.possible_upscale and scale_height_factor not in self.possible_upscale:
+		if scale_factor not in self.possible_upscale and scale_factor not in self.possible_upscale:
 			raise ValueError("Invalid upscale")
 
 		regularization: float = kwargs.get("regularization", 0.000001)  #
-		upscale_mode: int = scale_height_factor  #
-		num_res_blocks: int = kwargs.get("res_blocks", 8)
+		upscale_mode: int = scale_factor  #
+		num_res_blocks: int = kwargs.get("res_blocks", 3)
 
 		# Create the discriminator.
 		discriminator = make_discriminator_model(
@@ -59,25 +65,67 @@ class SRGANSuperResolutionModel(ModelBase):
 
 
 def get_model_interface() -> ModelBase:
-	return SRGANSuperResolutionModel()
+	return ESRGANSuperResolutionModel()
 
 
-def residual_block(input, filters, init):
+class ResDenseBlock_5C(tf.keras.layers.Layer):
+	"""Residual Dense Block"""
 
-	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), strides=(1, 1), use_bias=True,
-					  padding='same',
-					  kernel_initializer=init)(input)
-	x = layers.BatchNormalization()(x)
-	x = layers.ReLU()(x)
-	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), strides=(1, 1), use_bias=True,
-					  padding='same',
-					  kernel_initializer=init)(x)
-	x = layers.BatchNormalization()(x)
+	def __init__(self, x, nf=64, gc=32, res_beta=0.2, wd=0., name='RDB5C',
+				 **kwargs):
+		super(ResDenseBlock_5C, self).__init__(name=name, **kwargs)
+		# gc: growth channel, i.e. intermediate channels
+		self.res_beta = res_beta
+		lrelu_f = functools.partial(LeakyReLU, alpha=0.2)
+		_Conv2DLayer = functools.partial(
+			Conv2D, kernel_size=3, padding='same',
+			kernel_initializer=_kernel_init(0.1), bias_initializer='zeros',
+			kernel_regularizer=_regularizer(wd))
+		self.conv1 = _Conv2DLayer(filters=gc, activation=lrelu_f())
+		self.conv2 = _Conv2DLayer(filters=gc, activation=lrelu_f())
+		self.conv3 = _Conv2DLayer(filters=gc, activation=lrelu_f())
+		self.conv4 = _Conv2DLayer(filters=gc, activation=lrelu_f())
+		self.conv5 = _Conv2DLayer(filters=nf, activation=lrelu_f())
 
-	AttachLayer = x
+	def call(self, x):
+		x1 = self.conv1(x)
+		x2 = self.conv2(tf.concat([x, x1], 3))
+		x3 = self.conv3(tf.concat([x, x1, x2], 3))
+		x4 = self.conv4(tf.concat([x, x1, x2, x3], 3))
+		x5 = self.conv5(tf.concat([x, x1, x2, x3, x4], 3))
+		return x5 * self.res_beta + x
 
-	x = layers.add([AttachLayer, input])
-	return x
+
+def residual_dense_block_5c(input, nf=64, gc=32, res_beta=0.2, wd=0):
+	kernel_size: tuple = (3, 3)
+
+	x = layers.Conv2D(filters=gc)(input)
+	x = create_activation(activation="leaky_relu", alpha=0.2)(x)
+
+	x = layers.Conv2D(filters=gc, kernel_size=3,)
+	x1 = create_activation(activation="leaky_relu", alpha=0.2)(x)
+	x = layers.concatenate([input, x1], axis=3)
+
+	x2 = layers.Conv2D(filters=gc, kernel_size=3,)(x)
+	x2 = create_activation(activation="leaky_relu", alpha=0.2)(x2)
+	x = layers.concatenate([input, x1, x2], axis=3)
+
+	x = layers.Conv2D(filters=gc, kernel_size=3,)(x)
+	x3 = create_activation(activation="leaky_relu", alpha=0.2)(x3)
+	x = layers.concatenate([input, x1, x2, x3], axis=3)
+
+	x = layers.Conv2D(filters=nf, kernel_size=3,)(x)
+	x4 = create_activation(activation="leaky_relu", alpha=0.2)(x3)
+	x5 = layers.concatenate([input, x1, x2, x3, x4], axis=3)
+
+	return x5 * res_beta + x
+
+
+def residual_dense_block(input, filters, init, res_beta=0.2, wd=0):
+
+	out = residual_dense_block_5c(input=input, nf=filters, gc=input/2)
+
+	return out * res_beta + input
 
 
 def upsample(x, scale: int, num_filters: int):
@@ -94,20 +142,13 @@ def upsample(x, scale: int, num_filters: int):
 	elif scale == 4:
 		x = upsample_1(x, 2, name='conv2d_1_scale_2')
 		x = upsample_1(x, 2, name='conv2d_2_scale_2')
-	elif scale == 6:
-		x = upsample_1(x, 3, name='conv2d_1_scale_3')
-		x = upsample_1(x, 3, name='conv2d_2_scale_3')
-	elif scale == 8:
-		x = upsample_1(x, 2, name='conv2d_1_scale_2')
-		x = upsample_1(x, 2, name='conv2d_2_scale_2')
-		x = upsample_1(x, 2, name='conv2d_3_scale_2')
 	else:
 		assert 0
 
 	return x
 
 
-def make_generator_model(input_shape, output_shape, upscale_num: int = 2, num_res_blocks: int = 8, **kwargs):
+def make_generator_model(input_shape, output_shape, upscale_num: int = 2, num_res_blocks: int = 3, **kwargs):
 	use_residual_block: bool = True
 
 	output_width, output_height, output_channels = output_shape
@@ -123,15 +164,15 @@ def make_generator_model(input_shape, output_shape, upscale_num: int = 2, num_re
 	if use_residual_block:
 		firstLayer = x
 		for i in range(0, num_res_blocks):
-			x = residual_block(filters=64, init=init, input=x)
+			x = residual_dense_block(filters=64, init=init, input=x)
 
 		x = layers.Conv2D(filters=64, kernel_size=(9, 9), strides=(1, 1), use_bias=True,
 						  padding='same',
 						  kernel_initializer=init)(x)
-		x = layers.BatchNormalization()(x)
+
 		x = layers.add([firstLayer, x])
 
-	x = upsample(x, upscale_num, 128)
+	x = upsample(x, upscale_num, 256)
 
 	# output layer
 	x = layers.Conv2D(filters=output_channels, kernel_size=(9, 9), strides=(
@@ -192,7 +233,7 @@ def make_discriminator_model(input_size, regularization_l1=0.0002, upscale_mode=
 	x = discriminator_down_block(
 		input=x, filters=64, strides=(2, 2), init=init, use_norm=use_norm)
 
-	for j in range(0, n_layers):
+	for j in range(0, 4):
 		filter_size = 128 << j
 		filter_size = min(512, filter_size)
 
@@ -377,7 +418,7 @@ class SRGANModel(tf.keras.Model):
 								  ragged=True)
 
 		return tf.keras.Model(inputs=[x],
-							  outputs=[self.call(x, False), self.discriminator.call(x, False)])
+							  outputs=[self.call(x, False), self.discriminator.call(x)])
 
 	def gan_generator_loss(self, gradient_loss_rate, real_image, generated_image, fake_output):
 		"""The objective is to penalize the generator whenever it produces images which the discriminator classifies as 'fake'

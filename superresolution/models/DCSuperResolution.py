@@ -113,7 +113,7 @@ def create_simple_model(input_shape: tuple, output_shape: tuple, regularization:
 		x = create_activation(kernel_activation)(x)
 
 	# Output to 3 channel output.
-	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
+	x = layers.Conv2D(filters=output_channels, kernel_size=(9, 9), strides=(
 		1, 1), padding='same', use_bias=use_bias, kernel_initializer=tf.keras.initializers.HeNormal(),
 							   bias_initializer=tf.keras.initializers.HeNormal())(x)
 	x = layers.Activation('tanh', dtype='float32')(x)

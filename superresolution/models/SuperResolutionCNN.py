@@ -9,7 +9,7 @@ from tensorflow.keras import layers
 
 class SuperResolutionModelCNN(ModelBase):
 	def __init__(self):
-		self.possible_upscale = [2, 4]
+		self.possible_upscale = [2, 4, 8]
 		self.parser = argparse.ArgumentParser(add_help=False)
 
 		self.parser.add_argument('--regularization', dest='regularization',
@@ -18,20 +18,19 @@ class SuperResolutionModelCNN(ModelBase):
 								 required=False,
 								 help='Set the L1 Regularization applied.')
 
-
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		scale_factor: int = int(output_shape[0] / input_shape[0])
-		scale_factor: int = int(output_shape[1] / input_shape[1])
+		scale_width_factor, scale_height_factor = self.compute_upscale_mode(
+			input_shape, output_shape)
 
-		if scale_factor not in self.possible_upscale and scale_factor not in self.possible_upscale:
+		if scale_width_factor not in self.possible_upscale and scale_height_factor not in self.possible_upscale:
 			raise ValueError("Invalid upscale")
 
 		# Model Construct Parameters.
 		regularization: float = kwargs.get("regularization", 0.000001)  #
-		upscale_mode: int = scale_factor  #
+		upscale_mode: int = scale_width_factor  #
 		num_input_filters: int = kwargs.get("input_filters", 64)  #
 
 		#
@@ -50,7 +49,7 @@ def get_model_interface() -> ModelBase:
 
 def create_cnn_model(input_shape: tuple, output_shape: tuple, input_filter_size: int, regularization: float,
 					 upscale_mode: int,
-					 kernel_activation: str):
+					 kernel_activation: str, kernel_size: tuple = (4, 4)):
 
 	use_batch_norm: bool = True
 	use_bias: bool = True
@@ -60,23 +59,25 @@ def create_cnn_model(input_shape: tuple, output_shape: tuple, input_filter_size:
 
 	x = input_layer = layers.Input(shape=input_shape)
 
+	# Upscale image to output.
 	for i in range(0, int(upscale_mode / 2)):
 		x = layers.UpSampling2D(size=(2, 2), interpolation='bilinear')(x)
 
 	# Convolutional block
 	for _ in range(0, num_conv_block):
 		filter_size = input_filter_size << i
-		x = layers.Conv2D(filters=filter_size, kernel_size=(3, 3), strides=1, padding='same', use_bias=use_bias,
+		x = layers.Conv2D(filters=filter_size, kernel_size=kernel_size, strides=1, padding='same', use_bias=use_bias,
 						  kernel_initializer=tf.keras.initializers.HeNormal())(x)
 		if use_batch_norm:
 			x = layers.BatchNormalization(dtype='float32')(x)
 		x = create_activation(kernel_activation)(x)
 
 	# Output to 3 channel output.
-	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
+	x = layers.Conv2D(filters=output_channels, kernel_size=(9, 9), strides=(
 		1, 1), padding='same', use_bias=use_bias, kernel_initializer=tf.keras.initializers.HeNormal(),
 		bias_initializer=tf.keras.initializers.HeNormal())(x)
 	x = layers.Activation('tanh')(x)
+	#
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
 	# Confirm the output shape.

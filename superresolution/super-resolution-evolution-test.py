@@ -1,5 +1,6 @@
 # !/usr/bin/env python3
 import argparse
+from datetime import date
 import itertools
 import os
 import random
@@ -8,20 +9,21 @@ import sys
 from SuperResolution import dcsuperresolution_program
 from core.common import DefaultArgumentParser
 
-parser = argparse.ArgumentParser(add_help=True, prog="SuperResolution Evolution",
+parser = argparse.ArgumentParser(add_help=True, prog="SuperResolution Model Evolution",
 								 description='Super Resolution Training Model Evolution Program',
 								 parents=[DefaultArgumentParser()])
 
 #
 parser.add_argument('--output-dir', type=str, dest='output_dir',
-					default="test_output",
+					default=str.format(
+						"super-resolution-evolution-{0}", date.today().strftime("%b-%d-%Y_%H:%M:%S")),
 					help='Set the output directory that all the models and results will be stored at')
 #
 parser.add_argument('--models', dest='models', action='append', nargs='*', required=False,
 					default=['cnnsr', 'dcsr', 'edsr',
-							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan'],
+							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan', 'esrgan'],
 					choices=['cnnsr', 'dcsr', 'edsr',
-							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan'],
+							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan', 'esrgan'],
 					help='Overide what Model to include in training evolution.')
 #
 parser.add_argument('--loss-functions', dest='loss_functions', action='append', nargs='*', required=False,
@@ -29,12 +31,12 @@ parser.add_argument('--loss-functions', dest='loss_functions', action='append', 
 					choices=['mse', 'ssim', 'msa', 'vgg16', 'vgg19'],
 					help='Overide what Loss functions to include in training evolution.')
 #
-parser.add_argument('--optimizer', dest='optimizer', action='append', nargs='*', required=False,
-					default=['adam',
-							 'rmsprop', 'sgd', 'adadelta'],
-					choices=['adam',
-							 'rmsprop', 'sgd', 'adadelta'],
-					help='Select optimizer to be used')
+parser.add_argument('--optimizer-evolution', dest='optimizer_evolution', action='append', nargs='*', required=False,
+										default=['adam',
+												 'rmsprop', 'sgd', 'adadelta'],
+										choices=['adam',
+												 'rmsprop', 'sgd', 'adadelta'],
+										help='Select optimizer to be used')
 
 # If invalid number of arguments, print help.
 if len(sys.argv) < 2:
@@ -55,7 +57,7 @@ image_output_size: tuple = args.output_image_size
 seed: int = args.seed
 models: list = args.models
 loss_functions: list = args.loss_functions
-optimizer: list = args.optimizer
+optimizer: list = args.optimizer_evolution
 usefp16: bool = args.use_float16
 use_cpu_only: bool = args.use_explicit_cpu
 
@@ -67,8 +69,7 @@ hyperparameters = {
 	"--example-batch": [512],
 	"--example-batch-grid-size": [8],
 	# TODO: add each model specific parameter options.
-	# "--use-resnet": [True, False],
-	# "--regularization": [0.001, 0.002, 0.003, 0.008, 0.0],
+	"--regularization": [0.00001, 0.001, 0.002, 0.003, 0.008, 0.0],
 	"--decay-rate": [0.85, 0.90, 0.96],
 	"--decay-step": [1000, 10000],
 	"--loss-fn": loss_functions,

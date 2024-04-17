@@ -31,9 +31,14 @@ class AESuperResolutionModel(ModelBase):
 		return self.parser
 
 	def create_model(self, input_shape: tuple, output_shape: tuple, **kwargs) -> keras.Model:
-  
+		scale_width_factor, scale_height_factor = self.compute_upscale_mode(input_shape, output_shape)
+
+		if scale_width_factor not in self.possible_upscale and scale_height_factor not in self.possible_upscale:
+			raise ValueError("Invalid upscale")
+
+
 		regularization: float = kwargs.get("regularization", 0.00001)  #
-		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
+		upscale_mode: int = scale_width_factor #
 		num_input_filters: int = kwargs.get("filters", 64)  #
 		use_resnet: bool = kwargs.get("use_resnet", True)  #
 
@@ -105,6 +110,7 @@ def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_r
 	connect_conv_shape = x.shape
 
 	x = layers.Flatten(name="latentspace")(x)
+	#
 	x = layers.ActivityRegularization(l1=regularization, l2=0)(x)
 
 	x = layers.Reshape(target_shape=(
@@ -141,7 +147,7 @@ def create_dscr_autoencoder_model(input_shape: tuple, output_shape: tuple, use_r
 			last_sum_layer = x
 			x = create_activation(kernel_activation)(x)
 
-	x = layers.Conv2DTranspose(filters=output_channels, kernel_size=(9, 9), strides=(
+	x = layers.Conv2D(filters=output_channels, kernel_size=(9, 9), strides=(
 		1, 1), padding='same', kernel_initializer=tf.keras.initializers.GlorotUniform())(x)
 	x = layers.Activation('tanh')(x)
 

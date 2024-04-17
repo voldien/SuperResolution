@@ -24,3 +24,6 @@ jobs:
 
       - name: Run Program init
         run: python3 superresolution/SuperResolution.py --help
+
+      - name: Run Evolution Program init
+        run: python3 superresolution/super-resolution-evolution-test.py --help

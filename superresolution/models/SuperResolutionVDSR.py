@@ -10,7 +10,7 @@ from tensorflow.keras import layers
 
 class VDSRSuperResolutionModel(ModelBase):
 	def __init__(self):
-		self.possible_upscale = [2, 4]
+		self.possible_upscale = [2, 4, 8]
 
 		self.parser = argparse.ArgumentParser(add_help=False)
 		#
@@ -18,23 +18,22 @@ class VDSRSuperResolutionModel(ModelBase):
 								 type=float,
 								 default=0.00001,
 								 help='Set the L1 Regularization applied.')
-		
 		#
 		self.parser.add_argument('--filters', type=int, default=128, dest='filters',
 								 help='Set Filter Count')
-		
+
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		scale_factor: int = int(output_shape[0] / input_shape[0])
-		scale_factor: int = int(output_shape[1] / input_shape[1])
+		scale_width_factor, scale_height_factor = self.compute_upscale_mode(
+			input_shape, output_shape)
 
-		if scale_factor not in self.possible_upscale and scale_factor not in self.possible_upscale:
+		if scale_width_factor not in self.possible_upscale and scale_height_factor not in self.possible_upscale:
 			raise ValueError("Invalid upscale")
 
 		regularization: float = kwargs.get("regularization", 0.00001)  #
-		upscale_mode: int = scale_factor  #
+		upscale_mode: int = scale_width_factor  #
 		num_input_filters: int = kwargs.get("filters", 128)  #
 
 		#
@@ -54,12 +53,10 @@ def get_model_interface() -> ModelBase:
 
 
 def create_vdsr_model(input_shape: tuple, output_shape: tuple, filters: int, kernel_activation: str,
-					  upscale_mode: int = 2, regularization: float = 0.00001):
+					  upscale_mode: int = 2, regularization: float = 0.00001, number_layers: int = 2, num_conv_block: int = 2):
 	use_batch_norm: bool = True
 	use_bias: bool = True
-
-	number_layers: int = 2
-	num_conv_block: int = 2
+	kernel_size: tuple = (4, 4)
 
 	output_width, output_height, output_channels = output_shape
 

@@ -188,22 +188,66 @@ python3 superresolution/super-resolution-evolution-test.py  --epochs 8 --batch 3
 
 Argument options
 ```bash
-usage: [-h] [--epochs EPOCHS] [--batch-size BATCH_SIZE] --data-set-directory DATA_SETS_DIRECTORY_PATHS [--output-dir OUTPUT_DIR] [--image-size IMAGE_SIZE IMAGE_SIZE] [--output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE] [--seed SEED]
+usage: SuperResolution Model Evolution [-h] [--epochs EPOCHS] [--batch-size BATCH_SIZE] [--use-checkpoint] [--checkpoint-filepath CHECKPOINT_DIR] [--checkpoint-every-epoch CHECKPOINT_EVERY_NTH_EPOCH] [--learning-rate LEARNING_RATE]
+                                       [--device DEVICES] [--cpu] [--gpu] [--distribute-strategy {mirror}] [--verbosity VERBOSITY] [--use-float16] [--cache-ram] [--cache-file CACHE_PATH] [--shuffle-data-set-size DATASET_SHUFFLE_SIZE]
+                                       [--data-set-directory TRAIN_DIRECTORY_PATHS] [--validation-data-directory VALIDATION_DIRECTORY_PATHS] [--test-data-directory TEST_DIRECTORY_PATHS] [--image-size INPUT_IMAGE_SIZE INPUT_IMAGE_SIZE]
+                                       [--output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE] [--seed SEED] [--color-space {rgb,lab}] [--color-channels {1,3,4}] [--optimizer {adam,rmsprop,sgd,adadelta}] [--disable-validation] [--config CONFIG]
+                                       [--output-dir OUTPUT_DIR] [--models [{cnnsr,dcsr,edsr,dcsr-ae,dcsr-resnet,vdsr,srgan,esrgan} ...]] [--loss-functions [{mse,ssim,msa,vgg16,vgg19} ...]] [--optimizer-evolution [{adam,rmsprop,sgd,adadelta} ...]]
+
+Super Resolution Training Model Evolution Program
 
 optional arguments:
   -h, --help            show this help message and exit
   --epochs EPOCHS       Set the number of passes that the training set will be trained against.
   --batch-size BATCH_SIZE
                         number of training element per each batch, during training.
-  --data-set-directory DATA_SETS_DIRECTORY_PATHS
+  --use-checkpoint      Set the path the checkpoint will be saved/loaded.
+  --checkpoint-filepath CHECKPOINT_DIR
+                        Set the path the checkpoint will be saved/loaded.
+  --checkpoint-every-epoch CHECKPOINT_EVERY_NTH_EPOCH
+                        Set how often the checkpoint will be update, per epoch.
+  --learning-rate LEARNING_RATE
+                        Set the initial Learning Rate
+  --device DEVICES      Select the device explicitly that will be used.
+  --cpu                 Explicit use the CPU as the compute device.
+  --gpu                 Explicit use of GPU
+  --distribute-strategy {mirror}
+                        Select Distribute Strategy.
+  --verbosity VERBOSITY
+                        Set the verbosity level of the program
+  --use-float16         Hint the usage of Float 16 (FP16) in the model.
+  --cache-ram           Use System Memory (RAM) as Cache storage.
+  --cache-file CACHE_PATH
+                        Set the cache file path that will be used to store dataset cached data.
+  --shuffle-data-set-size DATASET_SHUFFLE_SIZE
+                        Set the size of the shuffle buffer size, zero disables shuffling.
+  --data-set-directory TRAIN_DIRECTORY_PATHS
                         Directory path where the images are located dataset images
+  --validation-data-directory VALIDATION_DIRECTORY_PATHS
+                        Directory path where the images are located dataset images
+  --test-data-directory TEST_DIRECTORY_PATHS
+                        Directory path where the images are located dataset images
+  --image-size INPUT_IMAGE_SIZE INPUT_IMAGE_SIZE
+                        Set the input training images size. Low Resolution (LR).
+  --output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE
+                        Set the size of the images in width and height for the model (HR).
+  --seed SEED           Set the random seed
+  --color-space {rgb,lab}
+                        Select Color Space used in the model.
+  --color-channels {1,3,4}
+                        Select Number of channels in the color space. GrayScale, RGB and RGBA.
+  --optimizer {adam,rmsprop,sgd,adadelta}
+                        Select optimizer to be used
+  --disable-validation  Disable validation if validation data is present.
+  --config CONFIG       Config File - Json.
   --output-dir OUTPUT_DIR
                         Set the output directory that all the models and results will be stored at
-  --image-size IMAGE_SIZE IMAGE_SIZE
-                        Set the size of the images in width and height for the model.
-  --output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE
-                        Set the size of the images in width and height for the model.
-  --seed SEED           Seed
+  --models [{cnnsr,dcsr,edsr,dcsr-ae,dcsr-resnet,vdsr,srgan,esrgan} ...]
+                        Overide what Model to include in training evolution.
+  --loss-functions [{mse,ssim,msa,vgg16,vgg19} ...]
+                        Overide what Loss functions to include in training evolution.
+  --optimizer-evolution [{adam,rmsprop,sgd,adadelta} ...]
+                        Select optimizer to be used
 ```
 
 ## Installation Instructions
