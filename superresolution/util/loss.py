@@ -131,8 +131,23 @@ class SSIMError(LossFunctionWrapper):
 		self.color_space = color_space
 
 
+
+@keras.saving.register_keras_serializable(package="superresolution", name="loss_psnr")
+class PSNRError(LossFunctionWrapper):
+
+	def __init__(
+		self,
+		reduction=losses_utils.ReductionV2.SUM,
+		name: str="psnr_loss_function",
+		color_space : str = None,
+	):
+		super().__init__(psnr_loss, name=name, reduction=reduction)
+		self.color_space = color_space
+
+@tf.function
 def psnr_loss(y_true, y_pred):  # TODO: fix equation.
 	return 20.0 - compute_normalized_PSNR(y_true, y_pred)
+
 
 def total_variation_loss(y_true, y_pred):  # TODO: fix equation.
 	return 1.0 - tf.reduce_sum(tf.image.total_variation(y_true, y_pred))

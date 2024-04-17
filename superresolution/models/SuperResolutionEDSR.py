@@ -18,18 +18,9 @@ class EDSRSuperResolutionModel(ModelBase):
 								 default=0.00001,
 								 required=False,
 								 help='Set the L1 Regularization applied.')
-
 		#
-		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
-								 type=int,
-								 choices=self.possible_upscale,
-								 default=2,
-								 required=False,
-								 help='Upscale Mode')
-
-		#
-		self.parser.add_argument('--edsr-filters', type=int, default=256, dest='edsr_filters',
-								 help='')
+		self.parser.add_argument('--filters', type=int, default=256, dest='filters',
+								 help='Set Filter Count')
 
 	def load_argument(self) -> argparse.ArgumentParser:
 		#
@@ -45,7 +36,7 @@ class EDSRSuperResolutionModel(ModelBase):
 		# Model constructor parameters.
 		regularization: float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = scale_factor  #
-		num_input_filters: int = kwargs.get("edsr_filters", 256)  #
+		num_input_filters: int = kwargs.get("filters", 256)  #
 
 		#
 		return create_edsr_model(input_shape=input_shape,

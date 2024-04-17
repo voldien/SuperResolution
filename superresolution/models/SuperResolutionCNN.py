@@ -18,13 +18,6 @@ class SuperResolutionModelCNN(ModelBase):
 								 required=False,
 								 help='Set the L1 Regularization applied.')
 
-		#
-		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
-								 type=int,
-								 choices=[2],
-								 default=2,
-								 required=False,
-								 help='Upscale Mode')
 
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser

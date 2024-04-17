@@ -22,9 +22,15 @@ A SuperResolution training program for creating/training upscaling machine learn
 
 ## Basic Program Command Line
 
-### EDSR - Enhanced Deep Residual Networks for Single Image Super-Resolution
+The most basic command line. Using the default option.
 
 ```bash
+python superresolution/SuperResolution.py --data-set-directory /path_to_training_data/
+```
+
+### EDSR - Enhanced Deep Residual Networks for Single Image Super-Resolution
+
+```basha
 python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-size 128 128 --model edsr --learning-rate 0.0003 --decay-rate 0.9 --decay-step 10000 --color-space rgb --loss-fn msa --shuffle-data-set-size 1024 --show-psnr --data-set-directory /path_to_training_data/   --output-dir image-super-resolution-result/
 ```
 
@@ -81,11 +87,12 @@ python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-si
 ### SuperResolution Training Program Argument
 
 ```bash
-usage: SuperResolution [-h] [--epochs EPOCHS] [--batch-size BATCH_SIZE] [--checkpoint-filepath CHECKPOINT_DIR] [--checkpoint-every-epoch CHECKPOINT_EVERY_NTH_EPOCH] [--learning-rate LEARNING_RATE] [--device DEVICES] [--cpu] [--gpu] [--distribute-strategy {mirror}] [--verbosity VERBOSITY] [--use-float16]
-                       [--cache-ram] [--cache-file CACHE_PATH] [--shuffle-data-set-size DATASET_SHUFFLE_SIZE] [--data-set-directory TRAIN_DIRECTORY_PATHS] [--validation-data-directory VALIDATION_DIRECTORY_PATHS] [--test-data-directory TEST_DIRECTORY_PATHS] [--image-size IMAGE_SIZE IMAGE_SIZE]
-                       [--output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE] [--seed SEED] [--nr_image_example_generate NUM_EXAMPLES_TO_GENERATE] [--color-space {rgb,lab}] [--color-channels {1,3,4}] [--optimizer {adam,ada,rmsprop,sgd,adadelta}] [--disable-validation] [--model-filename MODEL_FILEPATH]
-                       [--output-dir OUTPUT_DIR] [--example-batch EXAMPLE_BATCH] [--example-batch-grid-size width height] [--show-psnr] [--metrics METRICS] [--decay-rate LEARNING_RATE_DECAY] [--decay-step LEARNING_RATE_DECAY_STEP] [--model {cnnsr,dcsr,dscr-post,dscr-pre,edsr,dcsr-ae,dcsr-resnet,vdsr}]
-                       [--loss-fn {mse,ssim,msa,psnr,vgg16,none}]
+usage: SuperResolution [-h] [--epochs EPOCHS] [--batch-size BATCH_SIZE] [--use-checkpoint] [--checkpoint-filepath CHECKPOINT_DIR] [--checkpoint-every-epoch CHECKPOINT_EVERY_NTH_EPOCH] [--learning-rate LEARNING_RATE] [--device DEVICES] [--cpu] [--gpu]
+                       [--distribute-strategy {mirror}] [--verbosity VERBOSITY] [--use-float16] [--cache-ram] [--cache-file CACHE_PATH] [--shuffle-data-set-size DATASET_SHUFFLE_SIZE] [--data-set-directory TRAIN_DIRECTORY_PATHS]
+                       [--validation-data-directory VALIDATION_DIRECTORY_PATHS] [--test-data-directory TEST_DIRECTORY_PATHS] [--image-size INPUT_IMAGE_SIZE INPUT_IMAGE_SIZE] [--output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE] [--seed SEED]
+                       [--color-space {rgb,lab}] [--color-channels {1,3,4}] [--optimizer {adam,rmsprop,sgd,adadelta}] [--disable-validation] [--config CONFIG] [--model-filename MODEL_FILEPATH] [--output-dir OUTPUT_DIR] [--example-batch EXAMPLE_NTH_BATCH]
+                       [--example-batch-grid-size EXAMPLE_NTH_BATCH_GRID_SIZE] [--show-psnr] [--metrics {psnr,ssim}] [--decay-rate LEARNING_RATE_DECAY] [--decay-step LEARNING_RATE_DECAY_STEP] [--model {dcsr,dscr-post,dscr-pre,edsr,dcsr-ae,dcsr-resnet,vdsr,srgan}]
+                       [--loss-fn {mse,ssim,msa,psnr,vgg16,vgg19,none}]
 
 Super Resolution Training Model Program
 
@@ -94,6 +101,7 @@ optional arguments:
   --epochs EPOCHS       Set the number of passes that the training set will be trained against.
   --batch-size BATCH_SIZE
                         number of training element per each batch, during training.
+  --use-checkpoint      Set the path the checkpoint will be saved/loaded.
   --checkpoint-filepath CHECKPOINT_DIR
                         Set the path the checkpoint will be saved/loaded.
   --checkpoint-every-epoch CHECKPOINT_EVERY_NTH_EPOCH
@@ -119,39 +127,38 @@ optional arguments:
                         Directory path where the images are located dataset images
   --test-data-directory TEST_DIRECTORY_PATHS
                         Directory path where the images are located dataset images
-  --image-size IMAGE_SIZE IMAGE_SIZE
+  --image-size INPUT_IMAGE_SIZE INPUT_IMAGE_SIZE
                         Set the size of the images in width and height for the model.
   --output-image-size OUTPUT_IMAGE_SIZE OUTPUT_IMAGE_SIZE
                         Set the size of the images in width and height for the model.
   --seed SEED           Set the random seed
-  --nr_image_example_generate NUM_EXAMPLES_TO_GENERATE
-                        Number
   --color-space {rgb,lab}
                         Select Color Space used in the model.
   --color-channels {1,3,4}
                         Select Number of channels in the color space. GrayScale, RGB and RGBA.
-  --optimizer {adam,ada,rmsprop,sgd,adadelta}
+  --optimizer {adam,rmsprop,sgd,adadelta}
                         Select optimizer to be used
   --disable-validation  Select if use data validation step.
+  --config CONFIG       Config File - Json.
   --model-filename MODEL_FILEPATH
                         Define file path that the generator model will be saved at.
   --output-dir OUTPUT_DIR
                         Set the output directory that all the models and results will be stored at
-  --example-batch EXAMPLE_BATCH
+  --example-batch EXAMPLE_NTH_BATCH
                         Set the number of train batches between saving work in progress result.
-  --example-batch-grid-size width height
+  --example-batch-grid-size EXAMPLE_NTH_BATCH_GRID_SIZE
                         Set the grid size of number of example images.
   --show-psnr           Set the grid size of number of example images.
-  --metrics METRICS     Set what metric to capture.
+  --metrics {psnr,ssim}
+                        Set what metric to capture.
   --decay-rate LEARNING_RATE_DECAY
                         Set Learning rate Decay.
   --decay-step LEARNING_RATE_DECAY_STEP
                         Set Learning rate Decay Step.
-  --model {cnnsr,dcsr,dscr-post,dscr-pre,edsr,dcsr-ae,dcsr-resnet,vdsr}
+  --model {dcsr,dscr-post,dscr-pre,edsr,dcsr-ae,dcsr-resnet,vdsr,srgan}
                         Set which model type to use.
-  --loss-fn {mse,ssim,msa,psnr,vgg16,none}
+  --loss-fn {mse,ssim,msa,psnr,vgg16,vgg19,none}
                         Set Loss Function
-
 ```
 
 ## Upscale Image
@@ -241,11 +248,19 @@ docker run --network=host --gpus all --name sr-cuda super-resolution-cuda
 ```
 
 
-# Convert TensorLite
+# Convert Keras Model to TensorLite
 
 ```bash
 python3 superresolution/generate_tflite.py --model super-resolution-model.keras --output model-lite.tflite
 ```
+
+## Run Python In Background (Server)
+When running python script as background process, it will still be terminated if closing the terminal window. However, with the **nohup** it can fixed.
+
+```bash 
+nohup python3 superresolution/SuperResolution.py ...your arguments... &
+```
+
 ## License
 
 This project is licensed under the GPL+3 License - see the [LICENSE](LICENSE) file for details.

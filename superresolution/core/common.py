@@ -38,7 +38,6 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	# Default, all devices will be used.
 	parser.add_argument('--device', action='append', default=None, required=False,
 						dest='devices', help='Select the device explicitly that will be used.')
-	# TODO:extract str					choices=device_lib.list_local_devices())
 
 	parser.add_argument('--cpu', action='store_true',
 						default=False,
@@ -60,7 +59,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 
 	#
 	parser.add_argument('--use-float16', action='store_true',
-						dest='use_float16', default=False, help='Hint the usage of Float 16 (FP16) in the model.')
+						dest='use_float16', help='Hint the usage of Float 16 (FP16) in the model.')
 	#
 	parser.add_argument('--cache-ram', action='store_true', default=False,
 						dest='cache_ram', help='Use System Memory (RAM) as Cache storage.')
@@ -89,12 +88,12 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	parser.add_argument('--image-size', type=int, dest='input_image_size',
 						nargs=2,
 						default=(64, 64),
-						help='Set the size of the images in width and height for the model.')
+						help='Set the input training images size. Low Resolution (LR).')
 
 	parser.add_argument('--output-image-size', type=int, dest='output_image_size',
 						nargs=2, required=False,
 						default=(128, 128),
-						help='Set the size of the images in width and height for the model.')
+						help='Set the size of the images in width and height for the model (HR).')
 	#
 	parser.add_argument('--seed', type=int, default=randrange(10000000), dest='seed',
 						help='Set the random seed')
@@ -110,8 +109,9 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 						help='Select optimizer to be used')
 
 	parser.add_argument('--disable-validation', default=True, dest='use_validation', action='store_false',
-						help='Select if use data validation step.')
+						help='Disable validation if validation data is present.')
 	
+	# Parse argument via config file.
 	parser.add_argument('--config', default=None, dest='config',
 						help='Config File - Json.')
 

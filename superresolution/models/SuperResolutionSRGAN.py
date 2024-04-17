@@ -8,32 +8,33 @@ from core import ModelBase
 
 class SRGANSuperResolutionModel(ModelBase):
 	def __init__(self):
-		self.parser = argparse.ArgumentParser(add_help=False)
+		self.parser = argparse.ArgumentParser(add_help=False, description="SRGAN Specific Argument")
 		self.possible_upscale = [2, 4, 8]
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
 								 type=float,
-								 default=0.00001,
+								 default=0.000001,
 								 required=False,
 								 help='Set the L1 Regularization applied.')
-
-		#
-		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
-								 help='Set the number of passes that the training set will be trained against.')
+		
+		self.parser.add_argument('--res_blocks', dest='res_blocks',
+								 type=int,
+								 default=8,
+								 required=False,
+								 help='')
 
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser
 
 	def create_model(self, input_shape, output_shape, **kwargs) -> keras.Model:
-		scale_factor: int = int(output_shape[0] / input_shape[0])
-		scale_factor: int = int(output_shape[1] / input_shape[1])
+		scale_width_factor, scale_height_factor = self.compute_upscale_mode(input_shape, output_shape)
 
-		if scale_factor not in self.possible_upscale and scale_factor not in self.possible_upscale:
+		if scale_width_factor not in self.possible_upscale and scale_height_factor not in self.possible_upscale:
 			raise ValueError("Invalid upscale")
 
 		regularization: float = kwargs.get("regularization", 0.000001)  #
-		upscale_mode: int = scale_factor  #
-		num_res_blocks: int = 8
+		upscale_mode: int = scale_height_factor  #
+		num_res_blocks: int = kwargs.get("res_blocks", 8)
 
 		# Create the discriminator.
 		discriminator = make_discriminator_model(
@@ -191,7 +192,7 @@ def make_discriminator_model(input_size, regularization_l1=0.0002, upscale_mode=
 	x = discriminator_down_block(
 		input=x, filters=64, strides=(2, 2), init=init, use_norm=use_norm)
 
-	for j in range(0, 4):
+	for j in range(0, n_layers):
 		filter_size = 128 << j
 		filter_size = min(512, filter_size)
 

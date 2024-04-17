@@ -74,6 +74,7 @@ hyperparameters = {
 	"--loss-fn": loss_functions,
 	"--seed": [seed],
 	"--model": models,
+	"--metrics": "psnr ssim",
 	"--cache-file": [
 		"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
 	"--epochs": [epochs],

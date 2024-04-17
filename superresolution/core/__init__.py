@@ -37,3 +37,9 @@ class ModelBase(object):
 			str: _description_
 		"""
 		return ""
+
+	@staticmethod
+	def compute_upscale_mode(input_shape: tuple, output_shape: tuple) -> tuple:
+		scale_width_factor: int = int(output_shape[0] / input_shape[0])
+		scale_height_factor: int = int(output_shape[1] / input_shape[1])
+		return (scale_width_factor, scale_height_factor)

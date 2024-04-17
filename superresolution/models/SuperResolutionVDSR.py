@@ -18,13 +18,11 @@ class VDSRSuperResolutionModel(ModelBase):
 								 type=float,
 								 default=0.00001,
 								 help='Set the L1 Regularization applied.')
-		self.parser.add_argument('--upscale-mode', dest='upscale_mode',
-								 type=int,
-								 choices=[2, 4],
-								 default=2,
-								 required=False,
-								 help='Upscale Mode')
-
+		
+		#
+		self.parser.add_argument('--filters', type=int, default=128, dest='filters',
+								 help='Set Filter Count')
+		
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser
 
@@ -37,7 +35,7 @@ class VDSRSuperResolutionModel(ModelBase):
 
 		regularization: float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = scale_factor  #
-		num_input_filters: int = kwargs.get("edsr_filters", 128)  #
+		num_input_filters: int = kwargs.get("filters", 128)  #
 
 		#
 		return create_vdsr_model(input_shape=input_shape,

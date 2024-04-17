@@ -34,7 +34,7 @@ from util.metrics import PSNRMetric, SSIMMetric
 from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, \
 	CompositeImageResultCallBack
 from util.util import plotTrainingHistory
-from util.loss import SSIMError, VGG16Error, VGG19Error, psnr_loss
+from util.loss import PSNRError, SSIMError, VGG16Error, VGG19Error
 
 global sr_logger
 sr_logger: Logger = logging.getLogger("Super Resolution Training")
@@ -146,13 +146,13 @@ def setup_model(args: dict, builtin_models: Dict[str, ModelBase], image_input_si
 		if module_interface is None:
 			raise RuntimeError("Could not find model interface: " + model_name)
 
-		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size, kwargs=args)
+		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size, **args)
 
 
 def setup_loss_builtin_function(args: dict):
 	#
 	builtin_loss_functions = {'mse': tf.keras.losses.MeanSquaredError(), 'ssim': SSIMError(color_space=args.color_space),
-							  'msa': tf.keras.losses.MeanAbsoluteError(), 'psnr': psnr_loss, 'vgg16': VGG16Error(), 'vgg16': VGG19Error()}
+							  'msa': tf.keras.losses.MeanAbsoluteError(), 'psnr': PSNRError(), 'vgg16': VGG16Error(), 'vgg16': VGG19Error()}
 
 	return builtin_loss_functions[args.loss_fn]
 
@@ -269,13 +269,11 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		# NOTE currently, only support checkpoint if generated model and not when using existing.
 		loss_fn = setup_loss_builtin_function(args)
 
-		# TODO metric list.
+		# Metric list.
 		metrics = [tf.keras.metrics.Accuracy(), ]
 		additional_metrics = create_metric(args.metrics)
 		if additional_metrics:
-			metrics.extend(create_metric(args.metrics))
-		if args.show_psnr:
-			metrics.append(PSNRMetric())
+			metrics.extend(additional_metrics)
 
 		training_model.compile(optimizer=model_optimizer,
 							   loss=loss_fn, metrics=metrics)
@@ -369,13 +367,9 @@ def dcsuperresolution_program(vargs=None):
 		sr_logger.addHandler(console_handler)
 
 		# Load model and iterate existing models.
-		model_list = load_builtin_model_interfaces()
+		model_list: list[ModelBase] = load_builtin_model_interfaces()
 
 		child_parsers: list = [DefaultArgumentParser()]
-
-		for model_object_inter in model_list.values():
-			sr_logger.info("Found Model: " + model_object_inter.get_name())
-		# child_parsers.append(model_object_inter.load_argument())
 
 		parser = argparse.ArgumentParser(
 			prog='SuperResolution',
@@ -405,11 +399,6 @@ def dcsuperresolution_program(vargs=None):
 							type=int, required=False,
 							default=8, help='Set the grid size of number of example images.')
 
-		#
-		parser.add_argument('--show-psnr', dest='show_psnr', action='store_true',
-							default=False, help='Set the grid size of number of example images.')
-
-		# TODO add support
 		parser.add_argument('--metrics', dest='metrics',
 							action='append',
 							choices=['psnr', 'ssim'],
@@ -439,13 +428,31 @@ def dcsuperresolution_program(vargs=None):
 		# If invalid number of arguments, print help.
 		if len(sys.argv) < 2:
 			parser.print_help()
+			for model_object_inter in model_list.values():
+				model_object_inter.load_argument().print_help()
 			sys.exit(1)
 
 		# Parse argument.
-		args = parser.parse_args(args=vargs)
+		args, _ = parser.parse_known_args(args=vargs)
 
+		if args.config:
+			pass#TODO: parse config file, if JSON and update args.
 		# Parse for common arguments.
 		ParseDefaultArgument(args)
+
+		for model_object_inter in model_list.values():
+			sr_logger.info("Found Model: " + model_object_inter.get_name())
+
+		# Parse model specific argument parser.
+		model_container = model_list[args.model]
+		model_args, _ = model_container.load_argument().parse_known_args(args=vargs)
+		# Add model argument result to the main argument result.
+
+		# Merge namespace
+		model_dic = vars(model_args)
+		args_dic = vars(args)
+		args_dic.update(model_dic)
+		args = argparse.Namespace(**args_dic)
 
 		# Set init seed.
 		tf.random.set_seed(args.seed)

@@ -22,17 +22,19 @@ class AESuperResolutionModel(ModelBase):
 								 type=float,
 								 default=0.00001,
 								 help='Set the L1 Regularization applied.')
+		
+		#
+		self.parser.add_argument('--filters', type=int, default=64, dest='filters',
+								 help='Set Filter Count')
 
 	def load_argument(self) -> argparse.ArgumentParser:
 		return self.parser
 
 	def create_model(self, input_shape: tuple, output_shape: tuple, **kwargs) -> keras.Model:
-		#
-		# parser_result = self.parser.parse_known_args(sys.argv[1:])
-		# Model constructor parameters.
+  
 		regularization: float = kwargs.get("regularization", 0.00001)  #
 		upscale_mode: int = kwargs.get("upscale_mode", 2)  #
-		num_input_filters: int = kwargs.get("edsr_filters", 64)  #
+		num_input_filters: int = kwargs.get("filters", 64)  #
 		use_resnet: bool = kwargs.get("use_resnet", True)  #
 
 		#

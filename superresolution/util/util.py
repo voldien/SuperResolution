@@ -32,26 +32,6 @@ def convert_nontensor_color_space(image_data, color_space: str):
 	else:
 		assert 0
 
-# TODO: add
-# @tf.function
-# def setup_color_encoding(img, color_space: str):
-# 	#TODO relocate to its own method.
-# 	@tf.function
-# 	def preprocess_rgb2lab(tensorData):
-
-# 		image = tf.cast(tensorData, float_precision)
-
-# 		return tf.cast(tfio.experimental.color.rgb_to_lab(image), float_precision)
-
-# 	# Convert color space encoding and normalize values.
-# 	if color_space == 'lab':
-# 		# Convert to LAB color and Transform [0, 255] -> [-128,128] -> [-1, 1]
-# 		return preprocess_rgb2lab(normalization_layer(img)) * (1.0 / 128.0)
-# 	elif color_space == 'rgb':
-# 		# Normalize and Transform [0, 255] -> [0,1] -> [-1, 1]
-# 		return (normalization_layer(img) * 2.0) - 1.0
-# 	assert 0
-
 def upscale_image_func(model: tf.keras.Model, image, color_space: str) -> list:
 	"""_summary_
 
