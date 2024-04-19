@@ -83,4 +83,4 @@ def create_cnn_model(input_shape: tuple, output_shape: tuple, input_filter_size:
 	# Confirm the output shape.
 	assert x.shape[1:] == output_shape
 
-	return keras.Model(inputs=input_layer, outputs=x, name="cnnsr")
+	return keras.Model(inputs=input_layer, outputs=x, name="srcnn")

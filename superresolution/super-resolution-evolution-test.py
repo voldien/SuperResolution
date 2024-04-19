@@ -19,24 +19,24 @@ parser.add_argument('--output-dir', type=str, dest='output_dir',
 						"super-resolution-evolution-{0}", date.today().strftime("%b-%d-%Y_%H:%M:%S")),
 					help='Set the output directory that all the models and results will be stored at')
 #
-parser.add_argument('--models', dest='models', action='append', nargs='*', required=False,
-					default=['cnnsr', 'dcsr', 'edsr',
+parser.add_argument('--models', dest='models', action='store', nargs='*', required=False,
+					default=['srcnn', 'dcsr', 'edsr',
 							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan', 'esrgan'],
-					choices=['cnnsr', 'dcsr', 'edsr',
+					choices=['srcnn', 'dcsr', 'edsr',
 							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan', 'esrgan'],
 					help='Overide what Model to include in training evolution.')
 #
-parser.add_argument('--loss-functions', dest='loss_functions', action='append', nargs='*', required=False,
+parser.add_argument('--loss-functions', dest='loss_functions', action='store', nargs='*', required=False,
 					default=['mse', 'ssim', 'msa', 'vgg16', 'vgg19'],
 					choices=['mse', 'ssim', 'msa', 'vgg16', 'vgg19'],
 					help='Overide what Loss functions to include in training evolution.')
 #
 parser.add_argument('--optimizer-evolution', dest='optimizer_evolution', action='append', nargs='*', required=False,
-										default=['adam',
-												 'rmsprop', 'sgd', 'adadelta'],
-										choices=['adam',
-												 'rmsprop', 'sgd', 'adadelta'],
-										help='Select optimizer to be used')
+																				default=['adam',
+																						 'rmsprop', 'sgd', 'adadelta'],
+																				choices=['adam',
+																						 'rmsprop', 'sgd', 'adadelta'],
+																				help='Select optimizer to be used')
 
 # If invalid number of arguments, print help.
 if len(sys.argv) < 2:
@@ -60,6 +60,7 @@ loss_functions: list = args.loss_functions
 optimizer: list = args.optimizer_evolution
 usefp16: bool = args.use_float16
 use_cpu_only: bool = args.use_explicit_cpu
+metrics: str = "psnr ssim"
 
 hyperparameters = {
 	#
@@ -71,20 +72,21 @@ hyperparameters = {
 	# TODO: add each model specific parameter options.
 	"--regularization": [0.00001, 0.001, 0.002, 0.003, 0.008, 0.0],
 	"--decay-rate": [0.85, 0.90, 0.96],
-	"--decay-step": [1000, 10000],
+	"--decay-step": [1000, 10000, 50000],
 	"--loss-fn": loss_functions,
 	"--seed": [seed],
 	"--model": models,
-	"--metrics": "psnr ssim",
 	"--cache-file": [
 		"/tmp/super-resolution-cache-" + os.path.basename(os.path.normpath(str(output_dir)))],
 	"--epochs": [epochs],
 	"--shuffle-data-set-size": [1024],
 	"--checkpoint-every-epoch": [0],
 	"--data-set-directory": training_dataset_paths,
-	"--validation-data-directory": validation_dataset_paths,
 	"--batch-size": [batch_size],
 }
+
+if validation_dataset_paths:
+	hyperparameters['--validation-data-directory'] = validation_dataset_paths
 
 # Optionally add test.
 if test_dataset_paths:
@@ -107,10 +109,15 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 		argvlist.append(str(key))
 		argvlist.append(str(value))
 
-	# Add resolution.
+	# Add input resolution.
 	argvlist.append("--image-size")
 	argvlist.append(str(input_image_size[0]))
 	argvlist.append(str(input_image_size[1]))
+
+	# Add output resolution
+	argvlist.append("--output-image-size")
+	argvlist.append(str(image_output_size[0]))
+	argvlist.append(str(image_output_size[1]))
 
 	output_target_dir = str(os.path.join(output_dir,
 										 "It{0}Learning:{1}DecRate:{2}ColorSpace:{3}Loss:{4}Model:{5}".format(
@@ -128,5 +135,9 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 		argvlist.append("--cpu")
 	if usefp16:
 		argvlist.append("--use-float16")
+	
+	#
+	argvlist.append("--metrics ")
+	argvlist.extend(metrics)
 
 	dcsuperresolution_program(argvlist)

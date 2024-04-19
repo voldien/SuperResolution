@@ -111,7 +111,7 @@ def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
 	builtin_models['dcsr-ae'] = models.SuperResolutionAE.get_model_interface()
 	builtin_models['dcsr-resnet'] = models.SuperResolutionResNet.get_model_interface()
 	builtin_models['vdsr'] = models.SuperResolutionVDSR.get_model_interface()
-	builtin_models['cnnsr'] = models.SuperResolutionCNN.get_model_interface()
+	builtin_models['srcnn'] = models.SuperResolutionCNN.get_model_interface()
 	builtin_models['srgan'] = models.SuperResolutionSRGAN.get_model_interface()
 	builtin_models['esrgan'] = models.SuperResolutionESRGAN.get_model_interface()
 
@@ -144,17 +144,18 @@ def setup_model(args: dict, builtin_models: Dict[str, ModelBase], image_input_si
 		# Load ML model from either runtime from script or from builtin.
 		module_interface = load_model_interface(model_name)
 
-		# Must be a valid interface.
+		# Must be a valid interface.pk
 		if module_interface is None:
 			raise RuntimeError("Could not find model interface: " + model_name)
 
-		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size, **args)
+		argument_dic = vars(args)
+		return module_interface.create_model(input_shape=image_input_size, output_shape=image_output_size, **argument_dic)
 
 
 def setup_loss_builtin_function(args: dict):
 	#
 	builtin_loss_functions = {'mse': tf.keras.losses.MeanSquaredError(), 'ssim': SSIMError(color_space=args.color_space),
-							  'msa': tf.keras.losses.MeanAbsoluteError(), 'psnr': PSNRError(), 'vgg16': VGG16Error(), 'vgg16': VGG19Error()}
+							  'msa': tf.keras.losses.MeanAbsoluteError(), 'psnr': PSNRError(), 'vgg16': VGG16Error(), 'vgg19': VGG19Error()}
 
 	return builtin_loss_functions[args.loss_fn]
 
@@ -268,7 +269,7 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 
 		sr_logger.debug(training_model.summary())
 
-		# NOTE currently, only support checkpoint if generated model and not when using existing.
+		# 
 		loss_fn = setup_loss_builtin_function(args)
 
 		# Metric list.
@@ -417,7 +418,7 @@ def dcsuperresolution_program(vargs=None):
 		#
 		parser.add_argument('--model', dest='model',
 							default='dcsr',
-							choices=['dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae', 'dcsr-resnet',
+							choices=['srcan', 'dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae', 'dcsr-resnet',
 									 'vdsr', 'srgan', 'esrgan'],
 							help='Set which model type to use.', type=str)
 		#
@@ -438,7 +439,7 @@ def dcsuperresolution_program(vargs=None):
 		args, _ = parser.parse_known_args(args=vargs)
 
 		if args.config:
-			pass#TODO: parse config file, if JSON and update args.
+			pass  # TODO: parse config file, if JSON and update args.
 		# Parse for common arguments.
 		ParseDefaultArgument(args)
 

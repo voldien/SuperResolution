@@ -144,7 +144,6 @@ class PSNRError(LossFunctionWrapper):
 		super().__init__(psnr_loss, name=name, reduction=reduction)
 		self.color_space = color_space
 
-@tf.function
 def psnr_loss(y_true, y_pred):  # TODO: fix equation.
 	return 20.0 - compute_normalized_PSNR(y_true, y_pred)
 
