@@ -16,7 +16,7 @@ indent_style = tab
 indent_size = 4
 
 # 4 tab indentation
-[*.{js,json,y{a,}ml,html,cwl}]
+[*.{js,json,yaml,yml,html,cwl}]
 indent_style = tab
 indent_size = 4
 

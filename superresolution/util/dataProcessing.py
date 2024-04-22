@@ -131,6 +131,7 @@ def dataset_super_resolution(dataset: Dataset, input_size: tuple, output_size: t
 	"""
 	Perform Super Resolution Data and Expected Data to Correct Size. For providing
 	the model with corrected sized Data.
+	:param crop:
 	:param dataset: Valid DataSet
 	:param input_size: Input Image Size
 	:param output_size: Output Image Size.

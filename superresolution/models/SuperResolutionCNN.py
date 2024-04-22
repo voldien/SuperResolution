@@ -64,7 +64,7 @@ def create_cnn_model(input_shape: tuple, output_shape: tuple, input_filter_size:
 		x = layers.UpSampling2D(size=(2, 2), interpolation='bilinear')(x)
 
 	# Convolutional block
-	for _ in range(0, num_conv_block):
+	for i in range(0, num_conv_block):
 		filter_size = input_filter_size << i
 		x = layers.Conv2D(filters=filter_size, kernel_size=kernel_size, strides=1, padding='same', use_bias=use_bias,
 						  kernel_initializer=tf.keras.initializers.HeNormal())(x)

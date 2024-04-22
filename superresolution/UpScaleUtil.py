@@ -211,7 +211,7 @@ def super_resolution_upscale(argv):
 				normalized_subimage_color = (np.array(crop_batch) * (1.0 / 255.0)).astype(
 					dtype='float32')
 
-				# TODO fix color space conversation.
+				# TODO fix color space conversation, use function.
 				if color_space == 'lab':
 					cropped_sub_input_image = rgb2lab(
 						normalized_subimage_color) * (1.0 / 128.0)

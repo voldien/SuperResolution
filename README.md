@@ -299,7 +299,7 @@ python3 superresolution/generate_tflite.py --model super-resolution-model.keras 
 ```
 
 ## Run Python In Background (Server)
-When running python script as background process, it will still be terminated if closing the terminal window. However, with the **nohup** it can fixed.
+When running python script as background process, it will still be terminated if closing the terminal window. However, with the **nohup** it can be run in the background as well close the terminal window.
 
 ```bash 
 nohup python3 superresolution/SuperResolution.py ...your arguments... &

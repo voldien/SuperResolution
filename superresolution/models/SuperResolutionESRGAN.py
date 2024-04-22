@@ -13,19 +13,19 @@ class ESRGANSuperResolutionModel(ModelBase):
 		self.possible_upscale = [2, 4, 8]
 		#
 		self.parser.add_argument('--regularization', dest='regularization',
-								 type=float,
-								 default=0.00001,
-								 required=False,
-								 help='Set the L1 Regularization applied.')
+		                         type=float,
+		                         default=0.00001,
+		                         required=False,
+		                         help='Set the L1 Regularization applied.')
 		self.parser.add_argument('--res_blocks', dest='res_blocks',
-								 type=int,
-								 default=3,
-								 required=False,
-								 help='')
+		                         type=int,
+		                         default=3,
+		                         required=False,
+		                         help='')
 
 		#
 		self.parser.add_argument('--use-resnet', type=bool, default=False, dest='use_resnet',
-								 help='Set the number of passes that the training set will be trained against.')
+		                         help='Set the number of passes that the training set will be trained against.')
 
 	def load_argument(self) -> argparse.ArgumentParser:
 		#
@@ -72,7 +72,7 @@ class ResDenseBlock_5C(tf.keras.layers.Layer):
 	"""Residual Dense Block"""
 
 	def __init__(self, x, nf=64, gc=32, res_beta=0.2, wd=0., name='RDB5C',
-				 **kwargs):
+	             **kwargs):
 		super(ResDenseBlock_5C, self).__init__(name=name, **kwargs)
 		# gc: growth channel, i.e. intermediate channels
 		self.res_beta = res_beta
@@ -102,19 +102,19 @@ def residual_dense_block_5c(input, nf=64, gc=32, res_beta=0.2, wd=0):
 	x = layers.Conv2D(filters=gc)(input)
 	x = create_activation(activation="leaky_relu", alpha=0.2)(x)
 
-	x = layers.Conv2D(filters=gc, kernel_size=3,)
+	x = layers.Conv2D(filters=gc, kernel_size=3, )
 	x1 = create_activation(activation="leaky_relu", alpha=0.2)(x)
 	x = layers.concatenate([input, x1], axis=3)
 
-	x2 = layers.Conv2D(filters=gc, kernel_size=3,)(x)
+	x2 = layers.Conv2D(filters=gc, kernel_size=3, )(x)
 	x2 = create_activation(activation="leaky_relu", alpha=0.2)(x2)
 	x = layers.concatenate([input, x1, x2], axis=3)
 
-	x = layers.Conv2D(filters=gc, kernel_size=3,)(x)
+	x3 = layers.Conv2D(filters=gc, kernel_size=3, )(x)
 	x3 = create_activation(activation="leaky_relu", alpha=0.2)(x3)
 	x = layers.concatenate([input, x1, x2, x3], axis=3)
 
-	x = layers.Conv2D(filters=nf, kernel_size=3,)(x)
+	x = layers.Conv2D(filters=nf, kernel_size=3, )(x)
 	x4 = create_activation(activation="leaky_relu", alpha=0.2)(x3)
 	x5 = layers.concatenate([input, x1, x2, x3, x4], axis=3)
 
@@ -122,8 +122,7 @@ def residual_dense_block_5c(input, nf=64, gc=32, res_beta=0.2, wd=0):
 
 
 def residual_dense_block(input, filters, init, res_beta=0.2, wd=0):
-
-	out = residual_dense_block_5c(input=input, nf=filters, gc=input/2)
+	out = residual_dense_block_5c(input=input, nf=filters, gc=input / 2)
 
 	return out * res_beta + input
 
@@ -131,7 +130,8 @@ def residual_dense_block(input, filters, init, res_beta=0.2, wd=0):
 def upsample(x, scale: int, num_filters: int):
 	def upsample_1(input_layer, factor, **kwargs):
 		"""Sub-pixel convolution."""
-		x_ = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=(3, 3), padding='same', use_bias=True, **kwargs)(
+		x_ = layers.Conv2D(filters=num_filters * (factor ** 2), kernel_size=(3, 3), padding='same', use_bias=True,
+		                   **kwargs)(
 			input_layer)
 		return tf.nn.depth_to_space(x_, 2)
 
@@ -157,8 +157,8 @@ def make_generator_model(input_shape, output_shape, upscale_num: int = 2, num_re
 	input = layers.Input(shape=input_shape, name="input")
 
 	x = layers.Conv2D(filters=64, kernel_size=(9, 9), strides=(1, 1), use_bias=True,
-					  padding='same',
-					  kernel_initializer=init)(input)
+	                  padding='same',
+	                  kernel_initializer=init)(input)
 	x = layers.ReLU()(x)
 
 	if use_residual_block:
@@ -167,8 +167,8 @@ def make_generator_model(input_shape, output_shape, upscale_num: int = 2, num_re
 			x = residual_dense_block(filters=64, init=init, input=x)
 
 		x = layers.Conv2D(filters=64, kernel_size=(9, 9), strides=(1, 1), use_bias=True,
-						  padding='same',
-						  kernel_initializer=init)(x)
+		                  padding='same',
+		                  kernel_initializer=init)(x)
 
 		x = layers.add([firstLayer, x])
 
@@ -190,12 +190,12 @@ def make_generator_model(input_shape, output_shape, upscale_num: int = 2, num_re
 
 def residual_block_discriminator(input, filters, init, kernel_size):
 	x = layers.Conv2D(filters=filters, kernel_size=kernel_size, strides=(1, 1), use_bias=True,
-					  padding='same',
-					  kernel_initializer=init)(input)
+	                  padding='same',
+	                  kernel_initializer=init)(input)
 	x = layers.LeakyReLU()(x)
 	x = layers.Conv2D(filters=filters, kernel_size=kernel_size, strides=(1, 1), use_bias=True,
-					  padding='same',
-					  kernel_initializer=init)(x)
+	                  padding='same',
+	                  kernel_initializer=init)(x)
 
 	AttachLayer = x
 	x = layers.add([AttachLayer, input])
@@ -208,25 +208,26 @@ def residual_block_discriminator(input, filters, init, kernel_size):
 def discriminator_down_block(input, filters, strides, init, use_norm=False):
 	# Downscale
 	x = layers.Conv2D(filters=filters, kernel_size=(3, 3), strides=strides, use_bias=True, padding='same',
-					  kernel_initializer=init)(input)
+	                  kernel_initializer=init)(input)
 	if use_norm:
 		x = layers.BatchNormalization()(x)
 	x = layers.LeakyReLU(alpha=0.2)(x)
 	return x
 
 
-def make_discriminator_model(input_size, regularization_l1=0.0002, upscale_mode=2, use_resnet=False, use_wasserstein=False, **kwargs):
+def make_discriminator_model(input_size, regularization_l1=0.0002, upscale_mode=2, use_resnet=False,
+                             use_wasserstein=False, **kwargs):
 	use_norm = True
 
 	init = 'glorot_uniform'
-	n_layers = max(int(math.log2(input_size[1])-1), 0)
+	n_layers = max(int(math.log2(input_size[1]) - 1), 0)
 
 	input = layers.Input(shape=input_size)
 	x = input
 
 	x = layers.Conv2D(filters=64, kernel_size=(3, 3), strides=(1, 1), use_bias=True,
-					  padding='same',
-					  kernel_initializer=init)(x)
+	                  padding='same',
+	                  kernel_initializer=init)(x)
 	x = layers.LeakyReLU()(x)
 
 	# Downscale
@@ -243,7 +244,7 @@ def make_discriminator_model(input_size, regularization_l1=0.0002, upscale_mode=
 		x = discriminator_down_block(
 			input=x, filters=filter_size, strides=(2, 2), init=init, use_norm=use_norm)
 
- #
+	#
 	x = layers.Flatten()(x)
 	x = layers.Dense(1024)(x)
 	x = layers.LeakyReLU(0.2)(x)
@@ -262,13 +263,17 @@ def make_discriminator_model(input_size, regularization_l1=0.0002, upscale_mode=
 class SRGANModel(tf.keras.Model):
 	def __init__(self, discriminator, generator, **kwargs):
 		super(SRGANModel, self).__init__(**kwargs)
+		self.gp_weight = None
+		self.content_loss_fn = None
+		self.discriminator_optimizer = None
+		self.generator_optimizer = None
 		self.discriminator = discriminator
 		self.generator = generator
 		self.discriminator_iterations = 1
 
 		self.use_wgandp = False
 		self.use_gradient_penalty = False
-
+		self.gp_weight = 10.0
 		self.gradient_loss_rate = 0.5
 		self.discriminator_loss_rate = 0.999
 
@@ -284,7 +289,7 @@ class SRGANModel(tf.keras.Model):
 	def metrics(self):
 		return self.local_metrics
 
-	def compile(self, d_optimizer=None, g_optimizer=None, loss=None, optimizer=None, metrics=None):
+	def compile(self, d_optimizer=None, g_optimizer=None, loss=None, optimizer=None, metrics=None, **kwargs):
 		super().compile(metrics=metrics, loss=loss)
 
 		self.generator_optimizer = optimizer  # g_optimizer
@@ -294,11 +299,11 @@ class SRGANModel(tf.keras.Model):
 			optimizer.get_config())
 
 		self.content_loss_fn = loss
-		self.gp_weight = 0.5
+
 		self.local_metrics = [self.gen_loss_tracker, self.disc_loss_tracker]
 
-		# if metrics:
-		# self.local_metrics = [self.gen_loss_tracker, self.disc_loss_tracker].extend(metrics)
+	# if metrics:
+	# self.local_metrics = [self.gen_loss_tracker, self.disc_loss_tracker].extend(metrics)
 
 	def build(self, input_shape):
 		# self.layers[0] = self.generator.input
@@ -309,7 +314,7 @@ class SRGANModel(tf.keras.Model):
 		#
 		self._set_inputs(inputs=input_shape)
 
-	def call(self, x, training=False):
+	def call(self, x, training=False, **kwargs):
 		if training:
 			return self.train_step(x)
 		else:
@@ -359,13 +364,15 @@ class SRGANModel(tf.keras.Model):
 				# Calculate the gradient penalty
 				gp = None
 				if self.use_gradient_penalty:
-					gp = tf.dtypes.cast(self.gradient_penalty(self.discriminator, data_batch_size, upscale_image, generated_upscale_image),
-										tf.float32)
+					gp = tf.dtypes.cast(self.gradient_penalty(self.discriminator, data_batch_size, upscale_image,
+					                                          generated_upscale_image),
+					                    tf.float32)
 
 				#
 				disc_loss = tf.dtypes.cast(
-					self.gan_discriminator_loss(self.cross_entropy, self.gradient_loss_rate, self.discriminator_loss_rate,
-												real_output, fake_output), tf.float32)
+					self.gan_discriminator_loss(self.cross_entropy, self.gradient_loss_rate,
+					                            self.discriminator_loss_rate,
+					                            real_output, fake_output), tf.float32)
 				if gp:
 					disc_loss += gp * self.gp_weight
 
@@ -415,10 +422,10 @@ class SRGANModel(tf.keras.Model):
 
 	def build_graph(self, raw_shape):
 		x = tf.keras.layers.Input(shape=(None, raw_shape),
-								  ragged=True)
+		                          ragged=True)
 
 		return tf.keras.Model(inputs=[x],
-							  outputs=[self.call(x, False), self.discriminator.call(x)])
+		                      outputs=[self.call(x, False), self.discriminator.call(x)])
 
 	def gan_generator_loss(self, gradient_loss_rate, real_image, generated_image, fake_output):
 		"""The objective is to penalize the generator whenever it produces images which the discriminator classifies as 'fake'
@@ -427,13 +434,14 @@ class SRGANModel(tf.keras.Model):
 		content_loss = self.content_loss_fn(real_image, generated_image)
 
 		adversarial_loss = 1e-3 * \
-			self.gan_discriminator_loss(
-				self.cross_entropy, 1, 1, real_image, generated_image)
+		                   self.gan_discriminator_loss(
+			                   self.cross_entropy, 1, 1, real_image, generated_image)
 
 		return tf.add(content_loss, adversarial_loss)
 
-	def gan_discriminator_loss(self, cross_entropy, gradient_loss_rate, discriminator_loss_rate, real_output, fake_output,
-							   smooth=0.01):
+	def gan_discriminator_loss(self, cross_entropy, gradient_loss_rate, discriminator_loss_rate, real_output,
+	                           fake_output,
+	                           smooth=0.01):
 		# label for real image is (1-smooth)
 
 		real_loss = cross_entropy(tf.ones_like(
@@ -442,12 +450,12 @@ class SRGANModel(tf.keras.Model):
 		fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
 
 		total_loss = gradient_loss_rate * \
-			(fake_loss + discriminator_loss_rate * real_loss)
+		             (fake_loss + discriminator_loss_rate * real_loss)
 
 		return total_loss
 
 	def gradient_penalty(self, discriminator, batch_size, real_images, fake_images):
-		"""	
+		"""
 										Calculates the gradient penalty.
 										This loss is calculated on an interpolated image
 										and added to the discriminator loss.

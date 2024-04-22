@@ -14,9 +14,8 @@ def compute_normalized_PSNR(orignal, data):
 class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 
 	def __init__(self, dir_path, train_data_subset, color_space: str, nth_batch_sample: int = 512, grid_size: int = 6,
-				 fileprefix: str = "SuperResolution",
-				 **kwargs):
-		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
+	             fileprefix: str = "SuperResolution"):
+		super(tf.keras.callbacks.Callback, self).__init__()
 
 		self.current_epoch = 0
 
@@ -37,7 +36,7 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 
 	def on_epoch_begin(self, epoch, logs=None):
 		fig = show_expect_predicted_result(model=self.model, image_batch_dataset=self.trainSet,
-										   color_space=self.color_space, nr_col=self.grid_size)
+		                                   color_space=self.color_space, nr_col=self.grid_size)
 		fig.savefig(os.path.join(self.dir_path, "{0}{1}.png".format(self.fileprefix, epoch)))
 		fig.clf()
 		plt.close(fig)
@@ -45,7 +44,7 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 	def on_train_batch_end(self, batch, logs=None):
 		if batch % self.nth_batch_sample == 0:
 			fig = show_expect_predicted_result(model=self.model, image_batch_dataset=self.trainSet,
-											   color_space=self.color_space, nr_col=self.grid_size)
+			                                   color_space=self.color_space, nr_col=self.grid_size)
 			fig.savefig(
 				os.path.join(self.dir_path, "{0}_{1}_{2}.png".format(self.fileprefix, self.current_epoch, batch)))
 			fig.clf()
@@ -55,7 +54,7 @@ class SaveExampleResultImageCallBack(tf.keras.callbacks.Callback):
 class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 
 	def __init__(self, dir_path: str, name: str, train_data_subset, color_space: str, num_images: int = 1, **kwargs):
-		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
+		super(tf.keras.callbacks.Callback, self).__init__()
 
 		self.trainSet = train_data_subset
 
@@ -87,12 +86,12 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 			input_rgb_image = Img.fromarray(decoder_image_u8, mode='RGB')
 
 			final_cropped_size, upscale_image = upscale_composite_image(upscale_model=self.model,
-																		input_im=input_rgb_image,
-																		batch_size=16, color_space=self.color_space)
+			                                                            input_im=input_rgb_image,
+			                                                            batch_size=16, color_space=self.color_space)
 
 			full_output_path = os.path.join(self.output_dir,
-											"SuperResolution_Composite_{0}_{1}_{2}.png".format(self.composite_name,
-																							   self.current_epoch, i))
+			                                "SuperResolution_Composite_{0}_{1}_{2}.png".format(self.composite_name,
+			                                                                                   self.current_epoch, i))
 			# Crop image final size image.
 			upscale_image = upscale_image.crop(final_cropped_size)
 			# Save image
@@ -102,7 +101,7 @@ class CompositeImageResultCallBack(tf.keras.callbacks.Callback):
 class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 
 	def __init__(self, dir_path, train_data_subset, color_space, **kwargs):
-		super(tf.keras.callbacks.Callback, self).__init__(**kwargs)
+		super(tf.keras.callbacks.Callback, self).__init__()
 
 		self.trainSet = train_data_subset
 
@@ -118,7 +117,7 @@ class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 
 	def on_epoch_end(self, epoch, logs=None):
 		fig = show_expect_predicted_result(model=self.model, image_batch_dataset=self.trainSet,
-										   color_space=self.color_space)
+		                                   color_space=self.color_space)
 		fig.savefig(os.path.join(self.dir_path, "SuperResolution{0}.png".format(epoch)))
 		fig.clf()
 		plt.close(fig)
@@ -126,7 +125,7 @@ class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 	def on_train_batch_end(self, batch, logs=None):
 		if batch % self.nth_batch_sample == 0:
 			fig = show_expect_predicted_result(model=self.model, image_batch_dataset=self.trainSet,
-											   color_space=self.color_space)
+			                                   color_space=self.color_space)
 			fig.savefig(os.path.join(self.dir_path, "SuperResolution_{0}_{1}.png".format(self.current_epoch, batch)))
 			fig.clf()
 			plt.close(fig)
@@ -134,7 +133,7 @@ class EvoluteSuperResolutionPerformance(tf.keras.callbacks.Callback):
 
 class GraphHistory(tf.keras.callbacks.History):
 	def __init__(self, filepath: str, nthBatch: int = 8, **kwargs):
-		super().__init__(**kwargs)
+		super().__init__()
 		self.fig_savepath = filepath
 		self.nthBatch = nthBatch
 		self.batch_history = {}

@@ -138,6 +138,7 @@ for i, custom_argv in enumerate(hyperparameter_combinations):
 	
 	#
 	argvlist.append("--metrics ")
-	argvlist.extend(metrics)
+	for m in metrics:
+		argvlist.append(m)
 
 	dcsuperresolution_program(argvlist)
