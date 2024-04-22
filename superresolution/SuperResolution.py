@@ -445,9 +445,17 @@ def dcsuperresolution_program(vargs=None):
 		# Parse argument.
 		args, _ = parser.parse_known_args(args=vargs)
 
+		# Read config file.
 		config_args = None
 		if args.config:
-			config_args = json.loads(args.config)
+			sr_logger.info("Reading Config File: " + args.config)
+			with open(args.config) as json_file:
+				config_args = json.load(json_file)
+			#
+			args_dic = vars(args)
+			config_args.update((k, v) for k, v in args_dic.items() if v is not None)
+			args = argparse.Namespace(**config_args)
+
 		# Parse for common arguments.
 		ParseDefaultArgument(args)
 
@@ -460,11 +468,10 @@ def dcsuperresolution_program(vargs=None):
 		# Add model argument result to the main argument result.
 
 		# Merge namespace
-		model_dic = vars(model_args)
+		model_dic = vars(model_args) #
 		args_dic = vars(args)
 		args_dic.update(model_dic)
-		if config_args:
-			args_dic.update(config_args)
+
 		args = argparse.Namespace(**args_dic)
 
 		# Set init seed.
@@ -502,7 +509,7 @@ def dcsuperresolution_program(vargs=None):
 		# Create absolute path for model file, if relative path.
 		if not os.path.isabs(args.model_filepath):
 			args.model_filepath = os.path.join(
-				args.output_dir, args.model_filepath)
+				args.output_dir, os.path.basename(args.model_filepath))
 
 		# Allow override to enable cropping for increase details in the dataset.
 		override_image_size = args.override_image_size

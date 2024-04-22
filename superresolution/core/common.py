@@ -111,7 +111,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	                    help='Disable validation if validation data is present.')
 
 	# Parse argument via config file.
-	parser.add_argument('--config', default=None, dest='config',
+	parser.add_argument('--config', default=None, dest='config', required=False,
 	                    help='Config File - Json.')
 
 	return parser
