@@ -25,6 +25,85 @@ console_handler.setFormatter(logging.Formatter(log_format))
 sr_logger.addHandler(console_handler)
 
 
+def upscale_logic(input_im: Image, image_input_size: tuple, image_scale: tuple, batch_size, color_space, upscale_model):
+	# Open File and Convert to RGB Color Space.
+	input_im: Image = input_im.convert('RGB')
+	width_scale, height_scale = image_scale
+	input_width, input_height = image_input_size
+
+	#
+	upscale_new_size: tuple = (
+		int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
+	sr_logger.info("Upscale Size " + str(upscale_new_size))
+
+	# New Upscale Size.
+	upscale_image = Image.new("RGB", upscale_new_size, (0, 0, 0))
+
+	#
+	nr_width_block: int = math.ceil(
+		float(input_im.width) / float(input_width))
+	nr_height_block: int = math.ceil(
+		float(input_im.height) / float(input_height))
+
+	sr_logger.debug(str.format(
+		"Number of tiles: {0}:{1}", nr_width_block, nr_height_block))
+
+	# Construct all crops.
+	image_crop_list: list = []
+	for x in range(0, nr_width_block):
+		for y in range(0, nr_height_block):
+			# Compute subset view.
+			left = x * input_width
+			top = y * input_height
+			right = (x + 1) * input_width
+			bottom = (y + 1) * input_height
+			image_crop_list.append((left, top, right, bottom))
+
+	# Compute number of cropped batches.
+	nr_cropped_batches: int = int(
+		math.ceil(len(image_crop_list) / batch_size))
+
+	#
+	for nth_batch in range(0, nr_cropped_batches):
+		cropped_batch = image_crop_list[nth_batch *
+										batch_size:(nth_batch + 1) * batch_size]
+
+		crop_batch = []
+		for crop in cropped_batch:
+			cropped_sub_input_image = input_im.crop(crop)
+			crop_batch.append(np.array(cropped_sub_input_image))
+
+		normalized_subimage_color = (np.array(crop_batch) * (1.0 / 255.0)).astype(
+			dtype='float32')
+
+		# TODO fix color space conversation, use function.
+		if color_space == 'lab':
+			cropped_sub_input_image = rgb2lab(
+				normalized_subimage_color) * (1.0 / 128.0)
+		elif color_space == 'rgb':
+			cropped_sub_input_image = (
+				normalized_subimage_color * 2) - 1
+
+		# Upscale.
+		upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,
+												color_space=color_space)
+
+		#
+		for index, (crop, upscale) in enumerate(zip(cropped_batch, upscale_raw_result)):
+			output_left = int(crop[0] * width_scale)
+			output_top = int(crop[1] * width_scale)
+			output_right = int(crop[2] * width_scale)
+			output_bottom = int(crop[3] * width_scale)
+
+			upscale_image.paste(
+				upscale, (output_left, output_top, output_right, output_bottom))
+
+	# Offload final crop and save to separate thread.
+	final_cropped_size = (
+		0, 0, upscale_new_size[0], upscale_new_size[1])
+	return upscale_image, final_cropped_size
+
+
 def save_result_file(argument):
 	upscale_image, new_cropped_size, full_output_path = argument
 
@@ -98,7 +177,8 @@ def super_resolution_upscale(argv):
 
 	# Allow to use multiple GPU
 	strategy = setup_tensorflow_strategy(args=args)
-	sr_logger.info('Number of devices: {0}'.format(strategy.num_replicas_in_sync))
+	sr_logger.info('Number of devices: {0}'.format(
+		strategy.num_replicas_in_sync))
 	with strategy.scope():
 
 		# TODO: fix output.
@@ -164,78 +244,10 @@ def super_resolution_upscale(argv):
 
 			# Open File and Convert to RGB Color Space.
 			input_im: Image = Image.open(input_file_path)
-			input_im: Image = input_im.convert('RGB')
 
-			#
-			upscale_new_size: tuple = (
-				int(input_im.size[0] * width_scale), int(input_im.size[1] * height_scale))
-			sr_logger.info("Upscale Size " + str(upscale_new_size))
+			upscale_image, final_cropped_size = upscale_logic(input_im=input_im, image_input_size=image_input_shape, image_scale=(
+				width_scale, height_scale), batch_size=batch_size, color_space=color_space, upscale_model=upscale_model)
 
-			#
-			upscale_image = Image.new("RGB", upscale_new_size, (0, 0, 0))
-
-			#
-			nr_width_block: int = math.ceil(
-				float(input_im.width) / float(input_width))
-			nr_height_block: int = math.ceil(
-				float(input_im.height) / float(input_height))
-
-			sr_logger.debug(str.format(
-				"Number of tiles: {0}:{1}", nr_width_block, nr_height_block))
-
-			# Construct all crops.
-			image_crop_list: list = []
-			for x in range(0, nr_width_block):
-				for y in range(0, nr_height_block):
-					# Compute subset view.
-					left = x * input_width
-					top = y * input_height
-					right = (x + 1) * input_width
-					bottom = (y + 1) * input_height
-					image_crop_list.append((left, top, right, bottom))
-
-			# Compute number of cropped batches.
-			nr_cropped_batches: int = int(
-				math.ceil(len(image_crop_list) / batch_size))
-
-			#
-			for nth_batch in range(0, nr_cropped_batches):
-				cropped_batch = image_crop_list[nth_batch *
-												batch_size:(nth_batch + 1) * batch_size]
-
-				crop_batch = []
-				for crop in cropped_batch:
-					cropped_sub_input_image = input_im.crop(crop)
-					crop_batch.append(np.array(cropped_sub_input_image))
-
-				normalized_subimage_color = (np.array(crop_batch) * (1.0 / 255.0)).astype(
-					dtype='float32')
-
-				# TODO fix color space conversation, use function.
-				if color_space == 'lab':
-					cropped_sub_input_image = rgb2lab(
-						normalized_subimage_color) * (1.0 / 128.0)
-				elif color_space == 'rgb':
-					cropped_sub_input_image = (
-												  normalized_subimage_color * 2) - 1
-
-				# Upscale.
-				upscale_raw_result = upscale_image_func(upscale_model, cropped_sub_input_image,
-														color_space=color_space)
-
-				#
-				for index, (crop, upscale) in enumerate(zip(cropped_batch, upscale_raw_result)):
-					output_left = int(crop[0] * width_scale)
-					output_top = int(crop[1] * width_scale)
-					output_right = int(crop[2] * width_scale)
-					output_bottom = int(crop[3] * width_scale)
-
-					upscale_image.paste(
-						upscale, (output_left, output_top, output_right, output_bottom))
-
-			# Offload final crop and save to separate thread.
-			final_cropped_size = (
-				0, 0, upscale_new_size[0], upscale_new_size[1])
 			sr_logger.debug(str.format("Saving {0}", full_output_path))
 			pool.apply_async(save_result_file, [
 				(upscale_image, final_cropped_size, full_output_path)])

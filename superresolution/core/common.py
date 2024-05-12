@@ -5,7 +5,6 @@ from random import randrange
 
 import tensorflow as tf
 from tensorflow.keras import mixed_precision
-from tensorflow.python.client import device_lib
 
 
 def DefaultArgumentParser() -> argparse.ArgumentParser:
@@ -88,7 +87,7 @@ def DefaultArgumentParser() -> argparse.ArgumentParser:
 	                    nargs=2,
 	                    default=(64, 64),
 	                    help='Set the input training images size. Low Resolution (LR).')
-
+	#
 	parser.add_argument('--output-image-size', type=int, dest='output_image_size',
 	                    nargs=2, required=False,
 	                    default=(128, 128),

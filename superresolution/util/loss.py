@@ -13,7 +13,7 @@ import tensorflow_io as tfio
 @keras.saving.register_keras_serializable(package="superresolution", name="VGG16Error")
 class VGG16Error(LossFunctionWrapper):
 	selected_layers = ['block1_conv1', 'block2_conv2',
-					   "block3_conv3", 'block4_conv3', 'block5_conv4']
+					   "block3_conv2", 'block4_conv2', 'block5_conv3']
 	selected_layer_weights = [1.0, 4.0, 4.0, 8.0, 16.0]
 
 	@tf.function

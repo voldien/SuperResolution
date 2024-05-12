@@ -15,6 +15,7 @@ import tensorflow as tf
 import tensorflow.keras as keras
 from matplotlib import pyplot as plt
 from tensorflow.python.data import Dataset
+import tf2onnx
 
 from core import ModelBase
 
@@ -36,6 +37,7 @@ from util.trainingcallback import GraphHistory, SaveExampleResultImageCallBack, 
 	CompositeImageResultCallBack
 from util.util import plotTrainingHistory
 from util.loss import PSNRError, SSIMError, VGG16Error, VGG19Error
+from util.convert_model import convert_model
 
 global sr_logger
 sr_logger: Logger = logging.getLogger("Super Resolution Training")
@@ -350,6 +352,15 @@ def run_train_model(args: dict, training_dataset: Dataset, validation_dataset: D
 		#
 		training_model.save(args.model_filepath)
 
+		if args.use_save_tflite:
+			tflite_model = convert_model(training_model)
+			with open( os.path.splitext(args.model_filepath)[0] + '.tflite', "wb") as f:
+				f.write(tflite_model)
+
+		if args.use_save_onnx:
+			spec = (tf.TensorSpec((None, image_input_size[0], image_input_size[1], image_input_size[2]), tf.float32, name="input"),)
+			model_proto, _ = tf2onnx.convert.from_keras(model=training_model, input_signature=spec,  opset=13, output_path=os.path.splitext(args.model_filepath)[0] + '.onnx')
+
 		# Test model.
 		if test_dataset:
 			training_model.test(x=test_dataset, verbose='auto')
@@ -430,9 +441,18 @@ def dcsuperresolution_program(vargs=None):
 		                    choices=['mse', 'ssim', 'msa',
 		                             'psnr', 'vgg16', 'vgg19', 'none'],
 		                    help='Set Loss Function', type=str)
+		
 		parser.add_argument('--override-image-size', type=int, dest='override_image_size',
 		                    nargs=2, required=False,
 		                    default=(-1, -1),
+		                    help='')
+		
+		parser.add_argument('--save-tflite', action='store_true', dest='use_save_tflite',
+		                    required=False,
+		                    help='')
+
+		parser.add_argument('--save-onnx', action='store_true', dest='use_save_onnx',
+		                    required=False,
 		                    help='')
 
 		# If invalid number of arguments, print help.

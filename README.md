@@ -13,12 +13,14 @@ A SuperResolution training program for creating/training upscaling machine learn
 * **AE** - AutoEncoder Super Resolution
 * **DCNN** - Deep Convolutional Super Resolution Neural Network
 * **Resnet** - Residual Network Deep Convolutional Super Resolution Neural Network
+* **SRGAN** - GAN (Generative Adversarial Network) based Super Resolution Network
 
 ### Loss/Cost Function
 * **SSIM** - Structural similarity index measure
 * **MSA** - Mean Square Absolute
 * **MSE** - Mean Square Error
 * **VGG16** - Perceptible Loss Error Function
+* **VGG19** - Perceptible Loss Error Function
 
 ## Basic Program Command Line
 
@@ -53,6 +55,9 @@ python superresolution/SuperResolution.py  --batch-size 16 --epochs 10 --image-s
 ```bash
 
 ```
+
+![Gangsta Anime SRGAN Super Resolution Example from Trained model]( )
+![Amagi Brilliant Park Anime SRGAN Super Resolution Example from Trained model]()
 
 $
 l^{SR} = l_X^{SR} + 10^-3l^{SR}_{GEN}
@@ -296,6 +301,12 @@ docker run --network=host --gpus all --name sr-cuda super-resolution-cuda
 
 ```bash
 python3 superresolution/generate_tflite.py --model super-resolution-model.keras --output model-lite.tflite
+```
+
+# Convert to ONNX
+
+```bash
+python3 -m tf2onnx.convert --saved-model tensorflow-model-path --output model.onnx
 ```
 
 ## Run Python In Background (Server)
