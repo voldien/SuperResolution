@@ -81,6 +81,7 @@ class ResDenseBlock_5C(tf.keras.layers.Layer):
 			Conv2D, kernel_size=3, padding='same',
 			kernel_initializer=_kernel_init(0.1), bias_initializer='zeros',
 			kernel_regularizer=_regularizer(wd))
+		
 		self.conv1 = _Conv2DLayer(filters=gc, activation=lrelu_f())
 		self.conv2 = _Conv2DLayer(filters=gc, activation=lrelu_f())
 		self.conv3 = _Conv2DLayer(filters=gc, activation=lrelu_f())

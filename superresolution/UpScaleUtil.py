@@ -29,7 +29,7 @@ def upscale_logic(input_im: Image, image_input_size: tuple, image_scale: tuple, 
 	# Open File and Convert to RGB Color Space.
 	input_im: Image = input_im.convert('RGB')
 	width_scale, height_scale = image_scale
-	input_width, input_height = image_input_size
+	input_width, input_height, _ = image_input_size
 
 	#
 	upscale_new_size: tuple = (
@@ -117,7 +117,7 @@ def save_result_file(argument):
 		sr_logger.error(excep)
 
 
-def super_resolution_upscale(argv):
+def create_parser() -> argparse.ArgumentParser:
 	parser = argparse.ArgumentParser(
 		description='UpScale')
 
@@ -168,6 +168,11 @@ def super_resolution_upscale(argv):
 	#
 	parser.add_argument('--color-channels', type=int, default=3, dest='color_channels', choices=[1, 3, 4],
 						help='Select Number of channels in the color space. GrayScale, RGB and RGBA.')
+	return parser
+
+
+def super_resolution_upscale(argv):
+	parser = create_parser()
 
 	args = parser.parse_args(args=argv)
 
@@ -251,7 +256,7 @@ def super_resolution_upscale(argv):
 			sr_logger.debug(str.format("Saving {0}", full_output_path))
 			pool.apply_async(save_result_file, [
 				(upscale_image, final_cropped_size, full_output_path)])
-		# Close and wait intill all taks has been finished.
+		# Close and wait intill all tasks has been finished.
 		pool.close()
 		pool.join()
 
