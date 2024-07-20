@@ -1,5 +1,6 @@
 # !/usr/bin/env python3
 import os
+import shutil
 import subprocess
 import sys
 import traceback
@@ -35,21 +36,27 @@ def super_resolution_upscale_video(argv):
 	for input_file_path in input_filepaths:
 		video_path = input_file_path
 		video_full_path = os.path.abspath(video_path)
-		video_basename = os.path.basename(video_path)
 		output_final_video = args.save_path
 
+		# Attempt to Extract video info
+		try:
+			vid = ffmpeg.probe(filename=video_full_path)
+			streams = vid['streams']
+			video_stream = list(filter(lambda x: x['codec_type'] == 'video', streams))[0]
+			audio_streams = list(filter(lambda x: x['codec_type'] == 'audio', streams))
+			audio_stream = audio_streams[0] if len(audio_streams) > 0 else None
+			fps_rate = eval(video_stream['avg_frame_rate'])
+		except Exception as ex:
+			sr_logger.info("Failed to Extract Video Meta from {}", video_full_path)
+			continue
+
+		sr_logger.info("Starting {0}", video_full_path)
 		with tempfile.TemporaryDirectory() as tmpdirname:
-			print('created temporary directory', tmpdirname)
+			sr_logger.info('Created temporary directory', tmpdirname)
 			source_image_path = os.path.join(tmpdirname, 'source')
 			upscale_image_path = os.path.join(tmpdirname, 'upscale')
 			os.mkdir(source_image_path)
 			os.mkdir(upscale_image_path)
-
-			# Extract video info
-			vid = ffmpeg.probe(filename=video_full_path)
-			streams = vid['streams']
-			video_stream = list(filter(lambda x: x['codec_type'] == 'video', streams))[0]
-			fps_rate = video_stream['avg_frame_rate']
 
 			# Save images to tmp
 			source_extract_destination_pattern = os.path.join(source_image_path, frame_pattern)
@@ -70,32 +77,37 @@ def super_resolution_upscale_video(argv):
 
 			# Convert the upscale.
 			upscale_extract_destination_pattern = os.path.join(upscale_image_path, frame_pattern)
-			output_no_video = os.path.join(tmpdirname, 'video.mp4')
+			output_upscale_video_path = os.path.join(tmpdirname, 'upscale_video.mp4')
 			create_video_command = []
+			source_extract_fps_rate = "30"
 			# '24/1.001'
 			create_video_command.extend(
-				[program_path, '-start_number', '1', '-framerate', fps_rate, '-i', upscale_extract_destination_pattern,
-				 '-c:v', 'libx265', '-r', source_extract_fps_rate, '-vf', 'format=yuv420', output_no_video])
-			# ffmpeg -start_number 1 -framerate 24 -i "output_upscale/%3d.png" -c:v libx265 -r 24/1.001 -vf format=yuv420p output0.mp4
-			subprocess.run(create_video_command, stdout=subprocess.PIPE)
+				[program_path, '-start_number', '1', '-framerate', '24', '-i', upscale_extract_destination_pattern,
+				 '-c:v', 'libx265', '-crf', '15', '-r', source_extract_fps_rate, '-pix_fmt', 'yuv420p',
+				 output_upscale_video_path])
+			result = subprocess.call(create_video_command, stdout=subprocess.PIPE)
 
-			# Extract Audio 
-			output_audio = os.path.join(tmpdirname, video_basename)
-			extract_audio_args = [program_path]
-			extract_audio_args.extend(['-i', video_path, '-vn', '-acodec', 'copy', output_audio])
+			# Extract Audio
+			extract_audio = False
+			if audio_stream is not None:
+				audio_filename = str.format("video_audio.{}", audio_stream['codec_name'])
+				output_audio = os.path.join(tmpdirname, audio_filename)
+				extract_audio_args = [program_path]
+				extract_audio_args.extend(['-i', video_path, '-vn', '-acodec', 'copy', output_audio])
+				result = subprocess.call(extract_audio_args, stdout=subprocess.PIPE)
+				if result == 0:
+					extract_audio = True
 
-			subprocess.call(extract_audio_args, stdout=subprocess.PIPE)
-
-			# Merge upscale and Audio.
-			# ffmpeg -i video.mp4 -i audio.wav -map 0:v -map 1:a -c:v copy -shortest output.mp4
-			merge_video_audio_args = [program_path]
-			merge_video_audio_args.extend(
-				['-i', output_no_video, '-i', output_audio, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-shortest',
-				 output_final_video])
-			subprocess.call(extract_audio_args, stdout=subprocess.PIPE)
-
-
-# super_resolution_upscale()
+			if extract_audio:
+				# Merge upscale and Audio.
+				merge_video_audio_args = [program_path]
+				merge_video_audio_args.extend(
+					['-i', output_upscale_video_path, '-i', output_audio, '-map', '0:v', '-map', '1:a', '-c:v', 'copy',
+					 '-shortest',
+					 output_final_video])
+				result = subprocess.call(merge_video_audio_args, stdout=subprocess.PIPE)
+			else:
+				shutil.move(output_upscale_video_path, output_final_video)
 
 
 # If running the script as main executable
