@@ -46,68 +46,82 @@ def super_resolution_upscale_video(argv):
 			audio_streams = list(filter(lambda x: x['codec_type'] == 'audio', streams))
 			audio_stream = audio_streams[0] if len(audio_streams) > 0 else None
 			fps_rate = eval(video_stream['avg_frame_rate'])
-		except Exception as ex:
-			sr_logger.info("Failed to Extract Video Meta from {}", video_full_path)
+		except Exception:
+			sr_logger.info("Failed to Extract Video Meta from {} | Skipping File", video_full_path)
 			continue
 
-		sr_logger.info("Starting {0}", video_full_path)
-		with tempfile.TemporaryDirectory() as tmpdirname:
-			sr_logger.info('Created temporary directory', tmpdirname)
-			source_image_path = os.path.join(tmpdirname, 'source')
-			upscale_image_path = os.path.join(tmpdirname, 'upscale')
-			os.mkdir(source_image_path)
-			os.mkdir(upscale_image_path)
+		try:
+			sr_logger.info("Starting {0}", video_full_path)
+			with tempfile.TemporaryDirectory() as tmpdirname:
+				sr_logger.info('Created temporary directory', tmpdirname)
+				source_image_path = os.path.join(tmpdirname, 'source')
+				upscale_image_path = os.path.join(tmpdirname, 'upscale')
+				os.mkdir(source_image_path)
+				os.mkdir(upscale_image_path)
 
-			# Save images to tmp
-			source_extract_destination_pattern = os.path.join(source_image_path, frame_pattern)
-			video_image_extract_command: list = []
-			source_extract_fps_rate = str.format("fps={0}", fps_rate)
-			video_image_extract_command.extend(
-				[program_path, '-i', video_full_path, '-vf', source_extract_fps_rate,
-				 source_extract_destination_pattern])
-			subprocess.call(video_image_extract_command, stdout=subprocess.PIPE)
+				# Save images to tmp
+				source_extract_destination_pattern = os.path.join(source_image_path, frame_pattern)
+				video_image_extract_command: list = []
+				source_extract_fps_rate = str.format("fps={0}", fps_rate)
+				video_image_extract_command.extend(
+					[program_path, '-i', video_full_path, '-vf', source_extract_fps_rate,
+					 source_extract_destination_pattern])
+				subprocess.call(video_image_extract_command, stdout=subprocess.PIPE)
+				if result != 0:
+					sr_logger.error("Failed to extract image frames from video {} | Skipping File", video_full_path)
+					continue
 
-			# Upscale and save to tmp
-			upscale_commands = []
-			upscale_commands.extend(['--input-file', source_image_path])
-			upscale_commands.extend(['--save-output', upscale_image_path])
-			upscale_commands.extend(['--model', args.model_filepath])
-			# TODO: update variables from parsed
-			super_resolution_upscale(upscale_commands)
+				# Upscale and save to tmp
+				upscale_commands = []
+				upscale_commands.extend(['--input-file', source_image_path])
+				upscale_commands.extend(['--save-output', upscale_image_path])
+				upscale_commands.extend(['--model', args.model_filepath])
+				# TODO: update variables from parsed
+				super_resolution_upscale(upscale_commands)
 
-			# Convert the upscale.
-			upscale_extract_destination_pattern = os.path.join(upscale_image_path, frame_pattern)
-			output_upscale_video_path = os.path.join(tmpdirname, 'upscale_video.mp4')
-			create_video_command = []
-			source_extract_fps_rate = "30"
-			# '24/1.001'
-			create_video_command.extend(
-				[program_path, '-start_number', '1', '-framerate', '24', '-i', upscale_extract_destination_pattern,
-				 '-c:v', 'libx265', '-crf', '15', '-r', source_extract_fps_rate, '-pix_fmt', 'yuv420p',
-				 output_upscale_video_path])
-			result = subprocess.call(create_video_command, stdout=subprocess.PIPE)
+				# Convert the upscale.
+				upscale_extract_destination_pattern = os.path.join(upscale_image_path, frame_pattern)
+				output_upscale_video_path = os.path.join(tmpdirname, 'upscale_video.mp4')
+				create_video_command = []
+				source_extract_fps_rate = "30"
+				#TODO: fix frame rate, being out of sync.
+				# '24/1.001'
+				create_video_command.extend(
+					[program_path, '-start_number', '1', '-framerate', '24', '-i', upscale_extract_destination_pattern,
+					 '-c:v', 'libx265', '-crf', '15', '-r', source_extract_fps_rate, '-pix_fmt', 'yuv420p',
+					 output_upscale_video_path])
+				result = subprocess.call(create_video_command, stdout=subprocess.PIPE)
+				if result != 0:
+					sr_logger.error("Failed to construct video from the upscaled images | Skipping file")
+					continue
 
-			# Extract Audio
-			extract_audio = False
-			if audio_stream is not None:
-				audio_filename = str.format("video_audio.{}", audio_stream['codec_name'])
-				output_audio = os.path.join(tmpdirname, audio_filename)
-				extract_audio_args = [program_path]
-				extract_audio_args.extend(['-i', video_path, '-vn', '-acodec', 'copy', output_audio])
-				result = subprocess.call(extract_audio_args, stdout=subprocess.PIPE)
-				if result == 0:
-					extract_audio = True
+				# Extract Audio
+				extract_audio = False
+				if audio_stream is not None:
+					audio_filename = str.format("video_audio.{}", audio_stream['codec_name'])
+					output_audio = os.path.join(tmpdirname, audio_filename)
+					extract_audio_args = [program_path]
+					extract_audio_args.extend(['-i', video_path, '-vn', '-acodec', 'copy', output_audio])
+					result = subprocess.call(extract_audio_args, stdout=subprocess.PIPE)
+					if result == 0:
+						extract_audio = True
 
-			if extract_audio:
-				# Merge upscale and Audio.
-				merge_video_audio_args = [program_path]
-				merge_video_audio_args.extend(
-					['-i', output_upscale_video_path, '-i', output_audio, '-map', '0:v', '-map', '1:a', '-c:v', 'copy',
-					 '-shortest',
-					 output_final_video])
-				result = subprocess.call(merge_video_audio_args, stdout=subprocess.PIPE)
-			else:
-				shutil.move(output_upscale_video_path, output_final_video)
+				if extract_audio:
+					# Merge upscale and Audio.
+					merge_video_audio_args = [program_path]
+					merge_video_audio_args.extend(
+						['-i', output_upscale_video_path, '-i', output_audio, '-map', '0:v', '-map', '1:a', '-c:v', 'copy',
+						 '-shortest',
+						 output_final_video])
+					result = subprocess.call(merge_video_audio_args, stdout=subprocess.PIPE)
+				if result != 0:
+					sr_logger.error("Failed to merge video and audio together | Skipping file")
+					continue
+				else:
+					shutil.move(output_upscale_video_path, output_final_video)
+		except Exception as ex:
+			sr_logger.error("Error occurred during up-scaling of {}", video_full_path)
+			sr_logger.error(ex)
 
 
 # If running the script as main executable
