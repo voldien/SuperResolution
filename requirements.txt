@@ -7,7 +7,11 @@ graphviz
 pydot==2.0.0
 scikit-image~=0.21.0
 kiwisolver==1.4.5
-opencv-python==4.8.1.78
+opencv-python==4.10.1.78
 tensorflow-model-optimization==0.8.0
 tf2onnx==1.16.1
 ffmpeg-python==0.2.0
+setuptools~=68.2.0
+tensorflow~=2.14.1
+keras~=2.14.0
+numpy~=1.26.4
