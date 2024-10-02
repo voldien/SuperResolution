@@ -115,7 +115,7 @@ def load_builtin_model_interfaces() -> Dict[str, ModelBase]:
 	builtin_models['vdsr'] = models.SuperResolutionVDSR.get_model_interface()
 	builtin_models['srcnn'] = models.SuperResolutionCNN.get_model_interface()
 	builtin_models['srgan'] = models.SuperResolutionSRGAN.get_model_interface()
-	builtin_models['esrgan'] = models.SuperResolutionESRGAN.get_model_interface()
+	#builtin_models['esrgan'] = models.SuperResolutionESRGAN.get_model_interface()
 
 	return builtin_models
 
@@ -433,7 +433,7 @@ def dcsuperresolution_program(vargs=None):
 		parser.add_argument('--model', dest='model',
 		                    default='dcsr',
 		                    choices=['srcan', 'dcsr', 'dscr-post', 'dscr-pre', 'edsr', 'dcsr-ae', 'dcsr-resnet',
-		                             'vdsr', 'srgan', 'esrgan'],
+		                             'vdsr', 'srgan'], #'esrgan'
 		                    help='Set which model type to use.', type=str)
 		#
 		parser.add_argument('--loss-fn', dest='loss_fn',
