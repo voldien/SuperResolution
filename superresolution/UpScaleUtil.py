@@ -193,6 +193,8 @@ def super_resolution_upscale(argv):
 
 		# TODO improved extraction of filepaths.
 		input_filepaths: str = args.input_files
+		#if isinstance(input_file_path, object):
+		#	pass
 
 		if os.path.isdir(input_filepaths):
 			sr_logger.info("Directory Path: " + str(input_filepaths))
@@ -230,8 +232,8 @@ def super_resolution_upscale(argv):
 		#
 		width_scale: float = float(output_width) / float(input_width)
 		height_scale: float = float(output_height) / float(input_height)
-		sr_logger.info("Upscale X" + str(width_scale) +
-		               " UpscaleY " + str(height_scale))
+		sr_logger.info("UpscaleX: " + str(width_scale) +
+		               " UpscaleY: " + str(height_scale))
 
 		# Create a pool of task scheduler.
 		pool = Pool(processes=16)

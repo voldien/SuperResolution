@@ -5,6 +5,9 @@
 
 A SuperResolution training program for creating/training upscaling machine learning model, developed for educational purposes only. The result may vary between training data and hyperparameter, the example are from own trained model.
 
+
+**Project Was developed using Python 3.9**
+
 ## Features
 
 ### Model Architecture
@@ -153,23 +156,6 @@ optional arguments:
                         Set Loss Function
 ```
 
-## Upscale Image
-
-Upscaling images using pre-trained upscale model.
-
-### Upscale Single Image
-The following allows to upscale a single image.
-
-```bash
-python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5 --input-file low_res.png --save-output  high_res.png --batch 32 --color-space rgb
-```
-
-### Upscale Directory
-The following allows to upscale a whole directory.
-
-```bash
-python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5 --save-output  high_output_dir/ --input-file low_input_dir/ --batch 32 --color-space rgb
-```
 
 ### Evolution Program - HyperParameter
 The Evolution Program allow sto try multiple variable combination in order to find a good set of variable configuration. Similar to hyperparameter testing.
@@ -242,6 +228,33 @@ optional arguments:
                         Select optimizer to be used
 ```
 
+
+## Upscale Image
+
+Upscaling images using pre-trained upscale model.
+
+### Upscale Single Image
+The following allows to upscale a single image.
+
+```bash
+python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5 --input-file low_res.png --save-output  high_res.png --batch 32 --color-space rgb
+```
+
+### Upscale Directory
+The following allows to upscale a whole directory.
+
+```bash
+python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5 --save-output  high_output_dir/ --input-file low_input_dir/ --batch 32 --color-space rgb
+```
+
+### Upscale Videos
+The following allows to upscale video.
+
+```bash
+python3 superresolution/UpScaleVideo.py --model super-resolution-model-2113109.h5 --save-output  high_video/ --input-file video_directory/ --batch 32 --color-space rgb
+```
+
+
 ## Installation Instructions
 
 ### Setup Virtual Environment
@@ -252,6 +265,11 @@ source venv/bin/activate
 ```
 
 ## Installing Required Packages
+
+### CPU Only
+```bash
+pip install -r requirements.txt
+```
 
 ### Nvidia - CUDA
 ```bash
@@ -282,7 +300,6 @@ sudo apt-get install -y nvidia-container-toolkit
 docker build -t super-resolution-cuda -f  Dockerfile.cuda .
 docker run --network=host --gpus all --name sr-cuda super-resolution-cuda 
 ```
-
 
 # Convert Keras Model to TensorLite
 
