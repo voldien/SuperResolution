@@ -49,7 +49,8 @@ def super_resolution_upscale_video(argv):
 		except Exception:
 			sr_logger.info("Failed to Extract Video Meta from {} | Skipping File", video_full_path)
 			continue
-
+		
+		# 
 		try:
 			sr_logger.info("Starting {0}", video_full_path)
 			with tempfile.TemporaryDirectory() as tmpdirname:
@@ -67,6 +68,8 @@ def super_resolution_upscale_video(argv):
 					[program_path, '-i', video_full_path, '-vf', source_extract_fps_rate,
 					 source_extract_destination_pattern])
 				subprocess.call(video_image_extract_command, stdout=subprocess.PIPE)
+
+				# 
 				if result != 0:
 					sr_logger.error("Failed to extract image frames from video {} | Skipping File", video_full_path)
 					continue
@@ -84,6 +87,7 @@ def super_resolution_upscale_video(argv):
 				output_upscale_video_path = os.path.join(tmpdirname, 'upscale_video.mp4')
 				create_video_command = []
 				source_extract_fps_rate = "30"
+
 				#TODO: fix frame rate, being out of sync.
 				# '24/1.001'
 				create_video_command.extend(

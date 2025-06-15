@@ -172,7 +172,7 @@ python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5
 ```
 
 ### Evolution Program - HyperParameter
-The Evolution Program allow sto try multiple variable combination in order to find a good set of variable configuration. Simliar to hyperparameter testing.
+The Evolution Program allow sto try multiple variable combination in order to find a good set of variable configuration. Similar to hyperparameter testing.
 
 ```bash
 python3 superresolution/super-resolution-evolution-test.py  --epochs 8 --batch 32 rgb  --image-size 128 128  --data-set-directory /path_to_training_data/ --validation-data-directory /path_to_validation_data/   --output-dir evolution_test/
@@ -235,9 +235,9 @@ optional arguments:
   --output-dir OUTPUT_DIR
                         Set the output directory that all the models and results will be stored at
   --models [{cnnsr,dcsr,edsr,dcsr-ae,dcsr-resnet,vdsr,srgan,esrgan} ...]
-                        Overide what Model to include in training evolution.
+                        Override what Model to include in training evolution.
   --loss-functions [{mse,ssim,msa,vgg16,vgg19} ...]
-                        Overide what Loss functions to include in training evolution.
+                        Override what Loss functions to include in training evolution.
   --optimizer-evolution [{adam,rmsprop,sgd,adadelta} ...]
                         Select optimizer to be used
 ```

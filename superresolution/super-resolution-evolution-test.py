@@ -24,12 +24,12 @@ parser.add_argument('--models', dest='models', action='store', nargs='*', requir
 							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan', 'esrgan'],
 					choices=['srcnn', 'dcsr', 'edsr',
 							 'dcsr-ae', 'dcsr-resnet', 'vdsr', 'srgan', 'esrgan'],
-					help='Overide what Model to include in training evolution.')
+					help='Override what Model to include in training evolution.')
 #
 parser.add_argument('--loss-functions', dest='loss_functions', action='store', nargs='*', required=False,
 					default=['mse', 'ssim', 'msa', 'vgg16', 'vgg19'],
 					choices=['mse', 'ssim', 'msa', 'vgg16', 'vgg19'],
-					help='Overide what Loss functions to include in training evolution.')
+					help='Override what Loss functions to include in training evolution.')
 #
 parser.add_argument('--optimizer-evolution', dest='optimizer_evolution', action='append', nargs='*', required=False,
 																				default=['adam',

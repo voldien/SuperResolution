@@ -119,7 +119,7 @@ def save_result_file(argument):
 
 def create_parser() -> argparse.ArgumentParser:
 	parser = argparse.ArgumentParser(
-		description='UpScale')
+		description='UpScale',epilog='')
 
 	#
 	parser.add_argument('--save-output', dest='save_path',
