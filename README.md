@@ -1,16 +1,17 @@
 # Super Resolution - Machine Learning
+
 [![Super Resolution Linux](https://github.com/voldien/SuperResolution/actions/workflows/ci.yaml/badge.svg)](https://github.com/voldien/SuperResolution/actions/workflows/ci.yaml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GitHub release](https://img.shields.io/github/release/voldien/SuperResolution.svg)](https://github.com/voldien/SuperResolution/releases)
 
 A SuperResolution training program for creating/training upscaling machine learning model, developed for educational purposes only. The result may vary between training data and hyperparameter, the example are from own trained model.
 
-
-**Project Was developed using Python 3.9**
+Project Was developed using **Python 3.9**
 
 ## Features
 
 ### Model Architecture
+
 * **EDSR** - Enhanced Deep Residual Networks for Single Image Super-Resolution
 * **VDR** - Very Deep Convolutional Network
 * **AE** - AutoEncoder Super Resolution
@@ -19,6 +20,7 @@ A SuperResolution training program for creating/training upscaling machine learn
 * **SRGAN** - GAN (Generative Adversarial Network) based Super Resolution Network
 
 ### Loss/Cost Function
+
 * **SSIM** - Structural similarity index measure
 * **MSA** - Mean Square Absolute
 * **MSE** - Mean Square Error
@@ -42,7 +44,6 @@ python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-si
 ![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/1951a0c3-cebb-4ea8-818e-4a04bf28e116)
 ![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/17609c40-3b86-4a0d-a562-20d71359655a)
 
-
 ### VDR - Very Deep Convolutional Network
 
 ```bash
@@ -51,7 +52,6 @@ python superresolution/SuperResolution.py  --batch-size 16 --epochs 10 --image-s
 
 ![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/24cccb38-807f-4454-bbc6-35ad9e03b57f)
 ![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/153792f5-c35a-4fae-8bba-aed47c8902de)
-
 
 ### AE - AutoEncoder Super Resolution
 
@@ -62,7 +62,6 @@ python superresolution/SuperResolution.py  --batch-size 16 --epochs 10 --image-s
 ![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/0dac4554-6169-4662-9401-204feac33846)
 ![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/bc77e853-a5e8-4eac-880b-e6d7a5f3c801)
 
-
 ### DCNN - Deep Convolutional Super Resolution Neural Network
 
 ```bash
@@ -71,7 +70,6 @@ python superresolution/SuperResolution.py --batch-size 16 --epochs 10 --image-si
 
 ![Gangsta Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/f164b778-296d-4ded-b658-ef46d8e77910)
 ![Amagi Brilliant Park Anime EDSR Super Resolution Example from Trained model](https://github.com/voldien/SuperResolution/assets/9608088/e5c33097-72ed-4c42-92a4-3a24d45b2110)
-
 
 ### Resnet - Residual Network Deep Convolutional Super Resolution Neural Network
 
@@ -156,8 +154,8 @@ optional arguments:
                         Set Loss Function
 ```
 
-
 ### Evolution Program - HyperParameter
+
 The Evolution Program allow sto try multiple variable combination in order to find a good set of variable configuration. Similar to hyperparameter testing.
 
 ```bash
@@ -165,6 +163,7 @@ python3 superresolution/super-resolution-evolution-test.py  --epochs 8 --batch 3
 ```
 
 Argument options
+
 ```bash
 usage: SuperResolution Model Evolution [-h] [--epochs EPOCHS] [--batch-size BATCH_SIZE] [--use-checkpoint] [--checkpoint-filepath CHECKPOINT_DIR] [--checkpoint-every-epoch CHECKPOINT_EVERY_NTH_EPOCH] [--learning-rate LEARNING_RATE]
                                        [--device DEVICES] [--cpu] [--gpu] [--distribute-strategy {mirror}] [--verbosity VERBOSITY] [--use-float16] [--cache-ram] [--cache-file CACHE_PATH] [--shuffle-data-set-size DATASET_SHUFFLE_SIZE]
@@ -228,12 +227,12 @@ optional arguments:
                         Select optimizer to be used
 ```
 
-
 ## Upscale Image
 
 Upscaling images using pre-trained upscale model.
 
 ### Upscale Single Image
+
 The following allows to upscale a single image.
 
 ```bash
@@ -241,6 +240,7 @@ python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5
 ```
 
 ### Upscale Directory
+
 The following allows to upscale a whole directory.
 
 ```bash
@@ -248,17 +248,19 @@ python3 superresolution/UpScaleUtil.py --model super-resolution-model-2113109.h5
 ```
 
 ### Upscale Videos
+
 The following allows to upscale video.
 
 ```bash
 python3 superresolution/UpScaleVideo.py --model super-resolution-model-2113109.h5 --save-output  high_video/ --input-file video_directory/ --batch 32 --color-space rgb
 ```
 
-
 ## Installation Instructions
 
 ### Setup Virtual Environment
+
 python3.9 or higher
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate
@@ -267,17 +269,20 @@ source venv/bin/activate
 ## Installing Required Packages
 
 ### CPU Only
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### Nvidia - CUDA
+
 ```bash
 pip install -r requirements.txt requirements_cuda.txt
 pip install tensorflow[and-cuda]==2.14.1
 ```
 
 ### AMD - ROCM
+
 ```bash
 pip install -r requirements.txt requirements_rocm.txt
 ```
@@ -290,6 +295,7 @@ pip install -r requirements.txt requirements_rocm.txt
 docker build -t super-resolution-rocm -f Dockerfile.rocm .
 docker run --network=host --device=/dev/kfd --device=/dev/dri --ipc=host --shm-size 16G --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --name sr-rocm super-resolution-rocm 
 ```
+
 ### Nvidia - CUDA
 
 ```bash
@@ -301,22 +307,23 @@ docker build -t super-resolution-cuda -f  Dockerfile.cuda .
 docker run --network=host --gpus all --name sr-cuda super-resolution-cuda 
 ```
 
-# Convert Keras Model to TensorLite
+## Convert Keras Model to TensorLite
 
 ```bash
 python3 superresolution/generate_tflite.py --model super-resolution-model.keras --output model-lite.tflite
 ```
 
-# Convert to ONNX
+## Convert to ONNX
 
 ```bash
 python3 -m tf2onnx.convert --saved-model tensorflow-model-path --output model.onnx
 ```
 
 ## Run Python In Background (Server)
+
 When running python script as background process, it will still be terminated if closing the terminal window. However, with the **nohup** it can be run in the background as well close the terminal window.
 
-```bash 
+```bash
 nohup python3 superresolution/SuperResolution.py ...your arguments... &
 ```
 

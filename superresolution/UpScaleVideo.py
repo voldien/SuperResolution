@@ -6,6 +6,7 @@ import subprocess
 import sys
 import traceback
 import ffmpeg
+import numpy as np
 from UpScaleUtil import create_parser, super_resolution_upscale, sr_logger
 import tempfile
 from shutil import which
@@ -13,6 +14,11 @@ from shutil import which
 
 def super_resolution_upscale_video(argv):
 	parser = create_parser()
+
+	parser.add_argument('--cache-disk', type=str,
+					default='libx256', dest='cache_disk')
+	parser.add_argument('--codec', type=str,
+	                    default='libx256', dest='codec')
 
 	args = parser.parse_args(args=argv)
 
@@ -35,6 +41,8 @@ def super_resolution_upscale_video(argv):
 		sr_logger.info("File Path: " + str(input_filepaths))
 		input_filepaths: list = [input_filepaths]
 
+	output_dir = args.save_path
+
 	program_path: str = 'ffmpeg'
 
 	if which('ffmpeg') is None:
@@ -44,54 +52,78 @@ def super_resolution_upscale_video(argv):
 	for input_file_path in input_filepaths:
 		video_path = input_file_path
 		video_full_path = str(os.path.abspath(video_path))
-		output_final_video = args.save_path
-
-		#ffmpeg.input(input_file_path).output('pipe:', format='rawvideo', pix_fmt='rgb24').run(capture_stdout=True)
+		output_final_video = os.path.join(output_dir, os.path.basename(input_file_path))
 
 		# Attempt to Extract video info
 		try:
 			vid = ffmpeg.probe(filename=video_full_path)
 			streams = vid['streams']
-			video_stream = list(filter(lambda x: x['codec_type'] == 'video', streams))[0]
+
+			video_streams = list(filter(lambda x: x['codec_type'] == 'video', streams))
+			video_stream =  video_streams[0]
+
 			audio_streams = list(filter(lambda x: x['codec_type'] == 'audio', streams))
 			audio_stream = audio_streams[0] if len(audio_streams) > 0 else None
+
 			fps_rate = eval(video_stream['avg_frame_rate'])
+			video_width = video_stream['width']
+			video_height = video_stream['height']
+
+			source_extract_fps_rate = eval(video_stream['r_frame_rate'])
 		except Exception:
-			sr_logger.info("Failed to Extract Video Meta from {} | Skipping File", video_full_path)
+			sr_logger.error("Failed to Extract Video Meta from %s | Skipping File", video_full_path)
 			continue
 		
+		# Extract Video Frames
+		out, _ = (ffmpeg.input(video_full_path).output('pipe:', format='rawvideo', pix_fmt='rgb24').run(capture_stdout=True))
+		video_data = np.frombuffer(out, np.uint8).reshape([-1, video_height, video_width, 3])
+		del out
+		out = None
+		
+		print(video_data.shape)
+
 		# 
 		try:
 			sr_logger.info("Starting %s", video_full_path)
 			with tempfile.TemporaryDirectory() as tmpdirname:
 				sr_logger.info('Created temporary directory %s', str(tmpdirname))
+
 				source_image_path = os.path.join(tmpdirname, 'source')
 				upscale_image_path = os.path.join(tmpdirname, 'upscale')
+
+				sr_logger.debug(source_image_path)
 				os.mkdir(source_image_path)
+				sr_logger.debug(upscale_image_path)
 				os.mkdir(upscale_image_path)
 
-				# Save images to tmp
-				source_extract_destination_pattern = os.path.join(source_image_path, frame_pattern)
-				video_image_extract_command: list = []
-				source_extract_fps_rate = str.format("fps={0}", fps_rate)
-				video_image_extract_command.extend(
-					[program_path, '-i', video_full_path, '-vf', source_extract_fps_rate,
-					 source_extract_destination_pattern])
-				result = subprocess.call(video_image_extract_command, stdout=subprocess.PIPE)
+				# Save images to tmp directory
+				if video_data is None:
+					sr_logger.debug("Prepare to Extract Video Frames to %s", source_image_path)
+					source_extract_destination_pattern = os.path.join(source_image_path, frame_pattern)
+					video_image_extract_command: list = []
+					source_extract_fps_rate = str.format("fps={0}", fps_rate)
+					video_image_extract_command.extend(
+						[program_path, '-i', video_full_path, '-vf', source_extract_fps_rate,
+						source_extract_destination_pattern])
+					result = subprocess.call(video_image_extract_command, stdout=subprocess.PIPE)
 
-				# 
-				if result != 0:
-					sr_logger.error("Failed to extract image frames from video %s | Skipping File", video_full_path)
-					os.rmdir(source_image_path)
-					continue
+					# Check if extraction of files successed
+					if result != 0:
+						sr_logger.error("Failed to extract image frames from video %s | Skipping File", video_full_path)
+						os.rmdir(source_image_path)
+						continue
 
 				# Upscale and save to tmp
+				sr_logger.info("Preparing Upscaling Routine")
 				upscale_commands = []
-				upscale_commands.extend(['--input-file', source_image_path])
+				upscale_commands.extend(['--input-file', "video_data"])
 				upscale_commands.extend(['--save-output', upscale_image_path])
 				upscale_commands.extend(['--model', args.model_filepath])
-				# TODO: update variables from parsed
-				super_resolution_upscale(upscale_commands)
+
+				super_resolution_upscale(upscale_commands, np=video_data)
+
+				# Create directory
+				os.mkdir(os.path.dirname(output_final_video))
 
 				# Convert the upscale.
 				upscale_extract_destination_pattern = os.path.join(upscale_image_path, frame_pattern)
@@ -107,7 +139,7 @@ def super_resolution_upscale_video(argv):
 					 output_upscale_video_path])
 				result = subprocess.call(create_video_command, stdout=subprocess.PIPE)
 				if result != 0:
-					sr_logger.error("Failed to construct video from the upscaled images | Skipping file")
+					sr_logger.error("Failed to construct video from the upscaled images | Skipping file:")
 					continue
 
 				# Extract Audio # TODO: pipe 
@@ -130,13 +162,14 @@ def super_resolution_upscale_video(argv):
 						 output_final_video])
 					result = subprocess.call(merge_video_audio_args, stdout=subprocess.PIPE)
 
-				# 
-				if result != 0:
-					sr_logger.error("Failed to merge video and audio together | Skipping file")
-					continue
+					# 
+					if result != 0:
+						sr_logger.error("Failed to merge video and audio together | Skipping file")
+						continue
 				else:
+					sr_logger.info("No Audio Track, transfering file directly")
 					shutil.move(output_upscale_video_path, output_final_video)
-				
+					
 				# Remove tmp original and upscaled files.
 				os.rmdir(source_image_path)
 				os.remove(output_audio)
@@ -144,6 +177,7 @@ def super_resolution_upscale_video(argv):
 		except Exception as ex:
 			sr_logger.error("Error occurred during up-scaling of %s", video_full_path)
 			sr_logger.error(ex)
+			traceback.print_exc()
 
 
 # If running the script as main executable

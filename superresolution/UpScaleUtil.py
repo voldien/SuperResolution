@@ -104,7 +104,7 @@ def upscale_logic(input_im: Image, image_input_size: tuple, image_scale: tuple, 
 	return upscale_image, final_cropped_size
 
 
-def save_result_file(argument):
+def save_result_2_file(argument):
 	upscale_image, new_cropped_size, full_output_path = argument
 
 	# Crop image final size image.
@@ -171,7 +171,7 @@ def create_parser() -> argparse.ArgumentParser:
 	return parser
 
 
-def super_resolution_upscale(argv):
+def super_resolution_upscale(argv, **kwargs):
 	parser = create_parser()
 
 	args = parser.parse_args(args=argv)
@@ -191,24 +191,30 @@ def super_resolution_upscale(argv):
 		if not os.path.exists(output_path):
 			os.mkdir(output_path)
 
-		# TODO improved extraction of filepaths.
-		input_filepaths: str = args.input_files
-		#if isinstance(input_file_path, object):
-		#	pass
+		input_filepaths = args.input_files
+		if "np" in kwargs.keys():	# Optionally
+			input_filepaths = kwargs["np"]
 
-		if os.path.isdir(input_filepaths):
-			sr_logger.info("Directory Path: " + str(input_filepaths))
-			all_files = os.listdir(input_filepaths)
-			base_bath = input_filepaths
-			input_filepaths: list = [os.path.join(
-				base_bath, path) for path in all_files]
-		else:  # Convert to list
-			sr_logger.info("File Path: " + str(input_filepaths))
-			input_filepaths: list = [input_filepaths]
+		# TODO improved extraction of filepaths.
+		if isinstance(input_filepaths, (np.ndarray)): #  Load from Memory.
+			sr_logger.info("Input files is numpy array")
+
+		else: # Load from Files
+			# Check if Directory => search for file inside
+			if os.path.isdir(input_filepaths):
+				sr_logger.info("Directory Path: " + str(input_filepaths))
+				all_files = os.listdir(input_filepaths)
+				base_bath = input_filepaths
+				input_filepaths: list = [os.path.join(
+					base_bath, path) for path in all_files]
+				#TODO: sort by filename
+			else:  # Convert to list
+				sr_logger.info("File Path: " + str(input_filepaths))
+				input_filepaths: list = [input_filepaths]
 
 		batch_size: int = args.batch_size * strategy.num_replicas_in_sync
 
-		sr_logger.info("Number of files {0}".format(len(input_filepaths)))
+		sr_logger.info("Number of files/images {0}".format(len(input_filepaths)))
 
 		upscale_model = tf.keras.models.load_model(
 			filepath=args.model_filepath, compile=False)
@@ -238,27 +244,35 @@ def super_resolution_upscale(argv):
 		# Create a pool of task scheduler.
 		pool = Pool(processes=16)
 
-		for input_file_path in input_filepaths:
+		for index, input_file_path in enumerate(input_filepaths):
 
-			if not os.path.isfile(input_file_path):
-				continue
-			sr_logger.info("Starting Image {0}".format(input_file_path))
-
-			#
-			base_filepath: str = os.path.basename(input_file_path)
-			full_output_path: str = os.path.join(
-				output_path, base_filepath)
+			sr_logger.info("{0}/{1} Starting Image".format(index, len(input_filepaths)))
 
 			# Open File and Convert to RGB Color Space.
-			input_im: Image = Image.open(input_file_path)
+			if isinstance(input_file_path, str):
+				if not os.path.isfile(input_file_path):
+					sr_logger.debug("Not a valid file")
+					continue
+				base_filepath: str = os.path.basename(input_file_path)
+				full_output_path: str = os.path.join(
+					output_path, base_filepath)
+				input_im: Image = Image.open(input_file_path)
+			else:
+				# Load from memory.
+				full_output_path: str = os.path.join(
+					output_path, "{0}.png".format(index))
+				input_im = Image.fromarray(input_file_path)
+
 
 			upscale_image, final_cropped_size = upscale_logic(input_im=input_im, image_input_size=image_input_shape,
 			                                                  image_scale=(
 				                                                  width_scale, height_scale), batch_size=batch_size,
 			                                                  color_space=color_space, upscale_model=upscale_model)
 
+			# Saving async to prevent the main thread stalling - to allow dispatching of inference on the GPU faster.
 			sr_logger.debug(str.format("Saving {0}", full_output_path))
-			pool.apply_async(save_result_file, [
+
+			pool.apply_async(save_result_2_file, [
 				(upscale_image, final_cropped_size, full_output_path)])
 		# Close and wait intill all tasks has been finished.
 		pool.close()
