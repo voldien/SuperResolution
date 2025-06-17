@@ -18,8 +18,6 @@ from skimage.color import rgb2lab
 from core.common import setup_tensorflow_strategy
 from util.util import upscale_image_func
 
-
-
 sr_logger: Logger = logging.getLogger('SuperResolution Upscale Program')
 #
 console_handler = logging.StreamHandler()
@@ -36,7 +34,8 @@ class UpScale:
 		self.upscale_model = tf.keras.models.load_model(filepath=model_path, compile=False)
 		self.color_space = color_space
 
-	def upscale_image(self, input_im: Image, image_input_size: tuple, image_scale: tuple, batch_size: int) -> (Image, tuple): # type: ignore
+	def upscale_image(self, input_im: Image, image_input_size: tuple, image_scale: tuple, batch_size: int) -> (
+	Image, tuple):  # type: ignore
 		# Open File and Convert to RGB Color Space.
 		input_im: Image = input_im.convert('RGB')
 		width_scale, height_scale = image_scale
@@ -191,8 +190,7 @@ def super_resolution_upscale(argv, **kwargs):
 	if args.debug:
 		sr_logger.setLevel(logging.DEBUG)
 
-
-	async_finished_callback = save_result_2_file # Default output file path.
+	async_finished_callback = save_result_2_file  # Default output file path.
 	if "upscale_callback" in kwargs.keys():  # Optionally
 		async_finished_callback = kwargs["upscale_callback"]
 
@@ -289,11 +287,11 @@ def super_resolution_upscale(argv, **kwargs):
 
 			# Saving async to prevent the main thread stalling - to allow dispatching of inference on the GPU faster.
 			sr_logger.debug(str.format("Saving {0}", full_output_path))
-			
+
 			if async_finished_callback:
 				async_finished_callback([index, upscale_image, final_cropped_size, full_output_path])
-				#pool.apply_async(lambda x: async_finished_callback(x), [
-				#	(index, upscale_image, final_cropped_size, full_output_path)])
+		# pool.apply_async(lambda x: async_finished_callback(x), [
+		#	(index, upscale_image, final_cropped_size, full_output_path)])
 		# Close and wait intill all tasks has been finished.
 		pool.close()
 		pool.join()
