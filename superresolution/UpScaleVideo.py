@@ -154,12 +154,10 @@ def super_resolution_upscale_video(argv):
 					if extract_audio_path: # TODO: add pipe support
 						# Merge upscale and Audio.
 						source_audio = ffmpeg.input(extract_audio_path)
-						upscaled_video = ffmpeg.input(source_video_full_path)
+						upscaled_video = ffmpeg.input(output_upscale_video_no_audio_path)
 
 						outputstream = ffmpeg.output(upscaled_video, source_audio, output_final_video, vcodec='copy', acodec='copy').overwrite_output()
 						ffmpeg.run(outputstream, quiet=False)  
-
-
 					else:
 						sr_logger.info("No Audio Track, transfering file directly without any video/audio Merging")
 						shutil.move(output_upscale_video_no_audio_path, output_final_video)
