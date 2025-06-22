@@ -19,7 +19,8 @@ from shutil import which
 def super_resolution_upscale_video(argv):
 	parser = create_parser()
 
-	parser.add_argument('--cache-disk', action='store_true',   help='Use Disk Cache During the Upscaling process rather then system Memory (Legacy)',
+	# 
+	parser.add_argument('--cache-disk', action='store_true', help='Use Disk Cache During the Upscaling process rather then system Memory (Legacy)',
 	                    default=False, dest='use_cache_disk')
 	parser.add_argument('--codec', type=str, help='Allow to set a specific type of codec for the video',
 	                    default='hevc', dest='codec')
@@ -93,9 +94,15 @@ def super_resolution_upscale_video(argv):
 		if not parsed_args.use_cache_disk:
 
 			# Extract Video Frames TODO: make async 
-			input_frame_process, _ = (
-				ffmpeg.input(source_video_full_path, r=source_r_frame_rate).output('pipe:', format='rawvideo', pix_fmt='rgb24', vframes=parsed_args.frames, start_number=0).run(capture_stdout=True))
-			video_data = np.frombuffer(input_frame_process, np.uint8).reshape([-1, video_height, video_width, 3])
+			try:
+				input_frame_process, _ = (
+					ffmpeg.input(source_video_full_path, r=source_r_frame_rate).output('pipe:', format='rawvideo', pix_fmt='rgb24', vframes=parsed_args.frames, start_number=0, r=source_r_frame_rate).run(capture_stdout=True))
+				video_data = np.frombuffer(input_frame_process, np.uint8).reshape([-1, video_height, video_width, 3])
+			except Exception as err:
+				sr_logger.error("Failed to Extract Video Data from %s | Skipping File", source_video_full_path)
+				print(err.stderr)
+				continue
+
 			#
 			try:
 				sr_logger.info("Starting %s", source_video_full_path)
@@ -153,8 +160,8 @@ def super_resolution_upscale_video(argv):
 
 					if extract_audio_path: # TODO: add pipe support
 						# Merge upscale and Audio.
-						source_audio = ffmpeg.input(extract_audio_path)
-						upscaled_video = ffmpeg.input(output_upscale_video_no_audio_path)
+						source_audio = ffmpeg.input(extract_audio_path,vsync=1)
+						upscaled_video = ffmpeg.input(output_upscale_video_no_audio_path, vsync=1)
 
 						outputstream = ffmpeg.output(upscaled_video, source_audio, output_final_video, vcodec='copy', acodec='copy').overwrite_output()
 						ffmpeg.run(outputstream, quiet=False)  
